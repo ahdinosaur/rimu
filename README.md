@@ -1,5 +1,7 @@
 # rimu
 
+[![crates.io version](https://img.shields.io/crates/v/rimu.svg?style=flat-square)](https://crates.io/crates/rimu) [![download](https://img.shields.io/crates/d/rimu.svg?style=flat-square)](https://crates.io/crates/rimu) [![docs.rs docs](https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square)](https://docs.rs/rimu) [![ci status](https://img.shields.io/github/actions/workflow/status/ahdinosaur/rimu/rust.yml?branch=main&style=flat-square)](https://github.com/ahdinosaur/rimu/actions/workflows/rust.yml)
+
 _Work in progress..._
 
 Rimu is a structured template system. Unlike other template systems, Rimu operates on data structures, not text.
@@ -65,24 +67,17 @@ Output:
 ```
 
 #### Let
-
-TODO
-
 #### If
-
-TODO
-
 #### Match
-
-TODO
-
 #### Switch
-
-TODO
-
 #### Map
-
-TODO
+#### MapObject
+#### Flatten
+#### FlattenDeep
+#### Merge
+#### MergeDeep
+#### Sort
+#### Reverse
 
 ## Inspiration
 
