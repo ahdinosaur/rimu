@@ -1,0 +1,71 @@
+- title:    string interpolation
+  context:  {key: 'world', num: 1}
+  template: {message: 'hello ${key}', 'k-${num}': true}
+  output:   {message: 'hello world', 'k-1': true}
+
+#- title:    string interpolation with object evaluation
+#  context:  {key: 'world', num: 1}
+#  template: {message: 'hello ${{a: "world"}.a}', 'k-${{a: 1}.a + {a: 0}.a}': true}
+#  output:   {message: 'hello world', 'k-1': true}
+
+- title: multiple string interpolation (1)
+  context:  {a: 'hello', b: 'world'}
+  template: {message: '${a} ${b}'}
+  output:   {message: 'hello world'}
+
+- title: multiple string interpolation (2)
+  context:  {a: 'hello', b: 'world'}
+  template: {message: '${a}$$${b}'}
+  output:   {message: 'hello$${b}'}
+
+- title: multiple string interpolation (3)
+  context:  {a: 'hello', b: 'world'}
+  template: {message: '${a}##${b}'}
+  output:   {message: 'hello##world'}
+
+- title: string interpolation escapes
+  context:  {}
+  template: {message: 'a literal $${in a string}'}
+  output:   {message: 'a literal ${in a string}'}
+
+- title: string interpolation escapes with more $
+  context:  {x: 'a'}
+  template: ['${x}', '$${x}', '$$${x}', '$$$${x}', '$$$$${x}']
+  output:   ['a', '${x}', '$${x}', '$$${x}', '$$$${x}']
+
+- title: string interpolation of keys
+  context: {name: 'foo', value: 'bar'}
+  template: {"tc_${name}": "${value}"}
+  output: {"tc_foo": "bar"}
+
+#- title: string interpolation with unbalanced }
+#  context:  {}
+#  template: {message: 'tricky ${"}}}}"}'}
+#  output:   {message: 'tricky }}}}'}
+
+- title:    can't interpolate arrays
+  context:  {key: [1,2,3]}
+  template: {message: 'hello ${key}'}
+  error:
+    message: "interpolation of 'key' produced an array or object: [1, 2, 3]"
+
+- title:    can't interpolate objects
+  context:  {key: {}}
+  template: 'hello ${key}'
+  error:
+    message: "interpolation of 'key' produced an array or object: {}"
+
+- title:    booleans interpolate
+  context:  {t: true, f: false}
+  template: '${t} or ${f}: yeast is a bacterium'
+  output:   'true or false: yeast is a bacterium'
+
+- title:    numbers interpolate
+  context:  {round: 3, decimal: 3.75}
+  template: '${round}, really ${decimal}'
+  output:   '3, really 3.75'
+
+- title:    nulls interpolate
+  context:  {nothing: null}
+  template: 'big pile of ${nothing}'
+  output:   'big pile of '
