@@ -1,8 +1,12 @@
 mod context;
+mod engine;
+mod interpolate;
+mod operations;
 mod template;
 mod value;
 
 pub use context::Context;
+pub use engine::Engine;
 pub use template::{Template, TemplateError};
 pub use value::{convert, from_value, List, Number, Object, Value, ValueError};
 
@@ -12,7 +16,7 @@ mod tests {
 
     use toml;
 
-    use crate::{Context, Template, Value};
+    use crate::{Context, Engine, Template, Value};
 
     #[test]
     fn test_something() -> Result<(), Box<dyn Error>> {
@@ -31,7 +35,9 @@ three = "{{ b }}"
 
         let tmpl: Template = toml::from_str(content).unwrap();
 
-        let value: Value = tmpl.evaluate(&ctx)?;
+        let engine = Engine::default();
+        let value: Value = engine.render(&tmpl, &ctx)?;
+
         println!("{:?}", value);
 
         Ok(())

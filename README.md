@@ -4,7 +4,9 @@
 
 _Work in progress..._
 
-Rimu is a structured template system. Unlike other template systems, Rimu operates on data structures, not text.
+Rimu is a structured template system.
+
+Unlike other template systems, Rimu operates on data structures, not text.
 
 We use a data structure as a template, then using another data structure as context, produce an output data structure.
 

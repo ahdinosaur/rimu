@@ -1,16 +1,11 @@
-pub(crate) mod evaluate;
-pub(crate) mod interpolate;
-pub(crate) mod operations;
-
 use std::collections::BTreeMap;
 
 use rhai::EvalAltResult;
 use serde::{de::value::MapDeserializer, Deserialize};
 
-use self::{evaluate::evaluate, operations::Operations};
 use crate::{
+    operations::Operations,
     value::{Number, Value, ValueError},
-    Context,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -40,12 +35,6 @@ pub enum Template {
     List(List),
     Object(Object),
     Operation(Operations),
-}
-
-impl Template {
-    pub fn evaluate(&self, context: &Context) -> Result<Value, TemplateError> {
-        evaluate(self, context)
-    }
 }
 
 impl TryFrom<Value> for Template {

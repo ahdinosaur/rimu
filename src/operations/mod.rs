@@ -1,12 +1,9 @@
-use rhai::{Dynamic, Engine};
 use serde::Deserialize;
 
-use crate::{context::Context, value::Value};
-
-use super::{evaluate::evaluate, Template, TemplateError};
+use crate::{Context, Engine, Template, TemplateError, Value};
 
 pub(crate) trait Operation {
-    fn evaluate(&self, context: &Context) -> Result<Template, TemplateError>;
+    fn render(&self, engine: &Engine, context: &Context) -> Result<Template, TemplateError>;
 }
 
 #[derive(Clone, Debug, PartialEq, Deserialize)]
@@ -17,9 +14,13 @@ pub enum Operations {
 }
 
 impl Operations {
-    pub(crate) fn evaluate(&self, context: &Context) -> Result<Template, TemplateError> {
+    pub(crate) fn render(
+        &self,
+        engine: &Engine,
+        context: &Context,
+    ) -> Result<Template, TemplateError> {
         match self {
-            Operations::Eval(eval) => eval.evaluate(context),
+            Operations::Eval(eval) => eval.render(engine, context),
         }
     }
 }
@@ -30,23 +31,14 @@ pub struct EvalOperation {
 }
 
 impl Operation for EvalOperation {
-    fn evaluate(&self, context: &Context) -> Result<Template, TemplateError> {
+    fn render(&self, engine: &Engine, context: &Context) -> Result<Template, TemplateError> {
         let expr = self.expr.as_ref();
-        let value = evaluate(expr, context)?;
+        let value = engine.render(expr, context)?;
         let Value::String(expr) = value else {
             return Err(TemplateError::InvalidOperation { template: expr.clone() })
         };
-        let mut rhai_scope = context.to_rhai_scope();
-        let engine = Engine::new();
 
-        let result: Dynamic = engine.eval_expression_with_scope(&mut rhai_scope, &expr)?;
-
-        let value: Template = match rhai::serde::from_dynamic(&result) {
-            Ok(value) => value,
-            Err(error) => {
-                panic!("Failed to convert dynamic to value: {}", error);
-            }
-        };
+        let value: Template = engine.evaluate(&expr, context)?;
 
         Ok(value)
     }
@@ -58,8 +50,9 @@ mod tests {
 
     use crate::{
         context::Context,
-        template::{evaluate::evaluate, Template},
+        template::Template,
         value::{Number, Value},
+        Engine,
     };
 
     #[test]
@@ -77,7 +70,9 @@ three:
         let mut context = Context::new();
         context.insert("one", Value::Number(Number::Signed(98)));
 
-        let value: Value = evaluate(&template, &context)?;
+        let engine = Engine::default();
+
+        let value: Value = engine.render(&template, &context)?;
 
         println!("{:?}", value);
 
