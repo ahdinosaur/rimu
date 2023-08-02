@@ -12,7 +12,11 @@ We use a data structure as a template, then using another data structure as cont
 
 ## Install
 
-TODO
+Add `rimu` to your Cargo.toml
+
+```toml
+rimu = "*"
+```
 
 ## Usage
 
