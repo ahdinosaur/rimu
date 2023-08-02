@@ -4,7 +4,7 @@ use rhai::EvalAltResult;
 use serde::{de::value::MapDeserializer, Deserialize};
 
 use crate::{
-    operations::Operations,
+    operations::{find_operator, parse_operation, unescape_non_operation, Operations},
     value::{Number, Value, ValueError},
 };
 
@@ -18,6 +18,8 @@ pub enum TemplateError {
     InvalidOperation { template: Template },
     #[error("missing context: {var}")]
     MissingContext { var: String },
+    #[error("value error: {0}")]
+    Value(#[from] ValueError),
     #[error("rhai eval error: {0}")]
     RhaiEval(#[from] Box<EvalAltResult>),
 }
@@ -38,7 +40,7 @@ pub enum Template {
 }
 
 impl TryFrom<Value> for Template {
-    type Error = ValueError;
+    type Error = TemplateError;
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         match value {
@@ -54,14 +56,11 @@ impl TryFrom<Value> for Template {
                 Ok(Template::List(next_list))
             }
             Value::Object(object) => {
-                if let Some(Value::String(typ)) = object.get("type") {
-                    if typ.starts_with("op.") {
-                        // https://github.com/serde-rs/serde/issues/1739#issuecomment-585442986
-                        let operation =
-                            Operations::deserialize(MapDeserializer::new(object.into_iter()))?;
-                        return Ok(Template::Operation(operation));
-                    }
+                if let Some(operator) = find_operator(object.clone())? {
+                    return Ok(Template::Operation(parse_operation(&operator, &object)?));
                 }
+
+                let object = unescape_non_operation(object.clone());
 
                 let mut next_object = BTreeMap::new();
                 for (key, value) in object.into_iter() {

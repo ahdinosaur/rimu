@@ -55,8 +55,7 @@ Template:
 ```yaml
 - a
 - b
-- type: ops.eval
-  expr: a + b
+- $expr: a + b
 ```
 
 Context:

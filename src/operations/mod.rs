@@ -1,15 +1,13 @@
 use serde::Deserialize;
 
-use crate::{Context, Engine, Template, TemplateError, Value};
+use crate::{Context, Engine, Object, Template, TemplateError, Value};
 
 pub(crate) trait Operation {
     fn render(&self, engine: &Engine, context: &Context) -> Result<Template, TemplateError>;
 }
 
-#[derive(Clone, Debug, PartialEq, Deserialize)]
-#[serde(tag = "type")]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Operations {
-    #[serde(alias = "op.eval")]
     Eval(EvalOperation),
 }
 
@@ -25,9 +23,58 @@ impl Operations {
     }
 }
 
+pub(crate) fn find_operator(object: Object) -> Result<Option<String>, TemplateError> {
+    let operators: Vec<&String> = object
+        .keys()
+        .filter(|key| {
+            let mut chars = key.chars();
+            chars.next() == Some('$') && chars.next() != Some('$')
+        })
+        .collect();
+    if operators.len() > 1 {
+        Err(TemplateError::TooManyOperators)
+    } else if operators.len() == 1 {
+        Ok(Some(operators[0].to_owned()))
+    } else {
+        Ok(None)
+    }
+}
+
+pub(crate) fn parse_operation(
+    operator: &str,
+    object: &Object,
+) -> Result<Operations, TemplateError> {
+    match operator {
+        "$eval" => {
+            let expr: Template = object.get("$eval").unwrap().clone().try_into()?;
+            let eval = EvalOperation {
+                expr: Box::new(expr),
+            };
+            Ok(Operations::Eval(eval))
+        }
+        _ => Err(TemplateError::UnknownOperator {
+            operator: operator.to_owned(),
+        }),
+    }
+}
+
+pub(crate) fn unescape_non_operation(object: Object) -> Object {
+    let mut result = Object::new();
+    for (key, value) in object.iter() {
+        // un-escape escaped operators
+        let key = if key.starts_with("$$") {
+            &key[1..]
+        } else {
+            &key[..]
+        };
+        result.insert(key.to_string(), value.clone());
+    }
+    result
+}
+
 #[derive(Clone, Debug, PartialEq, Deserialize)]
 pub struct EvalOperation {
-    expr: Box<Template>,
+    pub expr: Box<Template>,
 }
 
 impl Operation for EvalOperation {
@@ -59,8 +106,7 @@ mod tests {
     fn test_eval() -> Result<(), Box<dyn Error>> {
         let content = r#"
 zero:
-  type: op.eval
-  expr: one + 2
+  $eval: one + 2
 three:
   four: five
 "#;

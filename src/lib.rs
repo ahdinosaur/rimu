@@ -22,8 +22,7 @@ mod tests {
     fn test_something() -> Result<(), Box<dyn Error>> {
         let content = r#"
 [one]
-type = "op.eval"
-expr = "a"
+"$eval" = "a"
 
 [two]
 three = "{{ b }}"
