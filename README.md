@@ -55,7 +55,7 @@ Template:
 ```yaml
 - a
 - b
-- $expr: a + b
+- $eval: a + b
 ```
 
 Context:
@@ -68,8 +68,8 @@ b: 2
 Output:
 
 ```yaml
-- 1
-- 2
+- a
+- b
 - 3
 ```
 
