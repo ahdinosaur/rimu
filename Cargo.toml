@@ -25,6 +25,7 @@ toml = "0.7.6"
 normalize-path = "0.2.1"
 os_info = "3.7.0"
 ryu = "1.0.15"
+serde_spanned = "0.6.3"
 
 [dev-dependencies]
 map-macro = "0.2.6"
