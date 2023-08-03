@@ -1,11 +1,22 @@
-use rimu::{Context, Engine, Template, Value};
-use std::error::Error;
+use rimu::{from_value, Context, Engine, Template, Value};
+use std::{fs, path::Path};
 
-#[track_caller]
-fn test_spec(template: &str, context: &str, output: &str) -> Result<(), Box<dyn Error>> {
-    let template: Template = serde_yaml::from_str(template)?;
-    let context_val: Value = serde_yaml::from_str(context)?;
-    let output: Value = serde_yaml::from_str(output)?;
+fn test_spec(path: &Path) -> datatest_stable::Result<()> {
+    let content = fs::read_to_string(path)?;
+    let value: Value = serde_yaml::from_str(&content)?;
+
+    let Value::Object(value) = value else {
+        panic!("Spec should be object");
+    };
+
+    let template: Value = value
+        .get("template")
+        .expect("template should exist")
+        .clone();
+    let context_val: Value = value.get("context").expect("context should exist").clone();
+    let output: Value = value.get("output").expect("output should exist").clone();
+
+    let template: Template = from_value(template)?;
 
     let engine = Engine::default();
 
@@ -24,32 +35,4 @@ fn test_spec(template: &str, context: &str, output: &str) -> Result<(), Box<dyn 
     Ok(())
 }
 
-#[test]
-fn eval_identity() -> Result<(), Box<dyn Error>> {
-    test_spec(
-        include_str!("./spec/identity/template.yml"),
-        include_str!("./spec/identity/context.yml"),
-        include_str!("./spec/identity/output.yml"),
-    )?;
-    Ok(())
-}
-
-#[test]
-fn eval() -> Result<(), Box<dyn Error>> {
-    test_spec(
-        include_str!("./spec/eval/template.yml"),
-        include_str!("./spec/eval/context.yml"),
-        include_str!("./spec/eval/output.yml"),
-    )?;
-    Ok(())
-}
-
-#[test]
-fn eval_no_context() -> Result<(), Box<dyn Error>> {
-    test_spec(
-        include_str!("./spec/eval-no-context/template.yml"),
-        include_str!("./spec/eval-no-context/context.yml"),
-        include_str!("./spec/eval-no-context/output.yml"),
-    )?;
-    Ok(())
-}
+datatest_stable::harness!(test_spec, "./tests/spec", r"^.*/*");

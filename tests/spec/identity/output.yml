@@ -1,7 +1,0 @@
-key:
-  - 1
-  - 2
-  - key2: 'val'
-    key3: 1
-  - true
-  - f: false

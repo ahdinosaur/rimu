@@ -1,0 +1,15 @@
+template:
+  $eval: 'key'
+context:
+  key:
+    - 'value'
+    - 1
+    - 2
+    - true
+    - {}
+output:
+  - 'value'
+  - 1
+  - 2
+  - true
+  - {}
