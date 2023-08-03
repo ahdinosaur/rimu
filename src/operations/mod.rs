@@ -44,13 +44,9 @@ pub(crate) fn parse_operation(
     operator: &str,
     object: &Object,
 ) -> Result<Operations, TemplateError> {
+    let map_de = MapDeserializer::new(object.clone().into_iter());
     match operator {
-        "$eval" => {
-            let eval =
-                EvalOperation::deserialize(MapDeserializer::new(object.clone().into_iter()))?
-                    .clone();
-            Ok(Operations::Eval(eval))
-        }
+        "$eval" => Ok(Operations::Eval(EvalOperation::deserialize(map_de)?)),
         _ => Err(TemplateError::UnknownOperator {
             operator: operator.to_owned(),
         }),
@@ -68,18 +64,12 @@ pub(crate) fn unescape_non_operation_key(key: &str) -> &str {
 #[derive(Clone, Debug, PartialEq, Deserialize)]
 pub struct EvalOperation {
     #[serde(alias = "$eval")]
-    pub expr: Box<Template>,
+    pub expr: String,
 }
 
 impl Operation for EvalOperation {
     fn render(&self, engine: &Engine, context: &Context) -> Result<Template, TemplateError> {
-        let expr = self.expr.as_ref();
-        let value = engine.render(expr, context)?;
-        let Value::String(expr) = value else {
-            return Err(TemplateError::InvalidOperation { template: expr.clone() })
-        };
-
-        let value: Template = engine.evaluate(&expr, context)?;
+        let value: Template = engine.evaluate(&self.expr, context)?;
 
         Ok(value)
     }

@@ -14,8 +14,6 @@ pub enum TemplateError {
     UnknownOperator { operator: String },
     #[error("too many operators")]
     TooManyOperators,
-    #[error("invalid operation: {:?}", template)]
-    InvalidOperation { template: Template },
     #[error("missing context: {var}")]
     MissingContext { var: String },
     #[error("value error: {0}")]
@@ -96,7 +94,7 @@ three:
         let expected = Template::Object(btree_map! {
             "zero".into() => Template::Operation(
                 Operations::Eval(EvalOperation {
-                    expr: Box::new(Template::String("one + 2".into()))
+                    expr: "one + 2".into()
                 })
             ),
             "three".into() => Template::Object(btree_map! {
