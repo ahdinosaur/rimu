@@ -14,12 +14,14 @@ pub use value::{convert, from_value, List, Number, Object, Value, ValueError};
 mod tests {
     use std::error::Error;
 
+    use map_macro::btree_map;
+    use pretty_assertions::assert_eq;
     use toml;
 
     use crate::{Context, Engine, Template, Value};
 
     #[test]
-    fn test_something() -> Result<(), Box<dyn Error>> {
+    fn something() -> Result<(), Box<dyn Error>> {
         let content = r#"
 [one]
 "$eval" = "a"
@@ -27,17 +29,23 @@ mod tests {
 [two]
 three = "{{ b }}"
 "#;
+        let tmpl: Template = toml::from_str(content)?;
 
+        let engine = Engine::default();
         let mut ctx = Context::new();
         ctx.insert("a", "apples");
         ctx.insert("b", "blueberries");
 
-        let tmpl: Template = toml::from_str(content).unwrap();
+        let actual: Value = engine.render(&tmpl, &ctx)?;
 
-        let engine = Engine::default();
-        let value: Value = engine.render(&tmpl, &ctx)?;
+        let expected: Value = Value::Object(btree_map! {
+            "one".into() => Value::String("apples".into()),
+            "two".into() => Value::Object(btree_map! {
+                "three".into() => Value::String("blueberries".into())
+            })
+        });
 
-        println!("{:?}", value);
+        assert_eq!(expected, actual);
 
         Ok(())
     }

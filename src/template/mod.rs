@@ -1,10 +1,10 @@
 use std::collections::BTreeMap;
 
 use rhai::EvalAltResult;
-use serde::{de::value::MapDeserializer, Deserialize};
+use serde::Deserialize;
 
 use crate::{
-    operations::{find_operator, parse_operation, unescape_non_operation, Operations},
+    operations::{find_operator, parse_operation, unescape_non_operation_key, Operations},
     value::{Number, Value, ValueError},
 };
 
@@ -56,18 +56,64 @@ impl TryFrom<Value> for Template {
                 Ok(Template::List(next_list))
             }
             Value::Object(object) => {
-                if let Some(operator) = find_operator(object.clone())? {
+                if let Some(operator) = find_operator(&object)? {
                     return Ok(Template::Operation(parse_operation(&operator, &object)?));
                 }
 
-                let object = unescape_non_operation(object.clone());
-
                 let mut next_object = BTreeMap::new();
                 for (key, value) in object.into_iter() {
+                    let key = unescape_non_operation_key(&key).to_owned();
                     next_object.insert(key, value.try_into()?);
                 }
                 Ok(Template::Object(next_object))
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use map_macro::btree_map;
+    use pretty_assertions::assert_eq;
+    use std::error::Error;
+
+    use crate::{
+        operations::{EvalOperation, Operations},
+        Template, Value,
+    };
+
+    #[test]
+    fn parse_template() -> Result<(), Box<dyn Error>> {
+        let content = r#"
+zero:
+  $eval: one + 2
+three:
+  four:
+    - five
+    - six
+"#;
+
+        let expected = Template::Object(btree_map! {
+            "zero".into() => Template::Operation(
+                Operations::Eval(EvalOperation {
+                    expr: Box::new(Template::String("one + 2".into()))
+                })
+            ),
+            "three".into() => Template::Object(btree_map! {
+                "four".into() => Template::List(vec![
+                    Template::String("five".into()),
+                    Template::String("six".into())
+                ])
+            })
+        });
+
+        let actual: Template = serde_yaml::from_str(content)?;
+        assert_eq!(expected, actual);
+
+        let value: Value = serde_yaml::from_str(content)?;
+        let actual: Template = value.try_into()?;
+        assert_eq!(expected, actual);
+
+        Ok(())
     }
 }

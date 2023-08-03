@@ -227,7 +227,7 @@ impl serde::Serializer for Serializer {
 
     fn serialize_struct(
         self,
-        name: &'static str,
+        _name: &'static str,
         len: usize,
     ) -> Result<Self::SerializeStruct, ValueError> {
         self.serialize_map(Some(len))

@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{de::value::MapDeserializer, Deserialize};
 
 use crate::{Context, Engine, Object, Template, TemplateError, Value};
 
@@ -23,7 +23,7 @@ impl Operations {
     }
 }
 
-pub(crate) fn find_operator(object: Object) -> Result<Option<String>, TemplateError> {
+pub(crate) fn find_operator(object: &Object) -> Result<Option<String>, TemplateError> {
     let operators: Vec<&String> = object
         .keys()
         .filter(|key| {
@@ -46,10 +46,9 @@ pub(crate) fn parse_operation(
 ) -> Result<Operations, TemplateError> {
     match operator {
         "$eval" => {
-            let expr: Template = object.get("$eval").unwrap().clone().try_into()?;
-            let eval = EvalOperation {
-                expr: Box::new(expr),
-            };
+            let eval =
+                EvalOperation::deserialize(MapDeserializer::new(object.clone().into_iter()))?
+                    .clone();
             Ok(Operations::Eval(eval))
         }
         _ => Err(TemplateError::UnknownOperator {
@@ -58,22 +57,17 @@ pub(crate) fn parse_operation(
     }
 }
 
-pub(crate) fn unescape_non_operation(object: Object) -> Object {
-    let mut result = Object::new();
-    for (key, value) in object.iter() {
-        // un-escape escaped operators
-        let key = if key.starts_with("$$") {
-            &key[1..]
-        } else {
-            &key[..]
-        };
-        result.insert(key.to_string(), value.clone());
+pub(crate) fn unescape_non_operation_key(key: &str) -> &str {
+    if key.starts_with("$$") {
+        &key[1..]
+    } else {
+        &key[..]
     }
-    result
 }
 
 #[derive(Clone, Debug, PartialEq, Deserialize)]
 pub struct EvalOperation {
+    #[serde(alias = "$eval")]
     pub expr: Box<Template>,
 }
 
@@ -95,6 +89,9 @@ impl Operation for EvalOperation {
 mod tests {
     use std::error::Error;
 
+    use map_macro::btree_map;
+    use pretty_assertions::assert_eq;
+
     use crate::{
         context::Context,
         template::Template,
@@ -103,24 +100,29 @@ mod tests {
     };
 
     #[test]
-    fn test_eval() -> Result<(), Box<dyn Error>> {
+    fn eval() -> Result<(), Box<dyn Error>> {
         let content = r#"
 zero:
   $eval: one + 2
 three:
   four: five
 "#;
+        let template: Template = serde_yaml::from_str(content)?;
 
-        let template: Template = serde_yaml::from_str(content).unwrap();
-
+        let engine = Engine::default();
         let mut context = Context::new();
         context.insert("one", Value::Number(Number::Signed(98)));
 
-        let engine = Engine::default();
+        let actual: Value = engine.render(&template, &context)?;
 
-        let value: Value = engine.render(&template, &context)?;
+        let expected: Value = Value::Object(btree_map! {
+            "zero".into() => Value::Number(100.into()),
+            "three".into() => Value::Object(btree_map! {
+                "four".into() => Value::String("five".into())
+            })
+        });
 
-        println!("{:?}", value);
+        assert_eq!(expected, actual);
 
         Ok(())
     }

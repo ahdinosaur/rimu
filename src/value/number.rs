@@ -274,7 +274,7 @@ impl Hash for Number {
         match self {
             Number::Unsigned(u) => u.hash(state),
             Number::Signed(s) => s.hash(state),
-            Number::Float(f) => unimplemented!(),
+            Number::Float(_f) => unimplemented!(),
         }
     }
 }
