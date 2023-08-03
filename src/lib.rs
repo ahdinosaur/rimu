@@ -1,5 +1,6 @@
 mod context;
 mod engine;
+mod error;
 mod interpolate;
 mod operations;
 mod template;
@@ -7,7 +8,8 @@ mod value;
 
 pub use context::Context;
 pub use engine::Engine;
-pub use template::{Template, TemplateError};
+pub use error::{ParseError, RenderError};
+pub use template::Template;
 pub use value::{convert, from_value, List, Number, Object, Value, ValueError};
 
 #[cfg(test)]

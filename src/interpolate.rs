@@ -1,10 +1,10 @@
 use lazy_static::lazy_static;
 use regex::Regex;
 
-use crate::{context::Context, template::TemplateError};
+use crate::{Context, RenderError};
 
 // With help from: https://github.com/hasezoey/new_string_template/blob/master/src/template.rs
-pub(crate) fn interpolate(source: &str, context: &Context) -> Result<String, TemplateError> {
+pub(crate) fn interpolate(source: &str, context: &Context) -> Result<String, RenderError> {
     lazy_static! {
         static ref RE: Regex = Regex::new(r"\{\{\s*(\w+(?:\.\w+)*)\s*\}\}").unwrap();
     }
@@ -38,7 +38,7 @@ pub(crate) fn interpolate(source: &str, context: &Context) -> Result<String, Tem
         if let Some(v) = context.get_in(var_path) {
             parts.push(v.to_string());
         } else {
-            return Err(TemplateError::MissingContext {
+            return Err(RenderError::MissingContext {
                 var: var_str.to_string(),
             });
         }
@@ -63,7 +63,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     #[test]
-    fn test_interpolate() -> Result<(), TemplateError> {
+    fn test_interpolate() -> Result<(), RenderError> {
         let content = "one {{ two }} three {{ four.five }}";
 
         let mut context = Context::new();

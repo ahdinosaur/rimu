@@ -1,26 +1,12 @@
 use std::collections::BTreeMap;
 
-use rhai::EvalAltResult;
 use serde::Deserialize;
 
 use crate::{
     operations::{find_operator, parse_operation, unescape_non_operation_key, Operations},
-    value::{Number, Value, ValueError},
+    value::{Number, Value},
+    ParseError,
 };
-
-#[derive(Debug, thiserror::Error)]
-pub enum TemplateError {
-    #[error("unknown operator: {}", operator)]
-    UnknownOperator { operator: String },
-    #[error("too many operators")]
-    TooManyOperators,
-    #[error("missing context: {var}")]
-    MissingContext { var: String },
-    #[error("value error: {0}")]
-    Value(#[from] ValueError),
-    #[error("rhai eval error: {0}")]
-    RhaiEval(#[from] Box<EvalAltResult>),
-}
 
 pub(crate) type List = Vec<Template>;
 pub(crate) type Object = BTreeMap<String, Template>;
@@ -38,7 +24,7 @@ pub enum Template {
 }
 
 impl TryFrom<Value> for Template {
-    type Error = TemplateError;
+    type Error = ParseError;
 
     fn try_from(value: Value) -> Result<Self, Self::Error> {
         match value {

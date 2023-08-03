@@ -1,6 +1,6 @@
 use rhai::Dynamic;
 
-use crate::{interpolate::interpolate, Context, Object, Template, TemplateError, Value};
+use crate::{interpolate::interpolate, Context, Object, RenderError, Template, Value};
 
 pub struct Engine {
     rhai: rhai::Engine,
@@ -19,7 +19,7 @@ impl Engine {
         Self { rhai }
     }
 
-    pub fn render(&self, template: &Template, context: &Context) -> Result<Value, TemplateError> {
+    pub fn render(&self, template: &Template, context: &Context) -> Result<Value, RenderError> {
         match template {
             Template::Null => Ok(Value::Null),
             Template::Boolean(boolean) => Ok(Value::Boolean(boolean.clone())),
@@ -36,7 +36,7 @@ impl Engine {
                         Ok(template) => Some(Ok(template)),
                         Err(error) => Some(Err(error)),
                     })
-                    .collect::<Result<Vec<Value>, TemplateError>>()?;
+                    .collect::<Result<Vec<Value>, RenderError>>()?;
                 Ok(Value::List(next_list))
             }
             Template::Object(object) => {
@@ -58,7 +58,7 @@ impl Engine {
         }
     }
 
-    pub fn evaluate(&self, expr: &str, context: &Context) -> Result<Template, TemplateError> {
+    pub(crate) fn evaluate(&self, expr: &str, context: &Context) -> Result<Template, RenderError> {
         let mut rhai_scope = context.to_rhai_scope();
 
         let result: Dynamic = self
