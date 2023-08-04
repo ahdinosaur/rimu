@@ -1,6 +1,6 @@
 use rhai::EvalAltResult;
 
-use crate::ValueError;
+use crate::{Value, ValueError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ParseError {
@@ -18,4 +18,8 @@ pub enum RenderError {
     RhaiEval(#[from] Box<EvalAltResult>),
     #[error("missing context: {var}")]
     MissingContext { var: String },
+    #[error("unterminated interpolation: {src}")]
+    UnterminatedInterpolation { src: String },
+    #[error("interpolation of '{var}' produced an array or object: {value}")]
+    ListOrObjectInterpolation { var: String, value: Value },
 }

@@ -1,7 +1,6 @@
 mod context;
 mod engine;
 mod error;
-mod interpolate;
 mod operations;
 mod template;
 mod value;
@@ -29,7 +28,7 @@ mod tests {
 "$eval" = "a"
 
 [two]
-three = "{{ b }}"
+three = "${ b }"
 "#;
         let tmpl: Template = toml::from_str(content)?;
 
