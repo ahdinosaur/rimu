@@ -8,7 +8,7 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-use super::error::ValueError;
+use crate::ValueError;
 
 #[derive(Clone, Copy)]
 pub enum Number {
@@ -289,7 +289,7 @@ pub(crate) fn unexpected(number: &Number) -> Unexpected {
 
 #[cfg(test)]
 mod test {
-    use crate::value::{Number, Value};
+    use crate::{Number, Value};
     use pretty_assertions::assert_eq;
 
     #[test]

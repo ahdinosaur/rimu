@@ -3,7 +3,7 @@ use regex::Regex;
 use rhai::Scope;
 use std::{collections::BTreeMap, iter::empty};
 
-use crate::value::{value_get_in, Object, Value};
+use rimu_value::{value_get_in, Object, Value};
 
 pub struct Context<'a> {
     content: Object,

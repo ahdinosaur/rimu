@@ -4,8 +4,7 @@ use serde::Deserialize;
 
 use crate::{
     operations::{find_operator, parse_operation, unescape_non_operation_key, Operations},
-    value::{Number, Value},
-    ParseError,
+    Number, ParseError, Value,
 };
 
 pub(crate) type List = Vec<Template>;

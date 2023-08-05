@@ -99,7 +99,7 @@ impl Display for Value {
     }
 }
 
-pub(crate) fn value_get_in<'a>(value: &'a Value, keys: &[&str]) -> Option<&'a Value> {
+pub fn value_get_in<'a>(value: &'a Value, keys: &[&str]) -> Option<&'a Value> {
     let Some((first, rest)) = keys.split_first() else {
         return Some(value);
     };
@@ -116,7 +116,7 @@ pub(crate) fn value_get_in<'a>(value: &'a Value, keys: &[&str]) -> Option<&'a Va
 mod test {
     use std::{borrow::Cow, ffi::OsString, path::PathBuf};
 
-    use crate::value::{Number, Value};
+    use crate::{Number, Value};
     use pretty_assertions::assert_eq;
 
     #[test]

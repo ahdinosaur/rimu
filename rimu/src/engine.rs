@@ -150,7 +150,7 @@ impl Engine {
 mod tests {
     use super::*;
 
-    use crate::value::{Object, Value};
+    use crate::{Object, Value};
 
     use pretty_assertions::assert_eq;
 
