@@ -43,15 +43,17 @@
 #  template: {message: 'tricky ${"}}}}"}'}
 #  output:   {message: 'tricky }}}}'}
 
-#- title:    can't interpolate arrays
-#  context:  {key: [1,2,3]}
-#  template: {message: 'hello ${key}'}
-#  error:    "TemplateError at template.message: interpolation of 'key' produced an array or object"
+- title:    can't interpolate arrays
+  context:  {key: [1,2,3]}
+  template: {message: 'hello ${key}'}
+  error:
+    message: "interpolation of 'key' produced an array or object: [1, 2, 3]"
 
-#- title:    can't interpolate objects
-#  context:  {key: {}}
-#  template: 'hello ${key}'
-#  error:    "TemplateError: interpolation of 'key' produced an array or object"
+- title:    can't interpolate objects
+  context:  {key: {}}
+  template: 'hello ${key}'
+  error:
+    message: "interpolation of 'key' produced an array or object: {}"
 
 - title:    booleans interpolate
   context:  {t: true, f: false}
