@@ -1,13 +1,12 @@
-use super::number::Number;
-use super::Value;
 use std::{
     borrow::Cow,
     collections::BTreeMap,
     path::Path,
     string::{String, ToString},
 };
-
 use std::{ffi::OsString, path::PathBuf};
+
+use crate::{Number, Value};
 
 macro_rules! from_integer {
     ($($ty:ident)*) => {

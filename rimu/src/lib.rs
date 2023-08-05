@@ -3,13 +3,12 @@ mod engine;
 mod error;
 mod operations;
 mod template;
-mod value;
 
 pub use context::Context;
 pub use engine::Engine;
 pub use error::{ParseError, RenderError};
+pub use rimu_value::{convert, from_value, List, Number, Object, Value, ValueError};
 pub use template::Template;
-pub use value::{convert, from_value, List, Number, Object, Value, ValueError};
 
 #[cfg(test)]
 mod tests {

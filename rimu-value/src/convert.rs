@@ -1,6 +1,6 @@
 use serde::{de::DeserializeOwned, Serialize};
 
-use crate::value::{from_value, to_value, ValueError};
+use crate::{from_value, to_value, ValueError};
 
 // https://stackoverflow.com/a/57488708
 pub fn convert<Input, Output>(input: &Input) -> Result<Output, ValueError>

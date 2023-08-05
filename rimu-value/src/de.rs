@@ -5,8 +5,7 @@ use serde::de::{
 use serde::forward_to_deserialize_any;
 use std::{collections::BTreeMap, fmt, vec};
 
-use super::error::ValueError;
-use crate::value::{number, List, Object, Value};
+use crate::{number, List, Object, Value, ValueError};
 
 impl<'de> Deserialize<'de> for Value {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
