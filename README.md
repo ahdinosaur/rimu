@@ -1,3 +1,10 @@
+<div align="center">
+  <img
+    alt="Tree"
+    src="https://i.imgur.com/edQ8A2am.png"
+  />
+</div>
+
 <h1 align="center">Rimu 🌲</h1>
 
 <div align="center">
@@ -13,8 +20,6 @@ Rimu is a structured template system.
 Unlike other template systems, Rimu operates on data structures, not text.
 
 We use a data structure as a template, then using another data structure as context, produce an output data structure.
-
-![Tree](https://i.imgur.com/edQ8A2al.png)
 
 ## Modules
 
