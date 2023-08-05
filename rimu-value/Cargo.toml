@@ -1,0 +1,12 @@
+[package]
+name = "rimu-value"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+pretty_assertions = "1.4.0"
+ryu = "1.0.15"
+serde = "1.0.181"
+thiserror = "1.0.44"

@@ -1,12 +1,9 @@
 // https://github.com/serde-rs/json/blob/master/src/value/ser.rs
 
+use serde::{ser::Impossible, Serialize};
 use std::{collections::BTreeMap, fmt::Display};
 
-use serde::{ser::Impossible, Serialize};
-
-use crate::{value::Value, Object};
-
-use super::{to_value, ValueError};
+use crate::{to_value, Object, Value, ValueError};
 
 impl Serialize for Value {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
