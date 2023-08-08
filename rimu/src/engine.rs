@@ -51,21 +51,18 @@ impl Engine {
                 }
                 Ok(Value::Object(next_object))
             }
-            Template::Operation(operation) => {
-                let next_template = operation.render(&self, context)?;
-                self.render(&next_template, context)
-            }
+            Template::Operation(operation) => operation.render(&self, context),
         }
     }
 
-    pub(crate) fn evaluate(&self, expr: &str, context: &Context) -> Result<Template, RenderError> {
+    pub(crate) fn evaluate(&self, expr: &str, context: &Context) -> Result<Value, RenderError> {
         let mut rhai_scope = context.to_rhai_scope();
 
         let result: Dynamic = self
             .rhai
             .eval_expression_with_scope(&mut rhai_scope, &expr)?;
 
-        let value: Template = match rhai::serde::from_dynamic(&result) {
+        let value: Value = match rhai::serde::from_dynamic(&result) {
             Ok(value) => value,
             Err(error) => {
                 panic!("Failed to convert dynamic to value: {}", error);

@@ -1,7 +1,7 @@
 use serde::Deserialize;
 
 use super::Operation;
-use crate::{Context, Engine, RenderError, Template};
+use crate::{Context, Engine, RenderError, Value};
 
 #[derive(Clone, Debug, PartialEq, Deserialize)]
 pub struct EvalOperation {
@@ -10,10 +10,8 @@ pub struct EvalOperation {
 }
 
 impl Operation for EvalOperation {
-    fn render(&self, engine: &Engine, context: &Context) -> Result<Template, RenderError> {
-        let value: Template = engine.evaluate(&self.expr, context)?;
-
-        Ok(value)
+    fn render(&self, engine: &Engine, context: &Context) -> Result<Value, RenderError> {
+        engine.evaluate(&self.expr, context)
     }
 }
 
@@ -22,7 +20,7 @@ mod tests {
     use std::error::Error;
 
     use super::*;
-    use crate::{Number, Value};
+    use crate::{Number, Template, Value};
 
     use map_macro::btree_map;
     use pretty_assertions::assert_eq;
