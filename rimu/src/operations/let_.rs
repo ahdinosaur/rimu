@@ -4,20 +4,6 @@ use super::Operation;
 use crate::{Context, Engine, RenderError, Template, Value};
 
 #[derive(Clone, Debug, PartialEq, Deserialize)]
-#[serde(transparent)]
-pub struct Symbol(String);
-
-#[derive(Clone, Debug, PartialEq, Deserialize)]
-#[serde(transparent)]
-pub struct VariableDeclaration(Symbol);
-
-#[derive(Clone, Debug, PartialEq, Deserialize)]
-pub struct VariableAssignment {
-    symbol: Symbol,
-    value: Template,
-}
-
-#[derive(Clone, Debug, PartialEq, Deserialize)]
 pub struct LetOperation {
     #[serde(rename = "$let")]
     pub variables: Box<Template>,
