@@ -1,9 +1,11 @@
 mod eval;
+mod if_;
 mod let_;
 
 use serde::{de::value::MapDeserializer, Deserialize};
 
 pub use self::eval::EvalOperation;
+pub use self::if_::IfOperation;
 pub use self::let_::LetOperation;
 use crate::{Context, Engine, Object, ParseError, RenderError, Value};
 
@@ -15,6 +17,7 @@ pub trait Operation {
 pub enum Operations {
     Eval(EvalOperation),
     Let(LetOperation),
+    If(IfOperation),
 }
 
 impl Operations {
@@ -22,6 +25,7 @@ impl Operations {
         match self {
             Operations::Eval(op) => op.render(engine, context),
             Operations::Let(op) => op.render(engine, context),
+            Operations::If(op) => op.render(engine, context),
         }
     }
 }
@@ -48,6 +52,7 @@ pub(crate) fn parse_operation(operator: &str, object: &Object) -> Result<Operati
     match operator {
         "$eval" => Ok(Operations::Eval(EvalOperation::deserialize(map_de)?)),
         "$let" => Ok(Operations::Let(LetOperation::deserialize(map_de)?)),
+        "$if" => Ok(Operations::If(IfOperation::deserialize(map_de)?)),
         _ => Err(ParseError::UnknownOperator {
             operator: operator.to_owned(),
         }),

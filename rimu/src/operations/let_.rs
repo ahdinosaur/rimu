@@ -32,7 +32,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     #[test]
-    fn eval() -> Result<(), Box<dyn Error>> {
+    fn let_() -> Result<(), Box<dyn Error>> {
         let content = r#"
 zero:
   $let:
