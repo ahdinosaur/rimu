@@ -1,6 +1,6 @@
 use rhai::EvalAltResult;
 
-use crate::{Value, ValueError};
+use crate::{context::ContextError, Value, ValueError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ParseError {
@@ -22,4 +22,6 @@ pub enum RenderError {
     UnterminatedInterpolation { src: String },
     #[error("interpolation of '{var}' produced an array or object: {value}")]
     ListOrObjectInterpolation { var: String, value: Value },
+    #[error("context error: {0}")]
+    ContextError(#[from] ContextError),
 }

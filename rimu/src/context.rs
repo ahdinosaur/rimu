@@ -57,10 +57,16 @@ impl<'a> Context<'a> {
         K: Into<String>,
         V: Into<Value>,
     {
+        // TODO check is_identifier
+        // ... or key should be a separate struct
+
         self.content.insert(k.into(), v.into());
     }
 
     pub fn get<'b>(&'b self, key: &str) -> Option<&'b Value> {
+        // TODO check is_identifier
+        // ... or key should be a separate struct
+
         match self.content.get(key) {
             Some(value) => Some(value),
             None => match self.parent {
@@ -71,6 +77,9 @@ impl<'a> Context<'a> {
     }
 
     pub fn get_in<'b>(&'b self, keys: Vec<&str>) -> Option<&'b Value> {
+        // TODO check is_identifier
+        // ... or key should be a separate struct
+
         let Some((first, rest)) = keys.split_first() else {
             return None;
         };
@@ -109,7 +118,7 @@ impl<'a> Context<'a> {
 
 #[derive(Debug, thiserror::Error)]
 pub enum ContextError {
-    #[error("top level keys of context must follow /[a-zA-Z_][a-zA-Z0-9_]: {key}")]
+    #[error("top level keys of context must follow /[a-zA-Z_][a-zA-Z0-9_]*: `{key}`")]
     InvalidKey { key: String },
     #[error("context value is not an object: {:?}", value)]
     InvalidContextValue { value: Value },
@@ -117,7 +126,7 @@ pub enum ContextError {
 
 fn is_identifier(identifier: &str) -> bool {
     lazy_static! {
-        static ref RE: Regex = Regex::new("[a-zA-Z_][a-zA-Z0-9_]").unwrap();
+        static ref RE: Regex = Regex::new("^[a-zA-Z_][a-zA-Z0-9_]*$").unwrap();
     }
     RE.is_match(identifier)
 }
