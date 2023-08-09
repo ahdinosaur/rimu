@@ -4,6 +4,7 @@ use super::Operation;
 use crate::{Context, Engine, RenderError, Template, Value};
 
 #[derive(Clone, Debug, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct LetOperation {
     #[serde(rename = "$let")]
     pub variables: Box<Template>,
