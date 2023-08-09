@@ -112,6 +112,23 @@ pub fn value_get_in<'a>(value: &'a Value, keys: &[&str]) -> Option<&'a Value> {
     }
 }
 
+impl Value {
+    pub fn is_truthy(&self) -> bool {
+        match self {
+            Value::Null => false,
+            Value::Boolean(boolean) => *boolean,
+            Value::String(string) => string.len() > 0,
+            Value::Number(number) => match number {
+                Number::Unsigned(u) => u != &0_u64,
+                Number::Signed(s) => s != &0_i64,
+                Number::Float(f) => f != &0_f64,
+            },
+            Value::List(list) => list.len() > 0,
+            Value::Object(object) => object.len() > 0,
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use std::{borrow::Cow, ffi::OsString, path::PathBuf};

@@ -4,6 +4,7 @@ use super::Operation;
 use crate::{Context, Engine, RenderError, Value};
 
 #[derive(Clone, Debug, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct EvalOperation {
     #[serde(alias = "$eval")]
     pub expr: String,

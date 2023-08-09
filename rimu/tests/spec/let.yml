@@ -28,7 +28,7 @@
   context:  {}
   error:
     type: ParseError
-    message: 'value error: missing field `in`'
+    message: 'value error: unknown field `a`, expected `$let` or `in`'
 
 - title:    let array
   template: {$let: [1, 2], in: {$eval: "1 + 2"}}
@@ -70,15 +70,16 @@
 #  template: {$let: {x: [1, 2, 3]}, in: [$reverse: {$eval: "x"}]}
 #  output:   [[ 3, 2, 1 ]]
 
-#- title:    checking $let with $if without else
-#  context:  {c: 'itm'}
-#  template: {$let: {a: {$if: 'c == "item"', then: 'value'}}, in: {a: '${a}'}}
-#  error:    'InterpreterError at template.a: unknown context value a'
+- title:    checking $let with $if without else
+  context:  {c: 'itm'}
+  template: {$let: {a: {$if: 'c == "item"', then: 'value'}}, in: {a: '${a}'}}
+  error:
+    message: 'missing context: a'
 
-#- title:    let with a value of $if-then-else
-#  template: {$let: {$if: something == 3, then: {a: 10, b: 20}, else: {a: 20, b: 10}}, in: {$eval: 'a + b'}}
-#  context:  {'something': 3}
-#  output:   30
+- title:    let with a value of $if-then-else
+  template: {$let: {$if: something == 3, then: {a: 10, b: 20}, else: {a: 20, b: 10}}, in: {$eval: 'a + b'}}
+  context:  {'something': 3}
+  output:   30
 
 - title:    let with a rendered key
   template: {$let: {"first_${name}": 1, "second_${name}": 2}, in: {$eval: "first_prize + second_prize"}}
