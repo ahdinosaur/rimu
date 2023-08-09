@@ -4,6 +4,7 @@ use super::Operation;
 use crate::{Context, Engine, RenderError, Template, Value};
 
 #[derive(Clone, Debug, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct LetOperation {
     #[serde(rename = "$let")]
     pub variables: Box<Template>,
@@ -32,7 +33,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     #[test]
-    fn eval() -> Result<(), Box<dyn Error>> {
+    fn let_() -> Result<(), Box<dyn Error>> {
         let content = r#"
 zero:
   $let:

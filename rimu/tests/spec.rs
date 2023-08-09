@@ -105,3 +105,8 @@ fn interpolation() -> Result<(), Box<dyn Error>> {
 fn let_() -> Result<(), Box<dyn Error>> {
     test_specs(include_str!("./spec/let.yml"))
 }
+
+#[test]
+fn if_() -> Result<(), Box<dyn Error>> {
+    test_specs(include_str!("./spec/if.yml"))
+}

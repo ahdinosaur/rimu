@@ -123,6 +123,30 @@ foo:
 ```
 
 #### If
+
+Template:
+
+```yaml
+k1:
+  $if: 'cond'
+  then: 1
+  else: 2
+k2: 3
+```
+
+Context:
+
+```yaml
+cond: true
+```
+
+Output:
+
+```yaml
+k1: 1
+k2: 3
+```
+
 #### Match
 #### Switch
 #### Map
