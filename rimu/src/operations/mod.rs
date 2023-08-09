@@ -1,27 +1,27 @@
 mod eval;
+mod let_;
 
 use serde::{de::value::MapDeserializer, Deserialize};
 
 pub use self::eval::EvalOperation;
-use crate::{Context, Engine, Object, ParseError, RenderError, Template};
+pub use self::let_::LetOperation;
+use crate::{Context, Engine, Object, ParseError, RenderError, Value};
 
 pub trait Operation {
-    fn render(&self, engine: &Engine, context: &Context) -> Result<Template, RenderError>;
+    fn render(&self, engine: &Engine, context: &Context) -> Result<Value, RenderError>;
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Operations {
     Eval(EvalOperation),
+    Let(LetOperation),
 }
 
 impl Operations {
-    pub(crate) fn render(
-        &self,
-        engine: &Engine,
-        context: &Context,
-    ) -> Result<Template, RenderError> {
+    pub(crate) fn render(&self, engine: &Engine, context: &Context) -> Result<Value, RenderError> {
         match self {
-            Operations::Eval(eval) => eval.render(engine, context),
+            Operations::Eval(op) => op.render(engine, context),
+            Operations::Let(op) => op.render(engine, context),
         }
     }
 }
@@ -47,6 +47,7 @@ pub(crate) fn parse_operation(operator: &str, object: &Object) -> Result<Operati
     let map_de = MapDeserializer::new(object.clone().into_iter());
     match operator {
         "$eval" => Ok(Operations::Eval(EvalOperation::deserialize(map_de)?)),
+        "$let" => Ok(Operations::Let(LetOperation::deserialize(map_de)?)),
         _ => Err(ParseError::UnknownOperator {
             operator: operator.to_owned(),
         }),
