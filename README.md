@@ -92,6 +92,36 @@ Output:
 ```
 
 #### Let
+
+Template:
+
+```yaml
+foo:
+  $let:
+    bar: 200
+    baz:
+      $eval: ten
+  in:
+    - $eval: bar + baz
+    - $eval: bar - baz
+    - $eval: bar * baz
+```
+
+Context:
+
+```yaml
+ten: 10
+```
+
+Output:
+
+```yaml
+foo:
+  - 210
+  - 190
+  - 2000
+```
+
 #### If
 #### Match
 #### Switch
