@@ -51,7 +51,7 @@ impl Engine {
                 }
                 Ok(Value::Object(next_object))
             }
-            Template::Operation(operation) => operation.render(&self, context),
+            Template::Block(block) => block.render(&self, context),
         }
     }
 
