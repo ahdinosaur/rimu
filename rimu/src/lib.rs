@@ -1,7 +1,7 @@
 mod context;
 mod engine;
 mod error;
-mod operations;
+mod blocks;
 mod template;
 
 pub use context::Context;

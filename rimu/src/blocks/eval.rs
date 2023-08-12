@@ -1,16 +1,16 @@
 use serde::Deserialize;
 
-use super::Operation;
+use super::Block;
 use crate::{Context, Engine, RenderError, Value};
 
 #[derive(Clone, Debug, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct EvalOperation {
+pub struct EvalBlock {
     #[serde(alias = "$eval")]
     pub expr: String,
 }
 
-impl Operation for EvalOperation {
+impl Block for EvalBlock {
     fn render(&self, engine: &Engine, context: &Context) -> Result<Value, RenderError> {
         engine.evaluate(&self.expr, context)
     }

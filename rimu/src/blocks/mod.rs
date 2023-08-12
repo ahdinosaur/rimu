@@ -4,28 +4,28 @@ mod let_;
 
 use serde::{de::value::MapDeserializer, Deserialize};
 
-pub use self::eval::EvalOperation;
-pub use self::if_::IfOperation;
-pub use self::let_::LetOperation;
+pub use self::eval::EvalBlock;
+pub use self::if_::IfBlock;
+pub use self::let_::LetBlock;
 use crate::{Context, Engine, Object, ParseError, RenderError, Value};
 
-pub trait Operation {
+pub trait Block {
     fn render(&self, engine: &Engine, context: &Context) -> Result<Value, RenderError>;
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub enum Operations {
-    Eval(EvalOperation),
-    Let(LetOperation),
-    If(IfOperation),
+pub enum Blocks {
+    Eval(EvalBlock),
+    Let(LetBlock),
+    If(IfBlock),
 }
 
-impl Operations {
+impl Blocks {
     pub(crate) fn render(&self, engine: &Engine, context: &Context) -> Result<Value, RenderError> {
         match self {
-            Operations::Eval(op) => op.render(engine, context),
-            Operations::Let(op) => op.render(engine, context),
-            Operations::If(op) => op.render(engine, context),
+            Blocks::Eval(op) => op.render(engine, context),
+            Blocks::Let(op) => op.render(engine, context),
+            Blocks::If(op) => op.render(engine, context),
         }
     }
 }
@@ -47,19 +47,19 @@ pub(crate) fn find_operator(object: &Object) -> Result<Option<String>, ParseErro
     }
 }
 
-pub(crate) fn parse_operation(operator: &str, object: &Object) -> Result<Operations, ParseError> {
+pub(crate) fn parse_block(operator: &str, object: &Object) -> Result<Blocks, ParseError> {
     let map_de = MapDeserializer::new(object.clone().into_iter());
     match operator {
-        "$eval" => Ok(Operations::Eval(EvalOperation::deserialize(map_de)?)),
-        "$let" => Ok(Operations::Let(LetOperation::deserialize(map_de)?)),
-        "$if" => Ok(Operations::If(IfOperation::deserialize(map_de)?)),
+        "$eval" => Ok(Blocks::Eval(EvalBlock::deserialize(map_de)?)),
+        "$let" => Ok(Blocks::Let(LetBlock::deserialize(map_de)?)),
+        "$if" => Ok(Blocks::If(IfBlock::deserialize(map_de)?)),
         _ => Err(ParseError::UnknownOperator {
             operator: operator.to_owned(),
         }),
     }
 }
 
-pub(crate) fn unescape_non_operation_key(key: &str) -> &str {
+pub(crate) fn unescape_non_block_key(key: &str) -> &str {
     if key.starts_with("$$") {
         &key[1..]
     } else {
