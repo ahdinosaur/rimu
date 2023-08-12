@@ -64,7 +64,7 @@ message: hello world
 
 To evaluate expressions, we use [Rhai](https://rhai.rs/).
 
-### Operations
+### Blocks
 
 #### Eval
 
