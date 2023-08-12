@@ -30,31 +30,31 @@ impl Blocks {
     }
 }
 
-pub(crate) fn find_operator(object: &Object) -> Result<Option<String>, ParseError> {
-    let operators: Vec<&String> = object
+pub(crate) fn find_block_key(object: &Object) -> Result<Option<String>, ParseError> {
+    let block_keys: Vec<&String> = object
         .keys()
         .filter(|key| {
             let mut chars = key.chars();
             chars.next() == Some('$') && chars.next() != Some('$')
         })
         .collect();
-    if operators.len() > 1 {
-        Err(ParseError::TooManyOperators)
-    } else if operators.len() == 1 {
-        Ok(Some(operators[0].to_owned()))
+    if block_keys.len() > 1 {
+        Err(ParseError::TooManyBlockKeys)
+    } else if block_keys.len() == 1 {
+        Ok(Some(block_keys[0].to_owned()))
     } else {
         Ok(None)
     }
 }
 
-pub(crate) fn parse_block(operator: &str, object: &Object) -> Result<Blocks, ParseError> {
+pub(crate) fn parse_block(block_key: &str, object: &Object) -> Result<Blocks, ParseError> {
     let map_de = MapDeserializer::new(object.clone().into_iter());
-    match operator {
+    match block_key {
         "$eval" => Ok(Blocks::Eval(EvalBlock::deserialize(map_de)?)),
         "$let" => Ok(Blocks::Let(LetBlock::deserialize(map_de)?)),
         "$if" => Ok(Blocks::If(IfBlock::deserialize(map_de)?)),
-        _ => Err(ParseError::UnknownOperator {
-            operator: operator.to_owned(),
+        _ => Err(ParseError::UnknownBlockKey {
+            block_key: block_key.to_owned(),
         }),
     }
 }

@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use serde::Deserialize;
 
 use crate::{
-    blocks::{find_operator, parse_block, unescape_non_block_key, Blocks},
+    blocks::{find_block_key, parse_block, unescape_non_block_key, Blocks},
     Number, ParseError, Value,
 };
 
@@ -39,8 +39,8 @@ impl TryFrom<Value> for Template {
                 Ok(Template::List(next_list))
             }
             Value::Object(object) => {
-                if let Some(operator) = find_operator(&object)? {
-                    return Ok(Template::Block(parse_block(&operator, &object)?));
+                if let Some(block_key) = find_block_key(&object)? {
+                    return Ok(Template::Block(parse_block(&block_key, &object)?));
                 }
 
                 let mut next_object = BTreeMap::new();
@@ -61,7 +61,7 @@ mod tests {
     use std::error::Error;
 
     use crate::{
-        blocks::{EvalBlock, Blocks},
+        blocks::{Blocks, EvalBlock},
         Template, Value,
     };
 

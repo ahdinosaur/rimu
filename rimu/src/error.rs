@@ -4,10 +4,10 @@ use crate::{context::ContextError, Value, ValueError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ParseError {
-    #[error("unknown operator: {}", operator)]
-    UnknownOperator { operator: String },
-    #[error("too many operators")]
-    TooManyOperators,
+    #[error("unknown block key: {block_key}")]
+    UnknownBlockKey { block_key: String },
+    #[error("too many block keys")]
+    TooManyBlockKeys,
     #[error("value error: {0}")]
     Value(#[from] ValueError),
 }
