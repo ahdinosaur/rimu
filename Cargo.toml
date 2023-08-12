@@ -1,5 +1,7 @@
 [workspace]
 members = [
     "rimu",
+    "rimu-expr",
+    "rimu-expr-parser",
     "rimu-value",
 ]
