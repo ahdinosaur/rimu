@@ -4,35 +4,43 @@
 // - https://docs.rs/codespan/latest/codespan/struct.Span.html
 // - https://github.com/noir-lang/noir/blob/master/crates/noirc_errors/src/position.rs
 
+use std::ops::Range;
+
 /// A span of source code.
-#[derive(Debug, Clone, PartialOrd, Ord, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Copy, Clone, PartialOrd, Ord, PartialEq, Eq, Hash, Default)]
 pub struct Span {
-    /// The start of the span.
+    /// The start byte offset of the span.
     start: usize,
-    /// The total length of the span
-    length: usize,
+
+    /// The end byte offset of the span
+    end: usize,
 }
 
 impl Span {
     /// Create a new [`Span`].
-    pub const fn new(start: usize, length: usize) -> Self {
-        Self { start, length }
+    pub const fn new(start: usize, end: usize) -> Self {
+        Self { start, end }
     }
 
-    /// The absolute start, in bytes, from the beginning of a [`SourceCode`].
+    /// The absolute offset, in bytes, to the beginning of a [`Span`].
     pub const fn start(&self) -> usize {
         self.start
     }
 
+    /// The absolute offset, in bytes, to the end of a [`Span`].
+    pub const fn end(&self) -> usize {
+        self.end
+    }
+
     /// Total length of the [`Span`], in bytes.
     pub const fn len(&self) -> usize {
-        self.length
+        self.end - self.start
     }
 
     /// Whether this [`Span`] has a length of zero. It may still be useful
     /// to point to a specific point.
     pub const fn is_empty(&self) -> bool {
-        self.length == 0
+        self.len() == 0
     }
 }
 
@@ -46,53 +54,51 @@ impl From<std::ops::Range<usize>> for Span {
     fn from(range: std::ops::Range<usize>) -> Self {
         Self {
             start: range.start.into(),
-            length: range.len(),
+            end: range.end.into(),
         }
-    }
-}
-
-#[derive(Debug, Clone, PartialOrd, Ord, Eq)]
-pub struct Spanned<T> {
-    pub contents: T,
-    span: Span,
-}
-
-/// This is important for tests. Two Spanned objects are equal if their content is equal
-/// They may not have the same span. Use into_span to test for Span being equal specifically
-impl<T: std::cmp::PartialEq> PartialEq<Spanned<T>> for Spanned<T> {
-    fn eq(&self, other: &Spanned<T>) -> bool {
-        self.contents == other.contents
     }
 }
 
 impl chumsky::Span for Span {
     type Context = ();
 
-    type Offset = u32;
+    type Offset = usize;
 
     fn new(_context: Self::Context, range: Range<Self::Offset>) -> Self {
-        Span::new(range)
+        range.into()
     }
 
     fn context(&self) -> Self::Context {}
 
     fn start(&self) -> Self::Offset {
-        self.start()
+        self.start
     }
 
     fn end(&self) -> Self::Offset {
-        self.end()
+        self.end
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
-pub struct Location {
-    pub span: Span,
-    pub file: FileId,
+#[derive(Debug, Copy, Clone, PartialOrd, Ord, Eq, Hash, Default)]
+pub struct Spanned<T> {
+    pub contents: T,
+    span: Span,
 }
 
-impl Location {
-    pub fn new(span: Span, file: FileId) -> Self {
-        Self { span, file }
+impl<T> Spanned<T> {
+    pub const fn from(span: Span, contents: T) -> Spanned<T> {
+        Spanned { span, contents }
+    }
+
+    pub fn span(&self) -> Span {
+        self.span
+    }
+}
+
+/// This is important for tests. Two Spanned objects are equal if their content is equal
+/// They may not have the same span. Use `.span()` to test for Span being equal specifically
+impl<T: std::cmp::PartialEq> PartialEq<Spanned<T>> for Spanned<T> {
+    fn eq(&self, other: &Spanned<T>) -> bool {
+        self.contents == other.contents
     }
 }

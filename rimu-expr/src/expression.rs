@@ -1,11 +1,9 @@
 use rust_decimal::Decimal;
 
-use rimu_span::Span;
-
 use crate::Operator;
 
 /// An expression represents an entity which can be evaluated to a value.
-pub enum ExpressionKind {
+pub enum Expression {
     /// Literal null.
     Null,
 
@@ -25,7 +23,9 @@ pub enum ExpressionKind {
     Object(Vec<(String, Expression)>),
 
     /// A named identifier.
-    Identifier { name: String },
+    Identifier {
+        name: String,
+    },
 
     /// An operation on a single [`Expression`] operand with an [`Operator`]
     Unary {
@@ -64,10 +64,6 @@ pub enum ExpressionKind {
         container: Box<Expression>,
         key: String,
     },
-}
 
-/// An expression node.
-pub struct Expression {
-    kind: ExpressionKind,
-    span: Span,
+    Error,
 }
