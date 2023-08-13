@@ -4,7 +4,10 @@
 // - https://docs.rs/codespan/latest/codespan/struct.Span.html
 // - https://github.com/noir-lang/noir/blob/master/crates/noirc_errors/src/position.rs
 
-use std::ops::Range;
+use std::{
+    fmt::{write, Display},
+    ops::Range,
+};
 
 /// A span of source code.
 #[derive(Debug, Copy, Clone, PartialOrd, Ord, PartialEq, Eq, Hash, Default)]
@@ -59,23 +62,9 @@ impl From<std::ops::Range<usize>> for Span {
     }
 }
 
-impl chumsky::Span for Span {
-    type Context = ();
-
-    type Offset = usize;
-
-    fn new(_context: Self::Context, range: Range<Self::Offset>) -> Self {
-        range.into()
-    }
-
-    fn context(&self) -> Self::Context {}
-
-    fn start(&self) -> Self::Offset {
-        self.start
-    }
-
-    fn end(&self) -> Self::Offset {
-        self.end
+impl Display for Span {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({}, {})", self.start, self.end)
     }
 }
 

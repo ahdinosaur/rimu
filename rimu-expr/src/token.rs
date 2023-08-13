@@ -1,5 +1,7 @@
 use std::fmt;
 
+use rust_decimal::Decimal;
+
 /// A [`Token`] is the smallest logical unit evaluated by the compiler.
 /// It containes either an operator or a literal value.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -12,7 +14,7 @@ pub enum Token {
 
     String(String),
 
-    Number(String),
+    Number(Decimal),
 
     Identifier(String),
 
