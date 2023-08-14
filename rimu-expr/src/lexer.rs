@@ -93,9 +93,11 @@ pub enum ScannerErrorKind {
     #[error("empty string")]
     EmptyString,
     #[error("parsing decimal: {0}")]
-    ParseDecimal(#[from] DecimalError),
-    #[error("invalid token: {0}")]
-    InvalidToken(String),
+    ParseDecimal(#[source] DecimalError),
+    #[error("invalid token: {token}")]
+    InvalidToken { token: String },
+    #[error("undeterminated String at character {start}")]
+    UnterminatedString { start: usize },
 }
 
 #[derive(Debug, Clone, thiserror::Error)]
@@ -105,10 +107,8 @@ pub struct ScannerError {
     pub kind: ScannerErrorKind,
 }
 
-type Result<T> = std::result::Result<T, ScannerError>;
-
 impl<'a> Scanner<'a> {
-    pub fn tokenize(source: &'a str) -> Result<Vec<Spanned<Token>>> {
+    pub fn tokenize(source: &'a str) -> Result<Vec<Spanned<Token>>, ScannerError> {
         let mut scanner = Self {
             source,
             start: 0,
@@ -132,35 +132,35 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    fn next_token(&mut self) -> Result<Spanned<Token>> {
+    fn next_token(&mut self) -> Result<Spanned<Token>, ScannerError> {
         self.start = self.current;
 
         let next = self.next_char().unwrap();
 
         if Scanner::is_identifier_start(next) {
-            return self.ok(self.identifier());
+            return self.identifier();
         }
 
         if char::is_numeric(next) {
-            return self.ok(self.number()?);
+            return self.number();
         }
 
         match next {
-            '\'' => self.ok(self.string()),
-            '.' => self.ok(Token::Dot),
-            '(' => self.ok(Token::LeftParen),
-            ')' => self.ok(Token::RightParen),
-            '[' => self.ok(Token::LeftBrack),
-            ']' => self.ok(Token::RightBrack),
-            ',' => self.ok(Token::Comma),
-            '+' => self.ok(Token::Plus),
-            '-' => self.ok(Token::Minus),
-            '*' => self.ok(Token::Star),
-            '/' => self.ok(Token::Slash),
-            '=' => self.ok(Token::Equal),
-            '>' => self.ok(self.greater()),
-            '<' => self.ok(self.lesser()),
-            _ => self.err(SyntaxError(format!("invalid token: {next}"))),
+            '\'' => Ok(self.spanned(self.string())),
+            '.' => Ok(self.spanned(Token::Dot)),
+            '(' => Ok(self.spanned(Token::LeftParen)),
+            ')' => Ok(self.spanned(Token::RightParen)),
+            '[' => Ok(self.spanned(Token::LeftBrack)),
+            ']' => Ok(self.spanned(Token::RightBrack)),
+            ',' => Ok(self.spanned(Token::Comma)),
+            '+' => Ok(self.spanned(Token::Plus)),
+            '-' => Ok(self.spanned(Token::Minus)),
+            '*' => Ok(self.spanned(Token::Star)),
+            '/' => Ok(self.spanned(Token::Slash)),
+            '=' => Ok(self.spanned(Token::Equal)),
+            '>' => Ok(self.spanned(self.greater())),
+            '<' => Ok(self.spanned(self.lesser())),
+            _ => Err(self.err(ScannerErrorKind::InvalidToken(next.into()))),
         }
     }
 
@@ -237,11 +237,11 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    fn extract_number(content: &str) -> Result<Decimal> {
-        Ok(Decimal::from_str(content)?)
+    fn extract_number(&self, content: &str) -> Result<Decimal, ScannerError> {
+        Decimal::from_str(content).map_err(|error| self.err(ScannerErrorKind::ParseDecimal(error)))
     }
 
-    fn number(&mut self) -> Result<Token> {
+    fn number(&mut self) -> Result<Token, ScannerError> {
         self.advance_numeric(); // advance integral
 
         if self.peek() == Some('.') {
@@ -255,25 +255,24 @@ impl<'a> Scanner<'a> {
         }
 
         let content = self.get_content(0);
-        let number = Scanner::extract_number(content.as_str())?;
+        let number = self.extract_number(content.as_str())?;
 
         Ok(Token::Number(number))
     }
 
-    fn string(&mut self) -> Result<Token> {
+    fn string(&mut self) -> Result<Token, ScannerError> {
         while self.peek().is_some_and(|c| c != '\'') {
             self.advance();
         }
 
         if self.is_at_end() {
-            let message = format!("Unterminated String at character {}", self.start);
-            return Err(SyntaxError(message));
+            return Err(self.err(ScannerErrorKind::UnterminatedString(self.start)));
         };
 
         self.advance();
         let content = self.get_content(1);
 
-        Ok(Token::Literal(Value::String(content)))
+        Ok(Token::String(content))
     }
 
     fn encounter_double(&mut self, token: Token) -> Token {
@@ -300,15 +299,15 @@ impl<'a> Scanner<'a> {
         (self.start, self.current).into()
     }
 
-    fn err<T>(&self, err_kind: ScannerErrorKind) -> Result<T> {
-        Err(ScannerError {
+    fn err(&self, err_kind: ScannerErrorKind) -> ScannerError {
+        ScannerError {
             span: self.current_span(),
             kind: err_kind,
-        })
+        }
     }
 
-    fn ok<T>(&self, contents: T) -> Result<Spanned<T>> {
-        Ok(Spanned::from(self.current_span(), contents))
+    fn spanned<T>(&self, contents: T) -> Spanned<T> {
+        Spanned::from(self.current_span(), contents)
     }
 }
 
