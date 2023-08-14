@@ -65,15 +65,18 @@ impl Display for Span {
     }
 }
 
-#[derive(Debug, Copy, Clone, Hash, Default)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Spanned<T> {
     span: Span,
     contents: T,
 }
 
 impl<T: Clone> Spanned<T> {
-    pub const fn from(span: Span, contents: T) -> Spanned<T> {
-        Spanned { span, contents }
+    pub fn from<S: Into<Span>>(span: S, contents: T) -> Spanned<T> {
+        Spanned {
+            span: span.into(),
+            contents,
+        }
     }
 
     pub fn span(&self) -> Span {
@@ -85,7 +88,7 @@ impl<T: Clone> Spanned<T> {
     }
 }
 
-#[derive(Debug, Copy, Clone, Hash, Default, thiserror::Error)]
+#[derive(thiserror::Error, Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 #[error("error at span {span}: {error}")]
 pub struct SpannedError<E: Error> {
     pub span: Span,

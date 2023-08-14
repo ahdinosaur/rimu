@@ -1,85 +1,10 @@
+// with help from https://github.com/DennisPrediger/SLAC/blob/main/src/scanner.rs
+
 use rimu_span::{Span, Spanned, SpannedError};
 use rust_decimal::{Decimal, Error as DecimalError};
 use std::str::FromStr;
 
 use crate::Token;
-
-/*
-type Span = std::ops::Range<usize>;
-type Spanned<T> = (T, Span);
-
-pub fn lexer() -> impl Parser<char, Vec<(Token, Span)>, Error = Simple<char>> {
-    let null = just("null").to(Token::Null);
-
-    let boolean = choice((
-        just("true").to(Token::Boolean(true)),
-        just("false").to(Token::Boolean(false)),
-    ));
-
-    let number = text::int(10)
-        .chain::<char, _, _>(just('.').chain(text::digits(10)).or_not().flatten())
-        .collect::<String>()
-        .map(Token::Number);
-
-    let escape = just('\\').ignore_then(
-        just('\\')
-            .or(just('/'))
-            .or(just('"'))
-            .or(just('b').to('\x08'))
-            .or(just('f').to('\x0C'))
-            .or(just('n').to('\n'))
-            .or(just('r').to('\r'))
-            .or(just('t').to('\t')),
-    );
-
-    let string = just('"')
-        .ignore_then(filter(|c| *c != '\\' && *c != '"').or(escape).repeated())
-        .then_ignore(just('"'))
-        .collect::<String>()
-        .map(Token::String)
-        .labelled("string");
-
-    let delimiter = choice((
-        just('(').to(Token::LeftParen),
-        just(')').to(Token::RightParen),
-        just('[').to(Token::LeftBrack),
-        just(']').to(Token::RightBrack),
-        just('{').to(Token::LeftBrace),
-        just('}').to(Token::RightBrace),
-    ));
-
-    let control = choice((
-        just(',').to(Token::Comma),
-        just(':').to(Token::Colon),
-        just('.').to(Token::Dot),
-    ));
-
-    let operator = choice((
-        just('+').to(Token::Plus),
-        just('-').to(Token::Minus),
-        just('*').to(Token::Star),
-        just('/').to(Token::Slash),
-        just('>').to(Token::Greater),
-        just(">=").to(Token::GreaterEqual),
-        just('<').to(Token::Less),
-        just("<=").to(Token::LessEqual),
-        just("and").to(Token::And),
-        just("or").to(Token::Or),
-        just("xor").to(Token::Xor),
-        just("not").to(Token::Not),
-        just("div").to(Token::Div),
-        just("mod").to(Token::Mod),
-    ));
-
-    let token = choice((null, boolean, number, string, delimiter, control, operator))
-        .recover_with(skip_then_retry_until([]));
-
-    token
-        .map_with_span(|tok, span| (tok, span))
-        .padded()
-        .repeated()
-}
-*/
 
 pub struct Scanner<'a> {
     source: &'a str,
@@ -152,13 +77,16 @@ impl<'a> Scanner<'a> {
         }
 
         match next {
-            '\'' => self.string(),
+            ',' => Ok(Token::Comma),
+            ':' => Ok(Token::Colon),
             '.' => Ok(Token::Dot),
             '(' => Ok(Token::LeftParen),
             ')' => Ok(Token::RightParen),
             '[' => Ok(Token::LeftBrack),
             ']' => Ok(Token::RightBrack),
-            ',' => Ok(Token::Comma),
+            '{' => Ok(Token::LeftBrace),
+            '}' => Ok(Token::RightBrace),
+            '\'' => self.string(),
             '+' => Ok(Token::Plus),
             '-' => Ok(Token::Minus),
             '*' => Ok(Token::Star),
@@ -219,7 +147,7 @@ impl<'a> Scanner<'a> {
     }
 
     fn is_identifier(character: char) -> bool {
-        character.is_alphanumeric() || character == '_' || character == '-'
+        character.is_alphanumeric() || character == '_'
     }
 
     fn identifier(&mut self) -> Token {
@@ -229,7 +157,7 @@ impl<'a> Scanner<'a> {
 
         let ident = self.get_content(0);
 
-        match ident.to_lowercase().as_str() {
+        match ident.as_str() {
             "null" => Token::Null,
             "true" => Token::Boolean(true),
             "false" => Token::Boolean(false),
@@ -321,15 +249,11 @@ impl<'a> Scanner<'a> {
 mod tests {
     use std::{error::Error, f64::consts::PI};
 
+    use pretty_assertions::assert_eq;
     use rimu_span::{Spanned, SpannedError};
     use rust_decimal::{prelude::FromPrimitive, Decimal};
 
     use super::{tokenize, ScannerError, Token};
-
-    fn assert_eq_token(token: Spanned<Token>, expected: Token) {
-        let actual = token.contents().clone();
-        assert_eq!(actual, expected);
-    }
 
     fn assert_eq_tokens(tokens: Vec<Spanned<Token>>, expected: Vec<Token>) {
         let actual: Vec<Token> = tokens.into_iter().map(|i| i.contents().clone()).collect();
@@ -351,73 +275,91 @@ mod tests {
     }
 
     #[test]
+    fn simple_null() -> Result<(), Box<dyn Error>> {
+        let actual = tokenize("null")?;
+
+        let expected = vec![Spanned::from((0, 4), Token::Null)];
+
+        assert_eq!(actual, expected);
+        Ok(())
+    }
+
+    #[test]
     fn simple_bool() -> Result<(), Box<dyn Error>> {
-        let tokens = tokenize("True")?;
+        let actual = tokenize("true")?;
 
-        let expected = Token::Boolean(true);
+        let expected = vec![Spanned::from((0, 4), Token::Boolean(true))];
 
-        assert_eq_token(tokens[0].clone(), expected);
+        assert_eq!(actual, expected);
         Ok(())
     }
 
     #[test]
     fn simple_integer() -> Result<(), Box<dyn Error>> {
-        let tokens = tokenize("9001")?;
+        let actual = tokenize("9001")?;
 
-        let expected = Token::Number(Decimal::from_u64(9001).unwrap());
+        let expected = vec![Spanned::from(
+            (0, 4),
+            Token::Number(Decimal::from_u64(9001).unwrap()),
+        )];
 
-        assert_eq_token(tokens[0].clone(), expected);
+        assert_eq!(actual, expected);
         Ok(())
     }
 
     #[test]
     fn simple_float() -> Result<(), Box<dyn Error>> {
-        let tokens = tokenize("3.141592653589793")?;
+        let actual = tokenize("3.141592653589793")?;
 
-        let expected = Token::Number(Decimal::from_f64(PI).unwrap());
+        let expected = vec![Spanned::from(
+            (0, 17),
+            Token::Number(Decimal::from_f64(PI).unwrap()),
+        )];
 
-        assert_eq_token(tokens[0].clone(), expected);
+        assert_eq!(actual, expected);
         Ok(())
     }
 
     #[test]
     fn simple_string() -> Result<(), Box<dyn Error>> {
-        let tokens = tokenize("'Hello World'")?;
+        let actual = tokenize("'Hello World'")?;
 
-        let expected = Token::String(String::from("Hello World"));
+        let expected = vec![Spanned::from(
+            (0, 13),
+            Token::String(String::from("Hello World")),
+        )];
 
-        assert!(tokens.len() > 0);
-        assert_eq_token(tokens[0].clone(), expected);
+        assert_eq!(actual, expected);
         Ok(())
     }
 
     #[test]
     fn multiple_tokens() -> Result<(), Box<dyn Error>> {
-        let tokens = tokenize("1 + 1")?;
+        let actual = tokenize("1 + 1")?;
 
-        let expected: Vec<Token> = vec![
-            Token::Number(Decimal::from_u8(1).unwrap()),
-            Token::Plus,
-            Token::Number(Decimal::from_u8(1).unwrap()),
+        let expected: Vec<Spanned<Token>> = vec![
+            Spanned::from((0, 1), Token::Number(Decimal::from_u8(1).unwrap())),
+            Spanned::from((2, 3), Token::Plus),
+            Spanned::from((4, 5), Token::Number(Decimal::from_u8(1).unwrap())),
         ];
 
-        assert_eq_tokens(tokens, expected);
+        assert_eq!(actual, expected);
         Ok(())
     }
 
     #[test]
     fn var_name_underscore() -> Result<(), Box<dyn Error>> {
-        let tokens = tokenize("(_SOME_VAR1 * ANOTHER-ONE)")?;
+        let actual = tokenize("(_SOME_VAR1 * ANOTHER_ONE)")?;
 
         let expected = vec![
-            Token::LeftParen,
-            Token::Identifier(String::from("_SOME_VAR1")),
-            Token::Star,
-            Token::Identifier(String::from("ANOTHER-ONE")),
-            Token::RightParen,
+            Spanned::from((0, 1), Token::LeftParen),
+            Spanned::from((1, 11), Token::Identifier(String::from("_SOME_VAR1"))),
+            Spanned::from((12, 13), Token::Star),
+            Spanned::from((14, 25), Token::Identifier(String::from("ANOTHER_ONE"))),
+            Spanned::from((25, 26), Token::RightParen),
         ];
 
-        assert_eq_tokens(tokens, expected);
+        assert_eq!(actual, expected);
         Ok(())
     }
 
