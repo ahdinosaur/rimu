@@ -2,6 +2,7 @@ use chumsky::prelude::*;
 
 use crate::{Expression, Token};
 
+/*
 type Span = std::ops::Range<usize>;
 type Spanned<T> = (T, Span);
 
@@ -208,3 +209,4 @@ pub fn nested_parser<T>(
         ))
         .boxed()
 }
+*/

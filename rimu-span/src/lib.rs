@@ -4,10 +4,7 @@
 // - https://docs.rs/codespan/latest/codespan/struct.Span.html
 // - https://github.com/noir-lang/noir/blob/master/crates/noirc_errors/src/position.rs
 
-use std::{
-    fmt::{write, Display},
-    ops::Range,
-};
+use std::{error::Error, fmt::Display, ops::Range};
 
 /// A span of source code.
 #[derive(Debug, Copy, Clone, PartialOrd, Ord, PartialEq, Eq, Hash, Default)]
@@ -53,8 +50,8 @@ impl From<(usize, usize)> for Span {
     }
 }
 
-impl From<std::ops::Range<usize>> for Span {
-    fn from(range: std::ops::Range<usize>) -> Self {
+impl From<Range<usize>> for Span {
+    fn from(range: Range<usize>) -> Self {
         Self {
             start: range.start.into(),
             end: range.end.into(),
@@ -68,13 +65,13 @@ impl Display for Span {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialOrd, Ord, Eq, Hash, Default)]
+#[derive(Debug, Copy, Clone, Hash, Default)]
 pub struct Spanned<T> {
-    pub contents: T,
     span: Span,
+    contents: T,
 }
 
-impl<T> Spanned<T> {
+impl<T: Clone> Spanned<T> {
     pub const fn from(span: Span, contents: T) -> Spanned<T> {
         Spanned { span, contents }
     }
@@ -82,12 +79,32 @@ impl<T> Spanned<T> {
     pub fn span(&self) -> Span {
         self.span
     }
+
+    pub fn contents(&self) -> T {
+        self.contents.clone()
+    }
 }
 
-/// This is important for tests. Two Spanned objects are equal if their content is equal
-/// They may not have the same span. Use `.span()` to test for Span being equal specifically
-impl<T: std::cmp::PartialEq> PartialEq<Spanned<T>> for Spanned<T> {
-    fn eq(&self, other: &Spanned<T>) -> bool {
-        self.contents == other.contents
+#[derive(Debug, Copy, Clone, Hash, Default, thiserror::Error)]
+#[error("error at span {span}: {error}")]
+pub struct SpannedError<E: Error> {
+    pub span: Span,
+    pub error: E,
+}
+
+impl<E: Clone> SpannedError<E>
+where
+    E: Error,
+{
+    pub const fn from(span: Span, error: E) -> SpannedError<E> {
+        SpannedError { span, error }
+    }
+
+    pub fn span(&self) -> Span {
+        self.span
+    }
+
+    pub fn error(&self) -> E {
+        self.error.clone()
     }
 }
