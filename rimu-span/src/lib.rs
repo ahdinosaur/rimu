@@ -83,7 +83,7 @@ impl<T: Clone> Spanned<T> {
         self.span
     }
 
-    pub fn contents(&self) -> T {
+    pub fn into_contents(&self) -> T {
         self.contents.clone()
     }
 }
@@ -107,7 +107,7 @@ where
         self.span
     }
 
-    pub fn error(&self) -> E {
+    pub fn into_error(&self) -> E {
         self.error.clone()
     }
 }

@@ -256,7 +256,7 @@ mod tests {
     use super::{tokenize, ScannerError, Token};
 
     fn assert_eq_tokens(tokens: Vec<Spanned<Token>>, expected: Vec<Token>) {
-        let actual: Vec<Token> = tokens.into_iter().map(|i| i.contents().clone()).collect();
+        let actual: Vec<Token> = tokens.into_iter().map(|i| i.into_contents()).collect();
         assert_eq!(actual, expected);
     }
 
@@ -267,10 +267,10 @@ mod tests {
         let actual = tokens
             .map(|t| {
                 t.into_iter()
-                    .map(|i| i.contents().clone())
+                    .map(|i| i.into_contents())
                     .collect::<Vec<Token>>()
             })
-            .map_err(|error| error.error().clone());
+            .map_err(|error| error.into_error());
         assert_eq!(actual, expected);
     }
 
