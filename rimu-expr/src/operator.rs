@@ -1,5 +1,5 @@
 /// A binary or arithemtic operator.
-#[derive(Debug, PartialEq, PartialOrd, Eq, Clone, Copy)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Operator {
     Plus,
     Minus,

@@ -1,8 +1,14 @@
+use std::ops::Range;
+
 use rust_decimal::Decimal;
+
+type Span = Range<usize>;
+type Spanned<T> = (T, Span);
 
 use crate::Operator;
 
 /// An expression represents an entity which can be evaluated to a value.
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Expression {
     /// Literal null.
     Null,
@@ -17,10 +23,10 @@ pub enum Expression {
     Number(Decimal),
 
     /// Literal list.
-    List(Vec<Expression>),
+    List(Vec<SpannedExpression>),
 
     /// Literal key-value object.
-    Object(Vec<(String, Expression)>),
+    Object(Vec<(String, SpannedExpression)>),
 
     /// A named identifier.
     Identifier {
@@ -29,41 +35,43 @@ pub enum Expression {
 
     /// An operation on a single [`Expression`] operand with an [`Operator`]
     Unary {
-        right: Box<Expression>,
+        right: Box<SpannedExpression>,
         operator: Operator,
     },
 
     /// An operation on two [`Expression`] operands with a an [`Operator`].
     Binary {
-        left: Box<Expression>,
-        right: Box<Expression>,
+        left: Box<SpannedExpression>,
+        right: Box<SpannedExpression>,
         operator: Operator,
     },
 
     /// A function invocation with a list of [`Expression`] parameters.
     Call {
-        function: Box<Expression>,
-        params: Vec<Expression>,
+        function: Box<SpannedExpression>,
+        args: Vec<SpannedExpression>,
     },
 
     /// Index operation (`a[x]`).
     Index {
-        container: Box<Expression>,
-        index: Box<Expression>,
+        container: Box<SpannedExpression>,
+        index: Box<SpannedExpression>,
     },
 
     /// Slice operation (`b[x:y]`).
     Slice {
-        container: Box<Expression>,
-        start: Option<Box<Expression>>,
-        end: Option<Box<Expression>>,
+        container: Box<SpannedExpression>,
+        start: Option<Box<SpannedExpression>>,
+        end: Option<Box<SpannedExpression>>,
     },
 
     /// Dot operation (`c.z`).
     Dot {
-        container: Box<Expression>,
+        container: Box<SpannedExpression>,
         key: String,
     },
 
     Error,
 }
+
+pub type SpannedExpression = Spanned<Expression>;
