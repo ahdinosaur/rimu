@@ -106,9 +106,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::{f64::consts::PI, ops::Range};
+    use std::f64::consts::PI;
 
-    use chumsky::prelude::Simple;
     use pretty_assertions::assert_eq;
     use rust_decimal::{prelude::FromPrimitive, Decimal};
 

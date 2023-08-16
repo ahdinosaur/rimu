@@ -3,10 +3,10 @@
 // - https://github.com/zesterer/chumsky/blob/40fe7d1966f375b3c676d01e04c5dca08f7615ac/examples/nano_rust.rs
 // - https://github.com/zesterer/tao/blob/6e7be425ba98cb36582b9c836b3b5b120d13194a/syntax/src/parse.rs
 // - https://github.com/noir-lang/noir/blob/master/crates/noirc_frontend/src/parser/parser.rs
+// - https://github.com/DennisPrediger/SLAC/blob/main/src/compiler.rs
 
 use chumsky::prelude::*;
-use rust_decimal::Decimal;
-use std::{fmt::Binary, ops::Range, str::FromStr};
+use std::ops::Range;
 
 use crate::{BinaryOperator, Expression, SpannedExpression, Token, UnaryOperator};
 
@@ -58,6 +58,13 @@ pub fn compiler() -> impl Compiler<SpannedExpression> {
         .map(|fields| fields.map(Expression::Object).unwrap_or(Expression::Error))
         .labelled("object");
 
+        let nested_expr = nested_parser(
+            expr.clone().map(|spanned| spanned.0),
+            Token::LeftParen,
+            Token::RightParen,
+            |_| Expression::Error,
+        );
+
         // Begin precedence order:
 
         // Highest precedence are "primary" literals
@@ -65,7 +72,9 @@ pub fn compiler() -> impl Compiler<SpannedExpression> {
             .or(identifier)
             .or(list)
             .or(object)
-            .map_with_span(|e, s| (e, s));
+            .or(nested_expr)
+            .map_with_span(|e, s| (e, s))
+            .boxed();
 
         // Next precedence: function "calls"
         let call = atom
@@ -143,15 +152,21 @@ pub fn compiler() -> impl Compiler<SpannedExpression> {
         let equality = binary_operator_parser(comparison, op);
 
         // Next precedence: "xor" operator
-        let op = just(Token::Xor).to(BinaryOperator::Xor);
+        let op = just(Token::Xor)
+            .to(BinaryOperator::Xor)
+            .labelled("binary (xor) operator");
         let xor = binary_operator_parser(equality, op);
 
         // Next precedence: "and" operator
-        let op = just(Token::And).to(BinaryOperator::And);
+        let op = just(Token::And)
+            .to(BinaryOperator::And)
+            .labelled("binary (and) operator");
         let and = binary_operator_parser(xor, op);
 
         // Next precedence: "or" operator
-        let op = just(Token::And).to(BinaryOperator::And);
+        let op = just(Token::Or)
+            .to(BinaryOperator::Or)
+            .labelled("binary (or) operator");
         let or = binary_operator_parser(and, op);
 
         or
@@ -321,6 +336,18 @@ mod tests {
     }
 
     #[test]
+    fn expression_group() {
+        let actual = compile(vec![
+            Token::LeftParen,
+            Token::Boolean(true),
+            Token::RightParen,
+        ]);
+        let expected = Ok((Expression::Boolean(true), 0..3));
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
     fn simple_function_call() {
         let actual = compile(vec![
             Token::Identifier("add".into()),
@@ -347,7 +374,7 @@ mod tests {
     }
 
     #[test]
-    fn simple_unary_operation() {
+    fn negate_number() {
         let one = Decimal::from_u8(1).unwrap();
         let tokens = vec![Token::Minus, Token::Number(one)];
         let actual = compile(tokens);
@@ -364,7 +391,7 @@ mod tests {
     }
 
     #[test]
-    fn simple_binary_operation() {
+    fn add_numbers() {
         let one = Decimal::from_u8(1).unwrap();
         let tokens = vec![Token::Number(one), Token::Plus, Token::Number(one)];
         let actual = compile(tokens);
@@ -376,6 +403,38 @@ mod tests {
                 right: Box::new((Expression::Number(one), (2..3))),
             },
             0..3,
+        ));
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn precedence_multiply_addition() {
+        let one = Decimal::from_u8(1).unwrap();
+        let two = Decimal::from_u8(2).unwrap();
+        let three = Decimal::from_u8(3).unwrap();
+
+        let actual = compile(vec![
+            Token::Number(one),
+            Token::Plus,
+            Token::Number(two),
+            Token::Star,
+            Token::Number(three),
+        ]);
+        let expected = Ok((
+            Expression::Binary {
+                left: Box::new((Expression::Number(one), 0..1)),
+                operator: BinaryOperator::Add,
+                right: Box::new((
+                    Expression::Binary {
+                        left: Box::new((Expression::Number(two), 2..3)),
+                        operator: BinaryOperator::Multiply,
+                        right: Box::new((Expression::Number(three), 4..5)),
+                    },
+                    2..5,
+                )),
+            },
+            0..5,
         ));
 
         assert_eq!(actual, expected);
