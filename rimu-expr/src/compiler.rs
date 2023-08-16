@@ -21,192 +21,83 @@ pub fn compile(source: Vec<Token>) -> Result<SpannedExpression, Vec<CompilerErro
 }
 
 pub fn compiler() -> impl Compiler<SpannedExpression> {
-    recursive(|_expr| {
-        let atom = literal_parser()
-            .or(identifier_parser())
-            .map_with_span(|e, s| (e, s));
-        atom
-    })
-}
-
-/*
-pub fn compiler() -> impl Compiler<Expression> {
     recursive(|expr| {
-        let raw_expr = recursive(|raw_expr| {
-            // A list of expressions
-            let items = expr
-                .clone()
-                .separated_by(just(Token::Comma))
-                .allow_trailing();
+        let literal = literal_parser();
 
-            let list = items
-                .clone()
-                .delimited_by(just(Token::LeftBrack), just(Token::RightBrack))
-                .map(Expression::List);
+        let identifier = identifier_parser();
 
-            // 'Atoms' are expressions that contain no ambiguity
-            let atom = primitive()
-                .or(identifier())
-                .or(list)
+        let items = expr
+            .clone()
+            .separated_by(just(Token::Comma))
+            .allow_trailing()
+            .map(Some);
+
+        let list = nested_parser(items.clone(), Token::LeftBrack, Token::RightBrack, |_| None)
+            .map(|x| match x {
+                Some(items) => Expression::List(items),
+                None => Expression::Error,
+            })
+            .labelled("list");
+
+        let object = nested_parser(
+            identifier_parser()
                 .map_with_span(|expr, span| (expr, span))
-                // Atoms can also just be normal expressions, but surrounded with parentheses
-                .or(expr
-                    .clone()
-                    .delimited_by(just(Token::LeftParen), just(Token::RightParen)))
-                // Attempt to recover anything that looks like a parenthesised expression but contains errors
-                .recover_with(nested_delimiters(
-                    Token::LeftParen,
-                    Token::RightParen,
-                    [
-                        (Token::LeftBrack, Token::RightBrack),
-                        (Token::LeftBrace, Token::RightBrace),
-                    ],
-                    |span| (Expression::Error, span),
-                ))
-                // Attempt to recover anything that looks like a list but contains errors
-                .recover_with(nested_delimiters(
-                    Token::LeftBrack,
-                    Token::RightBrack,
-                    [
-                        (Token::LeftParen, Token::RightParen),
-                        (Token::LeftBrace, Token::RightBrace),
-                    ],
-                    |span| (Expression::Error, span),
-                ));
-
-            // Function calls have very high precedence so we prioritise them
-            let call = atom
-                .then(
-                    items
-                        .delimited_by(just(Token::LeftParen), just(Token::RightParen))
-                        .map_with_span(|args, span: Span| (args, span))
-                        .repeated(),
-                )
-                .foldl(|f, args| {
-                    let span = f.1.start..args.1.end;
-                    (
-                        Expression::Call {
-                            function: Box::new(f),
-                            args: args.0,
-                        },
-                        span,
-                    )
-                });
-
-            // Product ops (multiply and divide) have equal precedence
-            let op = just(Token::Op("*".to_string()))
-                .to(BinaryOp::Mul)
-                .or(just(Token::Op("/".to_string())).to(BinaryOp::Div));
-            let product = call
-                .clone()
-                .then(op.then(call).repeated())
-                .foldl(|a, (op, b)| {
-                    let span = a.1.start..b.1.end;
-                    (Expression::Binary(Box::new(a), op, Box::new(b)), span)
-                });
-
-            // Sum ops (add and subtract) have equal precedence
-            let op = just(Token::Op("+".to_string()))
-                .to(BinaryOp::Add)
-                .or(just(Token::Op("-".to_string())).to(BinaryOp::Sub));
-            let sum = product
-                .clone()
-                .then(op.then(product).repeated())
-                .foldl(|a, (op, b)| {
-                    let span = a.1.start..b.1.end;
-                    (Expression::Binary(Box::new(a), op, Box::new(b)), span)
-                });
-
-            // Comparison ops (equal, not-equal) have equal precedence
-            let op = just(Token::Op("==".to_string()))
-                .to(BinaryOp::Eq)
-                .or(just(Token::Op("!=".to_string())).to(BinaryOp::NotEq));
-            let compare = sum
-                .clone()
-                .then(op.then(sum).repeated())
-                .foldl(|a, (op, b)| {
-                    let span = a.1.start..b.1.end;
-                    (Expression::Binary(Box::new(a), op, Box::new(b)), span)
-                });
-
-            compare
-        });
-
-        // Blocks are expressions but delimited with braces
-        let block = expr
-            .clone()
-            .delimited_by(just(Token::Ctrl('{')), just(Token::Ctrl('}')))
-            // Attempt to recover anything that looks like a block but contains errors
-            .recover_with(nested_delimiters(
-                Token::Ctrl('{'),
-                Token::Ctrl('}'),
-                [
-                    (Token::Ctrl('('), Token::Ctrl(')')),
-                    (Token::Ctrl('['), Token::Ctrl(']')),
-                ],
-                |span| (Expression::Error, span),
-            ));
-
-        let if_ = recursive(|if_| {
-            just(Token::If)
-                .ignore_then(expr.clone())
-                .then(block.clone())
-                .then(
-                    just(Token::Else)
-                        .ignore_then(block.clone().or(if_))
-                        .or_not(),
-                )
-                .map_with_span(|((cond, a), b), span: Span| {
-                    (
-                        Expression::If(
-                            Box::new(cond),
-                            Box::new(a),
-                            Box::new(match b {
-                                Some(b) => b,
-                                // If an `if` expression has no trailing `else` block, we magic up one that just produces null
-                                None => (Expression::Value(Value::Null), span.clone()),
-                            }),
-                        ),
-                        span,
-                    )
+                .then(just(Token::Colon).ignore_then(expr.clone().or_not()))
+                .map(|(field, value)| match value {
+                    Some(value) => (field, value),
+                    None => (field.clone(), field.clone()),
                 })
-        });
+                .separated_by(just(Token::Comma))
+                .allow_trailing()
+                .map(Some)
+                .boxed(),
+            Token::LeftBrace,
+            Token::RightBrace,
+            |_| None,
+        )
+        .map(|fields| fields.map(Expression::Object).unwrap_or(Expression::Error))
+        .labelled("object");
 
-        // Both blocks and `if` are 'block expressions' and can appear in the place of statements
-        let block_expr = block.or(if_).labelled("block");
+        // Begin precedence order:
 
-        let block_chain = block_expr
-            .clone()
-            .then(block_expr.clone().repeated())
-            .foldl(|a, b| {
-                let span = a.1.start..b.1.end;
-                (Expression::Then(Box::new(a), Box::new(b)), span)
+        // Highest precedence are "primary" literals
+        let atom = literal
+            .or(identifier)
+            .or(list)
+            .or(object)
+            .map_with_span(|e, s| (e, s));
+
+        // Next precedence: function "calls"
+        let call = atom
+            .then(
+                items
+                    .clone()
+                    .delimited_by(just(Token::LeftParen), just(Token::RightParen))
+                    .map_with_span(|args, span: Span| (args, span))
+                    .repeated(),
+            )
+            .foldl(|f, args| {
+                let span = f.1.start..args.1.end;
+                (
+                    Expression::Call {
+                        function: Box::new(f),
+                        args: args.0.unwrap_or(vec![]),
+                    },
+                    span,
+                )
             });
 
-        block_chain
-            // Expressionessions, chained by semicolons, are statements
-            .or(raw_expr.clone())
-            .then(just(Token::Ctrl(';')).ignore_then(expr.or_not()).repeated())
-            .foldl(|a, b| {
-                // This allows creating a span that covers the entire Then expression.
-                // b_end is the end of b if it exists, otherwise it is the end of a.
-                let a_start = a.1.start;
-                let b_end = b.as_ref().map(|b| b.1.end).unwrap_or(a.1.end);
-                (
-                    Expression::Then(
-                        Box::new(a),
-                        Box::new(match b {
-                            Some(b) => b,
-                            // Since there is no b expression then its span is empty.
-                            None => (Expression::Value(Value::Null), b_end..b_end),
-                        }),
-                    ),
-                    a_start..b_end,
-                )
-            })
+        /*
+        // Next precedence: "unary" operators
+        let op = just(Token::Op(Op::Sub))
+            .to(ast::UnaryOp::Neg)
+            .or(just(Token::Op(Op::Not)).to(ast::UnaryOp::Not))
+            .map_with_span(SrcNode::new);
+        */
+
+        call
     })
 }
-*/
 
 fn literal_parser() -> impl Compiler<Expression> {
     select! {
@@ -219,7 +110,7 @@ fn literal_parser() -> impl Compiler<Expression> {
 }
 
 fn identifier_parser() -> impl Compiler<Expression> {
-    select! { Token::Identifier(identifier) => Expression::Identifier { name: identifier } }
+    select! { Token::Identifier(identifier) => Expression::Identifier(identifier) }
         .labelled("identifier")
 }
 
@@ -289,7 +180,90 @@ mod tests {
     }
 
     #[test]
-    fn basic_operation() {
+    fn simple_list() {
+        let actual = compile(vec![
+            Token::LeftBrack,
+            Token::String("hello".into()),
+            Token::Comma,
+            Token::Boolean(true),
+            Token::Comma,
+            Token::String("world".into()),
+            Token::Comma,
+            Token::RightBrack,
+        ]);
+
+        let expected = Ok((
+            Expression::List(vec![
+                (Expression::String("hello".into()), 1..2),
+                (Expression::Boolean(true), 3..4),
+                (Expression::String("world".into()), 5..6),
+            ]),
+            0..8,
+        ));
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn simple_object() {
+        let actual = compile(vec![
+            Token::LeftBrace,
+            Token::Identifier("a".into()),
+            Token::Colon,
+            Token::String("hello".into()),
+            Token::Comma,
+            Token::Identifier("b".into()),
+            Token::Colon,
+            Token::String("world".into()),
+            Token::Comma,
+            Token::RightBrace,
+        ]);
+
+        let expected = Ok((
+            Expression::Object(vec![
+                (
+                    (Expression::Identifier("a".into()), 1..2),
+                    (Expression::String("hello".into()), 3..4),
+                ),
+                (
+                    (Expression::Identifier("b".into()), 5..6),
+                    (Expression::String("world".into()), 7..8),
+                ),
+            ]),
+            0..10,
+        ));
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn simple_function_call() {
+        let actual = compile(vec![
+            Token::Identifier("add".into()),
+            Token::LeftParen,
+            Token::Identifier("a".into()),
+            Token::Comma,
+            Token::Identifier("b".into()),
+            Token::Comma,
+            Token::RightParen,
+        ]);
+
+        let expected = Ok((
+            Expression::Call {
+                function: Box::new((Expression::Identifier("add".into()), 0..1)),
+                args: vec![
+                    (Expression::Identifier("a".into()), 2..3),
+                    (Expression::Identifier("b".into()), 4..5),
+                ],
+            },
+            0..7,
+        ));
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn simple_operation() {
         let one = Decimal::from_u8(1).unwrap();
         let tokens = vec![Token::Number(one), Token::Plus, Token::Number(one)];
         let actual = compile(tokens);

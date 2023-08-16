@@ -26,12 +26,10 @@ pub enum Expression {
     List(Vec<SpannedExpression>),
 
     /// Literal key-value object.
-    Object(Vec<(String, SpannedExpression)>),
+    Object(Vec<(SpannedExpression, SpannedExpression)>),
 
-    /// A named identifier.
-    Identifier {
-        name: String,
-    },
+    /// A named local variable.
+    Identifier(String),
 
     /// An operation on a single [`Expression`] operand with an [`Operator`]
     Unary {
