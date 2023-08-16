@@ -1,8 +1,15 @@
-/// A binary or arithemtic operator.
+/// A unary operator.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum Operator {
-    Plus,
-    Minus,
+pub enum UnaryOperator {
+    Negative,
+    Not,
+}
+
+/// A binary operator.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum BinaryOperator {
+    Add,
+    Subtract,
     Multiply,
     Divide,
     Greater,

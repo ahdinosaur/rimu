@@ -5,7 +5,7 @@ use rust_decimal::Decimal;
 type Span = Range<usize>;
 type Spanned<T> = (T, Span);
 
-use crate::Operator;
+use crate::{BinaryOperator, UnaryOperator};
 
 /// An expression represents an entity which can be evaluated to a value.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -34,14 +34,14 @@ pub enum Expression {
     /// An operation on a single [`Expression`] operand with an [`Operator`]
     Unary {
         right: Box<SpannedExpression>,
-        operator: Operator,
+        operator: UnaryOperator,
     },
 
     /// An operation on two [`Expression`] operands with a an [`Operator`].
     Binary {
         left: Box<SpannedExpression>,
         right: Box<SpannedExpression>,
-        operator: Operator,
+        operator: BinaryOperator,
     },
 
     /// A function invocation with a list of [`Expression`] parameters.

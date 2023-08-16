@@ -6,9 +6,9 @@
 
 use chumsky::prelude::*;
 use rust_decimal::Decimal;
-use std::{ops::Range, str::FromStr};
+use std::{fmt::Binary, ops::Range, str::FromStr};
 
-use crate::{Expression, SpannedExpression, Token};
+use crate::{BinaryOperator, Expression, SpannedExpression, Token, UnaryOperator};
 
 type Span = Range<usize>;
 type CompilerError = Simple<Token, Span>;
@@ -77,7 +77,7 @@ pub fn compiler() -> impl Compiler<SpannedExpression> {
                     .repeated(),
             )
             .foldl(|f, args| {
-                let span = f.1.start..args.1.end;
+                let span = union(f.1.clone(), args.1);
                 (
                     Expression::Call {
                         function: Box::new(f),
@@ -85,17 +85,76 @@ pub fn compiler() -> impl Compiler<SpannedExpression> {
                     },
                     span,
                 )
-            });
+            })
+            .boxed();
 
-        /*
-        // Next precedence: "unary" operators
-        let op = just(Token::Op(Op::Sub))
-            .to(ast::UnaryOp::Neg)
-            .or(just(Token::Op(Op::Not)).to(ast::UnaryOp::Not))
-            .map_with_span(SrcNode::new);
-        */
+        // Next precedence: "unary" operators ("-", "not")
+        let op = just(Token::Minus)
+            .to(UnaryOperator::Negative)
+            .or(just(Token::Not).to(UnaryOperator::Not))
+            .map_with_span(|expr, span| (expr, span))
+            .labelled("unary operator");
+        let unary = op
+            .repeated()
+            .then(call.labelled("unary right operand"))
+            .clone()
+            .foldr(|op, expr| {
+                let span = union(op.1, expr.1.clone());
+                (
+                    Expression::Unary {
+                        operator: op.0,
+                        right: Box::new(expr),
+                    },
+                    span,
+                )
+            })
+            .boxed();
 
-        call
+        // Next precedence: "factor" operators: "*", "/", "div", "mod"
+        let op = just(Token::Star)
+            .to(BinaryOperator::Multiply)
+            .or(just(Token::Slash).to(BinaryOperator::Divide))
+            .or(just(Token::Div).to(BinaryOperator::Div))
+            .or(just(Token::Mod).to(BinaryOperator::Mod))
+            .labelled("binary (factor) operator");
+        let factor = binary_operator_parser(unary, op);
+
+        // Next precedence: "term" operators: "+", "-"
+        let op = just(Token::Plus)
+            .to(BinaryOperator::Add)
+            .or(just(Token::Minus).to(BinaryOperator::Subtract))
+            .labelled("binary (term) operator");
+        let term = binary_operator_parser(factor, op);
+
+        // Next precedence: "comparison" operators: ">", ">=", "<", "<="
+        let op = just(Token::Less)
+            .to(BinaryOperator::Less)
+            .or(just(Token::LessEqual).to(BinaryOperator::LessEqual))
+            .or(just(Token::Greater).to(BinaryOperator::Greater))
+            .or(just(Token::GreaterEqual).to(BinaryOperator::GreaterEqual))
+            .labelled("binary (comparison) operator");
+        let comparison = binary_operator_parser(term, op);
+
+        // Next precedence: "equality" operators: "=", "!="
+        let op = just(Token::Equal)
+            .to(BinaryOperator::Equal)
+            .or(just(Token::NotEqual).to(BinaryOperator::NotEqual))
+            .labelled("binary (equality) operator");
+        let equality = binary_operator_parser(comparison, op);
+
+        // Next precedence: "xor" operator
+        let op = just(Token::Xor).to(BinaryOperator::Xor);
+        let xor = binary_operator_parser(equality, op);
+
+        // Next precedence: "and" operator
+        let op = just(Token::And).to(BinaryOperator::And);
+        let and = binary_operator_parser(xor, op);
+
+        // Next precedence: "or" operator
+        let op = just(Token::And).to(BinaryOperator::And);
+        let or = binary_operator_parser(and, op);
+
+        or
     })
 }
 
@@ -135,12 +194,37 @@ fn nested_parser<'a, T: 'a>(
         .boxed()
 }
 
+fn binary_operator_parser<'a>(
+    prev: impl Compiler<SpannedExpression> + 'a,
+    op: impl Compiler<BinaryOperator> + 'a,
+) -> impl Compiler<SpannedExpression> + 'a {
+    prev.clone()
+        .labelled("left operand")
+        .then(op.then(prev.clone().labelled("right operand")).repeated())
+        .foldl(|left, (op, right)| {
+            let span = union(left.1.clone(), right.1.clone());
+            (
+                Expression::Binary {
+                    left: Box::new(left),
+                    operator: op,
+                    right: Box::new(right),
+                },
+                span,
+            )
+        })
+        .boxed()
+}
+
+fn union(a: Span, b: Span) -> Span {
+    a.start..b.end
+}
+
 #[cfg(test)]
 mod tests {
     use pretty_assertions::assert_eq;
     use rust_decimal::{prelude::FromPrimitive, Decimal};
 
-    use crate::Operator;
+    use crate::{BinaryOperator, UnaryOperator};
 
     use super::{compile, Expression, Token};
 
@@ -263,7 +347,24 @@ mod tests {
     }
 
     #[test]
-    fn simple_operation() {
+    fn simple_unary_operation() {
+        let one = Decimal::from_u8(1).unwrap();
+        let tokens = vec![Token::Minus, Token::Number(one)];
+        let actual = compile(tokens);
+
+        let expected = Ok((
+            Expression::Unary {
+                operator: UnaryOperator::Negative,
+                right: Box::new((Expression::Number(one), (1..2))),
+            },
+            0..2,
+        ));
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn simple_binary_operation() {
         let one = Decimal::from_u8(1).unwrap();
         let tokens = vec![Token::Number(one), Token::Plus, Token::Number(one)];
         let actual = compile(tokens);
@@ -271,7 +372,7 @@ mod tests {
         let expected = Ok((
             Expression::Binary {
                 left: Box::new((Expression::Number(one), (0..1))),
-                operator: Operator::Plus,
+                operator: BinaryOperator::Add,
                 right: Box::new((Expression::Number(one), (2..3))),
             },
             0..3,
