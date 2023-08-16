@@ -1,20 +1,25 @@
+// with help from:
+// - https://github.com/zesterer/chumsky/blob/40fe7d1966f375b3c676d01e04c5dca08f7615ac/examples/nano_rust.rs
+// - https://github.com/zesterer/tao/blob/6e7be425ba98cb36582b9c836b3b5b120d13194a/syntax/src/token.rs
+// - https://github.com/noir-lang/noir/blob/master/crates/noirc_frontend/src/lexer/lexer.rs
+// - https://github.com/DennisPrediger/SLAC/blob/main/src/scanner.rs
+
 use chumsky::prelude::*;
 use rust_decimal::Decimal;
-use std::{ops::Range, str::FromStr};
+use std::str::FromStr;
 
-use crate::Token;
+use crate::{Span, Token};
 
-type Span = Range<usize>;
-type LexerError = Simple<char, Span>;
+pub type LexerError = Simple<char, Span>;
 
 pub trait Lexer<T>: Parser<char, T, Error = LexerError> + Sized + Clone {}
 impl<P, T> Lexer<T> for P where P: Parser<char, T, Error = LexerError> + Clone {}
 
 pub fn tokenize(source: &str) -> Result<Vec<(Token, Span)>, Vec<LexerError>> {
-    lexer().parse(source)
+    lexer_parser().parse(source)
 }
 
-pub fn lexer() -> impl Lexer<Vec<(Token, Span)>> {
+pub fn lexer_parser() -> impl Lexer<Vec<(Token, Span)>> {
     let null = just("null").to(Token::Null).labelled("null");
 
     let boolean = choice((

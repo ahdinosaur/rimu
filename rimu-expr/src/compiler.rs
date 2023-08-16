@@ -6,21 +6,19 @@
 // - https://github.com/DennisPrediger/SLAC/blob/main/src/compiler.rs
 
 use chumsky::prelude::*;
-use std::ops::Range;
 
-use crate::{BinaryOperator, Expression, SpannedExpression, Token, UnaryOperator};
+use crate::{BinaryOperator, Expression, Span, SpannedExpression, Token, UnaryOperator};
 
-type Span = Range<usize>;
-type CompilerError = Simple<Token, Span>;
+pub type CompilerError = Simple<Token, Span>;
 
 pub trait Compiler<T>: Parser<Token, T, Error = CompilerError> + Sized + Clone {}
 impl<P, T> Compiler<T> for P where P: Parser<Token, T, Error = CompilerError> + Clone {}
 
 pub fn compile(source: Vec<Token>) -> Result<SpannedExpression, Vec<CompilerError>> {
-    compiler().parse(source)
+    compiler_parser().parse(source)
 }
 
-pub fn compiler() -> impl Compiler<SpannedExpression> {
+pub fn compiler_parser() -> impl Compiler<SpannedExpression> {
     recursive(|expr| {
         let literal = literal_parser();
 
