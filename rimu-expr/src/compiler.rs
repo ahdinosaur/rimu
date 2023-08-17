@@ -20,128 +20,13 @@ pub fn compile(source: Vec<Token>) -> Result<SpannedExpression, Vec<CompilerErro
 
 pub fn compiler_parser() -> impl Compiler<SpannedExpression> {
     recursive(|expr| {
-        let literal = literal_parser();
-
-        let identifier = identifier_parser();
-
-        let items = expr
-            .clone()
-            .separated_by(just(Token::Comma))
-            .allow_trailing()
-            .map(Some);
-
-        let list = nested_parser(items.clone(), Token::LeftBrack, Token::RightBrack, |_| None)
-            .map(|x| match x {
-                Some(items) => Expression::List(items),
-                None => Expression::Error,
-            })
-            .labelled("list");
-
-        let object = nested_parser(
-            identifier_parser()
-                .map_with_span(|expr, span| (expr, span))
-                .then(just(Token::Colon).ignore_then(expr.clone().or_not()))
-                .map(|(field, value)| match value {
-                    Some(value) => (field, value),
-                    None => (field.clone(), field.clone()),
-                })
-                .separated_by(just(Token::Comma))
-                .allow_trailing()
-                .map(Some)
-                .boxed(),
-            Token::LeftBrace,
-            Token::RightBrace,
-            |_| None,
-        )
-        .map(|fields| fields.map(Expression::Object).unwrap_or(Expression::Error))
-        .labelled("object");
-
-        let nested_expr = nested_parser(
-            expr.clone().map(|spanned| spanned.0),
-            Token::LeftParen,
-            Token::RightParen,
-            |_| Expression::Error,
-        );
-
         // Begin precedence order:
 
-        // Highest precedence are "primary" literals
-        let atom = literal
-            .or(identifier)
-            .or(list)
-            .or(object)
-            .or(nested_expr)
-            .map_with_span(|e, s| (e, s))
-            .boxed();
+        // Highest precedence are "primary" atoms
+        let atom = atom_parser(expr.clone());
 
         // Next precedence: right unary (function calls or member get)
-        enum RightUnary {
-            Call(Vec<SpannedExpression>),
-            GetIndex(SpannedExpression),
-            GetKey(SpannedExpression),
-            GetSlice(Option<SpannedExpression>, Option<SpannedExpression>),
-        }
-        let call = items
-            .clone()
-            .delimited_by(just(Token::LeftParen), just(Token::RightParen))
-            .map(|expr| RightUnary::Call(expr.unwrap_or(vec![])));
-        let get_index = atom
-            .clone()
-            .delimited_by(just(Token::LeftBrack), just(Token::RightBrack))
-            .map(RightUnary::GetIndex);
-        let get_key = just(Token::Dot)
-            .then(identifier_parser().map_with_span(|expr, span| (expr, span)))
-            .map(|(_, expr)| RightUnary::GetKey(expr));
-        let get_slice = atom
-            .clone()
-            .or_not()
-            .then(just(Token::Colon))
-            .then(atom.clone().or_not())
-            .delimited_by(just(Token::LeftBrack), just(Token::RightBrack))
-            .map(|((start, _), end)| RightUnary::GetSlice(start, end));
-        let right_unary = atom
-            .then(
-                call.or(get_index)
-                    .or(get_key)
-                    .or(get_slice)
-                    .map_with_span(|args, span: Span| (args, span))
-                    .repeated(),
-            )
-            .foldl(|left, right| {
-                let span = union(left.1.clone(), right.1);
-                match right.0 {
-                    RightUnary::Call(args) => (
-                        Expression::Call {
-                            function: Box::new(left),
-                            args,
-                        },
-                        span,
-                    ),
-                    RightUnary::GetIndex(index) => (
-                        Expression::GetIndex {
-                            container: Box::new(left),
-                            index: Box::new(index),
-                        },
-                        span,
-                    ),
-                    RightUnary::GetKey(key) => (
-                        Expression::GetKey {
-                            container: Box::new(left),
-                            key: Box::new(key),
-                        },
-                        span,
-                    ),
-                    RightUnary::GetSlice(start, end) => (
-                        Expression::GetSlice {
-                            container: Box::new(left),
-                            start: start.map(Box::new),
-                            end: end.map(Box::new),
-                        },
-                        span,
-                    ),
-                }
-            })
-            .boxed();
+        let right_unary = right_unary_parser(expr, atom);
 
         // Next precedence: "left unary" operators ("-", "not")
         let op = just(Token::Minus)
@@ -219,14 +104,38 @@ pub fn compiler_parser() -> impl Compiler<SpannedExpression> {
     })
 }
 
-fn literal_parser() -> impl Compiler<Expression> {
+fn atom_parser<'a>(
+    expr: impl Compiler<SpannedExpression> + 'a,
+) -> impl Compiler<SpannedExpression> + 'a {
+    let scalar = scalar_parser();
+    let identifier = identifier_parser();
+    let list = list_parser(expr.clone());
+    let object = object_parser(expr.clone());
+
+    let nested_expr = nested_parser(
+        expr.clone().map(|spanned| spanned.0),
+        Token::LeftParen,
+        Token::RightParen,
+        |_| Expression::Error,
+    );
+
+    scalar
+        .or(identifier)
+        .or(list)
+        .or(object)
+        .or(nested_expr)
+        .map_with_span(|e, s| (e, s))
+        .boxed()
+}
+
+fn scalar_parser() -> impl Compiler<Expression> {
     select! {
         Token::Null => Expression::Null,
         Token::Boolean(x) => Expression::Boolean(x),
         Token::Number(n) => Expression::Number(n),
         Token::String(s) => Expression::String(s),
     }
-    .labelled("primitive")
+    .labelled("scalar")
 }
 
 fn identifier_parser() -> impl Compiler<Expression> {
@@ -253,6 +162,122 @@ fn nested_parser<'a, T: 'a>(
             f,
         ))
         .boxed()
+}
+
+fn items_parser<'a>(
+    expr: impl Compiler<SpannedExpression> + 'a,
+) -> impl Compiler<Option<Vec<SpannedExpression>>> + 'a {
+    expr.separated_by(just(Token::Comma))
+        .allow_trailing()
+        .map(Some)
+        .boxed()
+}
+
+fn list_parser<'a>(expr: impl Compiler<SpannedExpression> + 'a) -> impl Compiler<Expression> + 'a {
+    let items = items_parser(expr);
+    nested_parser(items, Token::LeftBrack, Token::RightBrack, |_| None)
+        .map(|x| match x {
+            Some(items) => Expression::List(items),
+            None => Expression::Error,
+        })
+        .labelled("list")
+}
+
+fn object_parser<'a>(
+    expr: impl Compiler<SpannedExpression> + 'a,
+) -> impl Compiler<Expression> + 'a {
+    nested_parser(
+        identifier_parser()
+            .map_with_span(|expr, span| (expr, span))
+            .then(just(Token::Colon).ignore_then(expr.clone().or_not()))
+            .map(|(field, value)| match value {
+                Some(value) => (field, value),
+                None => (field.clone(), field.clone()),
+            })
+            .separated_by(just(Token::Comma))
+            .allow_trailing()
+            .map(Some)
+            .boxed(),
+        Token::LeftBrace,
+        Token::RightBrace,
+        |_| None,
+    )
+    .map(|fields| fields.map(Expression::Object).unwrap_or(Expression::Error))
+    .labelled("object")
+}
+
+fn right_unary_parser<'a>(
+    expr: impl Compiler<SpannedExpression> + 'a,
+    atom: impl Compiler<SpannedExpression> + 'a,
+) -> impl Compiler<SpannedExpression> + 'a {
+    let items = items_parser(expr);
+    enum RightUnary {
+        Call(Vec<SpannedExpression>),
+        GetIndex(SpannedExpression),
+        GetKey(SpannedExpression),
+        GetSlice(Option<SpannedExpression>, Option<SpannedExpression>),
+    }
+    let call = items
+        .clone()
+        .delimited_by(just(Token::LeftParen), just(Token::RightParen))
+        .map(|expr| RightUnary::Call(expr.unwrap_or(vec![])));
+    let get_index = atom
+        .clone()
+        .delimited_by(just(Token::LeftBrack), just(Token::RightBrack))
+        .map(RightUnary::GetIndex);
+    let get_key = just(Token::Dot)
+        .then(identifier_parser().map_with_span(|expr, span| (expr, span)))
+        .map(|(_, expr)| RightUnary::GetKey(expr));
+    let get_slice = atom
+        .clone()
+        .or_not()
+        .then(just(Token::Colon))
+        .then(atom.clone().or_not())
+        .delimited_by(just(Token::LeftBrack), just(Token::RightBrack))
+        .map(|((start, _), end)| RightUnary::GetSlice(start, end));
+
+    atom.then(
+        call.or(get_index)
+            .or(get_key)
+            .or(get_slice)
+            .map_with_span(|args, span: Span| (args, span))
+            .repeated(),
+    )
+    .foldl(|left, right| {
+        let span = union(left.1.clone(), right.1);
+        match right.0 {
+            RightUnary::Call(args) => (
+                Expression::Call {
+                    function: Box::new(left),
+                    args,
+                },
+                span,
+            ),
+            RightUnary::GetIndex(index) => (
+                Expression::GetIndex {
+                    container: Box::new(left),
+                    index: Box::new(index),
+                },
+                span,
+            ),
+            RightUnary::GetKey(key) => (
+                Expression::GetKey {
+                    container: Box::new(left),
+                    key: Box::new(key),
+                },
+                span,
+            ),
+            RightUnary::GetSlice(start, end) => (
+                Expression::GetSlice {
+                    container: Box::new(left),
+                    start: start.map(Box::new),
+                    end: end.map(Box::new),
+                },
+                span,
+            ),
+        }
+    })
+    .boxed()
 }
 
 fn binary_operator_parser<'a>(
