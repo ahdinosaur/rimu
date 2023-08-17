@@ -1,6 +1,7 @@
+use rust_decimal::Decimal;
 use std::fmt;
 
-use rust_decimal::Decimal;
+use crate::Spanned;
 
 /// A [`Token`] is the smallest logical unit evaluated by the compiler.
 /// It containes either an operator or a literal value.
@@ -113,3 +114,5 @@ impl fmt::Display for Token {
         }
     }
 }
+
+pub type SpannedToken = Spanned<Token>;

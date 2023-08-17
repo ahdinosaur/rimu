@@ -5,6 +5,7 @@
 // - https://github.com/DennisPrediger/SLAC/blob/main/src/scanner.rs
 
 use chumsky::prelude::*;
+use rimu_report::SourceId;
 use rust_decimal::Decimal;
 use std::str::FromStr;
 
@@ -15,8 +16,15 @@ pub type LexerError = Simple<char, Span>;
 pub trait Lexer<T>: Parser<char, T, Error = LexerError> + Sized + Clone {}
 impl<P, T> Lexer<T> for P where P: Parser<char, T, Error = LexerError> + Clone {}
 
-pub fn tokenize(source: &str) -> Result<Vec<(Token, Span)>, Vec<LexerError>> {
-    lexer_parser().parse(source)
+pub fn tokenize(code: &str, source: SourceId) -> Result<Vec<(Token, Span)>, Vec<LexerError>> {
+    let len = code.chars().count();
+    let eoi = Span::new(source.clone(), len, len);
+    lexer_parser().parse(chumsky::Stream::from_iter(
+        eoi,
+        code.chars()
+            .enumerate()
+            .map(|(i, c)| (c, Span::new(source.clone(), i, i + 1))),
+    ))
 }
 
 pub fn lexer_parser() -> impl Lexer<Vec<(Token, Span)>> {
@@ -111,16 +119,25 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::f64::consts::PI;
+    use std::{f64::consts::PI, ops::Range};
 
     use pretty_assertions::assert_eq;
+    use rimu_report::SourceId;
     use rust_decimal::{prelude::FromPrimitive, Decimal};
 
     use super::{tokenize, LexerError, Span, Token};
 
+    fn span(range: Range<usize>) -> Span {
+        Span::new(SourceId::empty(), range.start, range.end)
+    }
+
+    fn test(code: &str) -> Result<Vec<(Token, Span)>, Vec<LexerError>> {
+        tokenize(code, SourceId::empty())
+    }
+
     #[test]
     fn empty_input() {
-        let actual = tokenize("");
+        let actual = test("");
 
         let expected = Ok(vec![]);
 
@@ -129,29 +146,29 @@ mod tests {
 
     #[test]
     fn simple_null() {
-        let actual = tokenize("null");
+        let actual = test("null");
 
-        let expected = Ok(vec![(Token::Null, (0..4))]);
+        let expected = Ok(vec![(Token::Null, span(0..4))]);
 
         assert_eq!(actual, expected);
     }
 
     #[test]
     fn simple_bool() {
-        let actual = tokenize("true");
+        let actual = test("true");
 
-        let expected = Ok(vec![(Token::Boolean(true), (0..4))]);
+        let expected = Ok(vec![(Token::Boolean(true), span(0..4))]);
 
         assert_eq!(actual, expected);
     }
 
     #[test]
     fn simple_integer() {
-        let actual = tokenize("9001");
+        let actual = test("9001");
 
         let expected = Ok(vec![(
             Token::Number(Decimal::from_u64(9001).unwrap()),
-            (0..4),
+            span(0..4),
         )]);
 
         assert_eq!(actual, expected);
@@ -159,11 +176,11 @@ mod tests {
 
     #[test]
     fn simple_float() {
-        let actual = tokenize("3.141592653589793");
+        let actual = test("3.141592653589793");
 
         let expected = Ok(vec![(
             Token::Number(Decimal::from_f64(PI).unwrap()),
-            (0..17),
+            span(0..17),
         )]);
 
         assert_eq!(actual, expected);
@@ -171,21 +188,24 @@ mod tests {
 
     #[test]
     fn simple_string() {
-        let actual = tokenize("\"Hello World\"");
+        let actual = test("\"Hello World\"");
 
-        let expected = Ok(vec![(Token::String(String::from("Hello World")), (0..13))]);
+        let expected = Ok(vec![(
+            Token::String(String::from("Hello World")),
+            span(0..13),
+        )]);
 
         assert_eq!(actual, expected);
     }
 
     #[test]
     fn multiple_tokens() {
-        let actual = tokenize("1 + 1");
+        let actual = test("1 + 1");
 
         let expected = Ok(vec![
-            (Token::Number(Decimal::from_u8(1).unwrap()), (0..1)),
-            (Token::Plus, (2..3)),
-            (Token::Number(Decimal::from_u8(1).unwrap()), (4..5)),
+            (Token::Number(Decimal::from_u8(1).unwrap()), span(0..1)),
+            (Token::Plus, span(2..3)),
+            (Token::Number(Decimal::from_u8(1).unwrap()), span(4..5)),
         ]);
 
         assert_eq!(actual, expected);
@@ -193,14 +213,14 @@ mod tests {
 
     #[test]
     fn var_name_underscore() {
-        let actual = tokenize("(_SOME_VAR1 * ANOTHER_ONE)");
+        let actual = test("(_SOME_VAR1 * ANOTHER_ONE)");
 
         let expected = Ok(vec![
-            (Token::LeftParen, (0..1)),
-            (Token::Identifier(String::from("_SOME_VAR1")), (1..11)),
-            (Token::Star, (12..13)),
-            (Token::Identifier(String::from("ANOTHER_ONE")), (14..25)),
-            (Token::RightParen, (25..26)),
+            (Token::LeftParen, span(0..1)),
+            (Token::Identifier(String::from("_SOME_VAR1")), span(1..11)),
+            (Token::Star, span(12..13)),
+            (Token::Identifier(String::from("ANOTHER_ONE")), span(14..25)),
+            (Token::RightParen, span(25..26)),
         ]);
 
         assert_eq!(actual, expected);
@@ -208,19 +228,19 @@ mod tests {
 
     #[test]
     fn unterminated_less() {
-        let actual = tokenize("<");
+        let actual = test("<");
 
-        let expected = Ok(vec![(Token::Less, (0..1))]);
+        let expected = Ok(vec![(Token::Less, span(0..1))]);
 
         assert_eq!(actual, expected);
     }
 
     fn test_number(input: &str, expected: f64) {
-        let actual = tokenize(input);
+        let actual = test(input);
 
         let expected = Ok(vec![(
             Token::Number(Decimal::from_f64(expected).unwrap()),
-            0..input.len(),
+            span(0..input.len()),
         )]);
 
         assert_eq!(actual, expected);
@@ -247,7 +267,7 @@ mod tests {
 
     #[test]
     fn err_unknown_token_1() {
-        let actual = tokenize("$");
+        let actual = test("$");
 
         let expected = Ok(vec![]);
 
@@ -256,7 +276,7 @@ mod tests {
 
     #[test]
     fn err_unknown_token_2() {
-        let actual = tokenize("$hello");
+        let actual = test("$hello");
 
         // let expected_errs = vec!["".into()];
 
@@ -266,7 +286,7 @@ mod tests {
 
     #[test]
     fn err_unterminated_string() {
-        let actual = tokenize("\"hello\" + \"world");
+        let actual = test("\"hello\" + \"world");
 
         // let expected_errs = vec!["found end of input but expected one of \"\\\\\", \"\\\"\"".into()];
 

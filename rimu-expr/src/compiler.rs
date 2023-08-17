@@ -7,15 +7,28 @@
 
 use chumsky::prelude::*;
 
-use crate::{BinaryOperator, Expression, Span, SpannedExpression, Token, UnaryOperator};
+use crate::{
+    BinaryOperator, Expression, SourceId, Span, Spanned, SpannedExpression, Token, UnaryOperator,
+};
 
 pub type CompilerError = Simple<Token, Span>;
 
 pub trait Compiler<T>: Parser<Token, T, Error = CompilerError> + Sized + Clone {}
 impl<P, T> Compiler<T> for P where P: Parser<Token, T, Error = CompilerError> + Clone {}
 
-pub fn compile(source: Vec<Token>) -> Result<SpannedExpression, Vec<CompilerError>> {
-    compiler_parser().parse(source)
+pub fn compile(
+    tokens: Vec<Token>,
+    source: SourceId,
+) -> Result<SpannedExpression, Vec<CompilerError>> {
+    let len = tokens.len();
+    let eoi = Span::new(source.clone(), len, len);
+    compiler_parser().parse(chumsky::Stream::from_iter(
+        eoi,
+        tokens
+            .into_iter()
+            .enumerate()
+            .map(|(i, c)| (c, Span::new(source.clone(), i, i + 1))),
+    ))
 }
 
 pub fn compiler_parser() -> impl Compiler<SpannedExpression> {
@@ -32,17 +45,17 @@ pub fn compiler_parser() -> impl Compiler<SpannedExpression> {
         let op = just(Token::Minus)
             .to(UnaryOperator::Negative)
             .or(just(Token::Not).to(UnaryOperator::Not))
-            .map_with_span(|expr, span| (expr, span))
+            .map_with_span(Spanned::new)
             .labelled("unary operator");
         let left_unary = op
             .repeated()
             .then(right_unary.labelled("unary right operand"))
             .clone()
             .foldr(|op, expr| {
-                let span = union(op.1, expr.1.clone());
-                (
+                let span = op.span().union(expr.span());
+                Spanned::new(
                     Expression::Unary {
-                        operator: op.0,
+                        operator: op.into_inner(),
                         right: Box::new(expr),
                     },
                     span,
@@ -113,7 +126,7 @@ fn atom_parser<'a>(
     let object = object_parser(expr.clone());
 
     let nested_expr = nested_parser(
-        expr.clone().map(|spanned| spanned.0),
+        expr.clone().map(|spanned| spanned.into_inner()),
         Token::LeftParen,
         Token::RightParen,
         |_| Expression::Error,
@@ -124,7 +137,7 @@ fn atom_parser<'a>(
         .or(list)
         .or(object)
         .or(nested_expr)
-        .map_with_span(|e, s| (e, s))
+        .map_with_span(Spanned::new)
         .boxed()
 }
 
@@ -188,7 +201,7 @@ fn object_parser<'a>(
 ) -> impl Compiler<Expression> + 'a {
     nested_parser(
         identifier_parser()
-            .map_with_span(|expr, span| (expr, span))
+            .map_with_span(|expr, span| Spanned::new(expr, span))
             .then(just(Token::Colon).ignore_then(expr.clone().or_not()))
             .map(|(field, value)| match value {
                 Some(value) => (field, value),
@@ -211,6 +224,7 @@ fn right_unary_parser<'a>(
     atom: impl Compiler<SpannedExpression> + 'a,
 ) -> impl Compiler<SpannedExpression> + 'a {
     let items = items_parser(expr);
+    #[derive(Clone)]
     enum RightUnary {
         Call(Vec<SpannedExpression>),
         GetIndex(SpannedExpression),
@@ -226,7 +240,7 @@ fn right_unary_parser<'a>(
         .delimited_by(just(Token::LeftBrack), just(Token::RightBrack))
         .map(RightUnary::GetIndex);
     let get_key = just(Token::Dot)
-        .then(identifier_parser().map_with_span(|expr, span| (expr, span)))
+        .then(identifier_parser().map_with_span(Spanned::new))
         .map(|(_, expr)| RightUnary::GetKey(expr));
     let get_slice = atom
         .clone()
@@ -240,42 +254,31 @@ fn right_unary_parser<'a>(
         call.or(get_index)
             .or(get_key)
             .or(get_slice)
-            .map_with_span(|args, span: Span| (args, span))
+            .map_with_span(Spanned::new)
             .repeated(),
     )
     .foldl(|left, right| {
-        let span = union(left.1.clone(), right.1);
-        match right.0 {
-            RightUnary::Call(args) => (
-                Expression::Call {
-                    function: Box::new(left),
-                    args,
-                },
-                span,
-            ),
-            RightUnary::GetIndex(index) => (
-                Expression::GetIndex {
-                    container: Box::new(left),
-                    index: Box::new(index),
-                },
-                span,
-            ),
-            RightUnary::GetKey(key) => (
-                Expression::GetKey {
-                    container: Box::new(left),
-                    key: Box::new(key),
-                },
-                span,
-            ),
-            RightUnary::GetSlice(start, end) => (
-                Expression::GetSlice {
-                    container: Box::new(left),
-                    start: start.map(Box::new),
-                    end: end.map(Box::new),
-                },
-                span,
-            ),
-        }
+        let span = left.span().union(right.span());
+        let expr = match right.into_inner() {
+            RightUnary::Call(args) => Expression::Call {
+                function: Box::new(left),
+                args,
+            },
+            RightUnary::GetIndex(index) => Expression::GetIndex {
+                container: Box::new(left),
+                index: Box::new(index),
+            },
+            RightUnary::GetKey(key) => Expression::GetKey {
+                container: Box::new(left),
+                key: Box::new(key),
+            },
+            RightUnary::GetSlice(start, end) => Expression::GetSlice {
+                container: Box::new(left),
+                start: start.map(Box::new),
+                end: end.map(Box::new),
+            },
+        };
+        Spanned::new(expr, span)
     })
     .boxed()
 }
@@ -288,53 +291,60 @@ fn binary_operator_parser<'a>(
         .labelled("left operand")
         .then(op.then(prev.clone().labelled("right operand")).repeated())
         .foldl(|left, (op, right)| {
-            let span = union(left.1.clone(), right.1.clone());
-            (
-                Expression::Binary {
-                    left: Box::new(left),
-                    operator: op,
-                    right: Box::new(right),
-                },
-                span,
-            )
+            let span = left.span().union(right.span());
+            let expr = Expression::Binary {
+                left: Box::new(left),
+                operator: op,
+                right: Box::new(right),
+            };
+            Spanned::new(expr, span)
         })
         .boxed()
 }
 
-fn union(a: Span, b: Span) -> Span {
-    a.start..b.end
-}
-
 #[cfg(test)]
 mod tests {
+    use std::ops::Range;
+
     use pretty_assertions::assert_eq;
     use rust_decimal::{prelude::FromPrimitive, Decimal};
 
-    use crate::{BinaryOperator, UnaryOperator};
+    use crate::{
+        BinaryOperator, Expression, SourceId, Span, Spanned, SpannedExpression, Token,
+        UnaryOperator,
+    };
 
-    use super::{compile, Expression, Token};
+    use super::{compile, CompilerError};
+
+    fn span(range: Range<usize>) -> Span {
+        Span::new(SourceId::empty(), range.start, range.end)
+    }
+
+    fn test(tokens: Vec<Token>) -> Result<SpannedExpression, Vec<CompilerError>> {
+        compile(tokens, SourceId::empty())
+    }
 
     #[test]
     fn empty_input() {
-        let actual = compile(vec![]);
+        let actual = test(vec![]);
 
         assert!(actual.is_err());
     }
 
     #[test]
     fn simple_null() {
-        let actual = compile(vec![Token::Null]);
+        let actual = test(vec![Token::Null]);
 
-        let expected = Ok((Expression::Null, 0..1));
+        let expected = Ok(Spanned::new(Expression::Null, span(0..1)));
 
         assert_eq!(actual, expected);
     }
 
     #[test]
     fn simple_bool() {
-        let actual = compile(vec![Token::Boolean(false)]);
+        let actual = test(vec![Token::Boolean(false)]);
 
-        let expected = Ok((Expression::Boolean(false), 0..1));
+        let expected = Ok(Spanned::new(Expression::Boolean(false), span(0..1)));
 
         assert_eq!(actual, expected);
     }
@@ -342,16 +352,16 @@ mod tests {
     #[test]
     fn simple_number() {
         let number = Decimal::from_u32(9001).unwrap();
-        let actual = compile(vec![Token::Number(number)]);
+        let actual = test(vec![Token::Number(number)]);
 
-        let expected = Ok((Expression::Number(number), 0..1));
+        let expected = Ok(Spanned::new(Expression::Number(number), span(0..1)));
 
         assert_eq!(actual, expected);
     }
 
     #[test]
     fn simple_list() {
-        let actual = compile(vec![
+        let actual = test(vec![
             Token::LeftBrack,
             Token::String("hello".into()),
             Token::Comma,
@@ -362,13 +372,13 @@ mod tests {
             Token::RightBrack,
         ]);
 
-        let expected = Ok((
+        let expected = Ok(Spanned::new(
             Expression::List(vec![
-                (Expression::String("hello".into()), 1..2),
-                (Expression::Boolean(true), 3..4),
-                (Expression::String("world".into()), 5..6),
+                Spanned::new(Expression::String("hello".into()), span(1..2)),
+                Spanned::new(Expression::Boolean(true), span(3..4)),
+                Spanned::new(Expression::String("world".into()), span(5..6)),
             ]),
-            0..8,
+            span(0..8),
         ));
 
         assert_eq!(actual, expected);
@@ -376,7 +386,7 @@ mod tests {
 
     #[test]
     fn simple_object() {
-        let actual = compile(vec![
+        let actual = test(vec![
             Token::LeftBrace,
             Token::Identifier("a".into()),
             Token::Colon,
@@ -389,18 +399,18 @@ mod tests {
             Token::RightBrace,
         ]);
 
-        let expected = Ok((
+        let expected = Ok(Spanned::new(
             Expression::Object(vec![
                 (
-                    (Expression::Identifier("a".into()), 1..2),
-                    (Expression::String("hello".into()), 3..4),
+                    Spanned::new(Expression::Identifier("a".into()), span(1..2)),
+                    Spanned::new(Expression::String("hello".into()), span(3..4)),
                 ),
                 (
-                    (Expression::Identifier("b".into()), 5..6),
-                    (Expression::String("world".into()), 7..8),
+                    Spanned::new(Expression::Identifier("b".into()), span(5..6)),
+                    Spanned::new(Expression::String("world".into()), span(7..8)),
                 ),
             ]),
-            0..10,
+            span(0..10),
         ));
 
         assert_eq!(actual, expected);
@@ -408,19 +418,19 @@ mod tests {
 
     #[test]
     fn expression_group() {
-        let actual = compile(vec![
+        let actual = test(vec![
             Token::LeftParen,
             Token::Boolean(true),
             Token::RightParen,
         ]);
-        let expected = Ok((Expression::Boolean(true), 0..3));
+        let expected = Ok(Spanned::new(Expression::Boolean(true), span(0..3)));
 
         assert_eq!(actual, expected);
     }
 
     #[test]
     fn simple_function_call() {
-        let actual = compile(vec![
+        let actual = test(vec![
             Token::Identifier("add".into()),
             Token::LeftParen,
             Token::Identifier("a".into()),
@@ -430,15 +440,18 @@ mod tests {
             Token::RightParen,
         ]);
 
-        let expected = Ok((
+        let expected = Ok(Spanned::new(
             Expression::Call {
-                function: Box::new((Expression::Identifier("add".into()), 0..1)),
+                function: Box::new(Spanned::new(
+                    Expression::Identifier("add".into()),
+                    span(0..1),
+                )),
                 args: vec![
-                    (Expression::Identifier("a".into()), 2..3),
-                    (Expression::Identifier("b".into()), 4..5),
+                    Spanned::new(Expression::Identifier("a".into()), span(2..3)),
+                    Spanned::new(Expression::Identifier("b".into()), span(4..5)),
                 ],
             },
-            0..7,
+            span(0..7),
         ));
 
         assert_eq!(actual, expected);
@@ -448,14 +461,14 @@ mod tests {
     fn negate_number() {
         let one = Decimal::from_u8(1).unwrap();
         let tokens = vec![Token::Minus, Token::Number(one)];
-        let actual = compile(tokens);
+        let actual = test(tokens);
 
-        let expected = Ok((
+        let expected = Ok(Spanned::new(
             Expression::Unary {
                 operator: UnaryOperator::Negative,
-                right: Box::new((Expression::Number(one), (1..2))),
+                right: Box::new(Spanned::new(Expression::Number(one), span(1..2))),
             },
-            0..2,
+            span(0..2),
         ));
 
         assert_eq!(actual, expected);
@@ -465,15 +478,15 @@ mod tests {
     fn add_numbers() {
         let one = Decimal::from_u8(1).unwrap();
         let tokens = vec![Token::Number(one), Token::Plus, Token::Number(one)];
-        let actual = compile(tokens);
+        let actual = test(tokens);
 
-        let expected = Ok((
+        let expected = Ok(Spanned::new(
             Expression::Binary {
-                left: Box::new((Expression::Number(one), (0..1))),
+                left: Box::new(Spanned::new(Expression::Number(one), span(0..1))),
                 operator: BinaryOperator::Add,
-                right: Box::new((Expression::Number(one), (2..3))),
+                right: Box::new(Spanned::new(Expression::Number(one), span(2..3))),
             },
-            0..3,
+            span(0..3),
         ));
 
         assert_eq!(actual, expected);
@@ -485,27 +498,27 @@ mod tests {
         let two = Decimal::from_u8(2).unwrap();
         let three = Decimal::from_u8(3).unwrap();
 
-        let actual = compile(vec![
+        let actual = test(vec![
             Token::Number(one),
             Token::Plus,
             Token::Number(two),
             Token::Star,
             Token::Number(three),
         ]);
-        let expected = Ok((
+        let expected = Ok(Spanned::new(
             Expression::Binary {
-                left: Box::new((Expression::Number(one), 0..1)),
+                left: Box::new(Spanned::new(Expression::Number(one), span(0..1))),
                 operator: BinaryOperator::Add,
-                right: Box::new((
+                right: Box::new(Spanned::new(
                     Expression::Binary {
-                        left: Box::new((Expression::Number(two), 2..3)),
+                        left: Box::new(Spanned::new(Expression::Number(two), span(2..3))),
                         operator: BinaryOperator::Multiply,
-                        right: Box::new((Expression::Number(three), 4..5)),
+                        right: Box::new(Spanned::new(Expression::Number(three), span(4..5))),
                     },
-                    2..5,
+                    span(2..5),
                 )),
             },
-            0..5,
+            span(0..5),
         ));
 
         assert_eq!(actual, expected);
@@ -520,14 +533,14 @@ mod tests {
             Token::Number(one),
             Token::RightBrack,
         ];
-        let actual = compile(tokens);
+        let actual = test(tokens);
 
-        let expected = Ok((
+        let expected = Ok(Spanned::new(
             Expression::GetIndex {
-                container: Box::new((Expression::Identifier("a".into()), 0..1)),
-                index: Box::new((Expression::Number(one), 2..3)),
+                container: Box::new(Spanned::new(Expression::Identifier("a".into()), span(0..1))),
+                index: Box::new(Spanned::new(Expression::Number(one), span(2..3))),
             },
-            0..4,
+            span(0..4),
         ));
 
         assert_eq!(actual, expected);
@@ -540,14 +553,14 @@ mod tests {
             Token::Dot,
             Token::Identifier("b".into()),
         ];
-        let actual = compile(tokens);
+        let actual = test(tokens);
 
-        let expected = Ok((
+        let expected = Ok(Spanned::new(
             Expression::GetKey {
-                container: Box::new((Expression::Identifier("a".into()), 0..1)),
-                key: Box::new((Expression::Identifier("b".into()), 2..3)),
+                container: Box::new(Spanned::new(Expression::Identifier("a".into()), span(0..1))),
+                key: Box::new(Spanned::new(Expression::Identifier("b".into()), span(2..3))),
             },
-            0..3,
+            span(0..3),
         ));
 
         assert_eq!(actual, expected);
@@ -565,15 +578,15 @@ mod tests {
             Token::Number(two),
             Token::RightBrack,
         ];
-        let actual = compile(tokens);
+        let actual = test(tokens);
 
-        let expected = Ok((
+        let expected = Ok(Spanned::new(
             Expression::GetSlice {
-                container: Box::new((Expression::Identifier("a".into()), 0..1)),
-                start: Some(Box::new((Expression::Number(one), 2..3))),
-                end: Some(Box::new((Expression::Number(two), 4..5))),
+                container: Box::new(Spanned::new(Expression::Identifier("a".into()), span(0..1))),
+                start: Some(Box::new(Spanned::new(Expression::Number(one), span(2..3)))),
+                end: Some(Box::new(Spanned::new(Expression::Number(two), span(4..5)))),
             },
-            0..6,
+            span(0..6),
         ));
 
         assert_eq!(actual, expected);

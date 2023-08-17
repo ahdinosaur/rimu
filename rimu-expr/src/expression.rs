@@ -1,11 +1,6 @@
-use std::ops::Range;
-
 use rust_decimal::Decimal;
 
-type Span = Range<usize>;
-type Spanned<T> = (T, Span);
-
-use crate::{BinaryOperator, UnaryOperator};
+use crate::{BinaryOperator, Spanned, UnaryOperator};
 
 /// An expression represents an entity which can be evaluated to a value.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
