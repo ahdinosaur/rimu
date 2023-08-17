@@ -74,8 +74,24 @@ pub fn compiler_parser() -> impl Compiler<SpannedExpression> {
             .map_with_span(|e, s| (e, s))
             .boxed();
 
+        // Next precedence: member "get"
+        let get_index = atom.clone().then(
+            just(Token::LeftBrack)
+                .then(atom.clone())
+                .then(just(Token::RightBrack)),
+        );
+        let get_key = atom.clone().then(just(Token::Dot).then(atom.clone()));
+        let get_slice = atom.clone().then(
+            just(Token::LeftBrack)
+                .then(atom)
+                .then(just(Token::Colon))
+                .then(atom)
+                .then(just(Token::RightBrack)),
+        );
+        let get = get_index.or(get_key).or(get_slice).boxed();
+
         // Next precedence: function "calls"
-        let call = atom
+        let call = get
             .then(
                 items
                     .clone()

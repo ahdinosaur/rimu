@@ -50,23 +50,23 @@ pub enum Expression {
         args: Vec<SpannedExpression>,
     },
 
-    /// Index operation (`a[x]`).
-    Index {
+    /// Get index operation (`a[x]`).
+    GetIndex {
         container: Box<SpannedExpression>,
         index: Box<SpannedExpression>,
     },
 
+    /// Get key operation (`c.z`).
+    GetKey {
+        container: Box<SpannedExpression>,
+        key: String,
+    },
+
     /// Slice operation (`b[x:y]`).
-    Slice {
+    GetSlice {
         container: Box<SpannedExpression>,
         start: Option<Box<SpannedExpression>>,
         end: Option<Box<SpannedExpression>>,
-    },
-
-    /// Dot operation (`c.z`).
-    Dot {
-        container: Box<SpannedExpression>,
-        key: String,
     },
 
     Error,
