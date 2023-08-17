@@ -59,7 +59,7 @@ pub enum Expression {
     /// Get key operation (`c.z`).
     GetKey {
         container: Box<SpannedExpression>,
-        key: String,
+        key: Box<SpannedExpression>,
     },
 
     /// Slice operation (`b[x:y]`).

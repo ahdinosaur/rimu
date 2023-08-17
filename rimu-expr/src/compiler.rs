@@ -74,52 +74,84 @@ pub fn compiler_parser() -> impl Compiler<SpannedExpression> {
             .map_with_span(|e, s| (e, s))
             .boxed();
 
-        // Next precedence: member "get"
-        let get_index = atom.clone().then(
-            just(Token::LeftBrack)
-                .then(atom.clone())
-                .then(just(Token::RightBrack)),
-        );
-        let get_key = atom.clone().then(just(Token::Dot).then(atom.clone()));
-        let get_slice = atom.clone().then(
-            just(Token::LeftBrack)
-                .then(atom)
-                .then(just(Token::Colon))
-                .then(atom)
-                .then(just(Token::RightBrack)),
-        );
-        let get = get_index.or(get_key).or(get_slice).boxed();
-
-        // Next precedence: function "calls"
-        let call = get
+        // Next precedence: right unary (function calls or member get)
+        enum RightUnary {
+            Call(Vec<SpannedExpression>),
+            GetIndex(SpannedExpression),
+            GetKey(SpannedExpression),
+            GetSlice(Option<SpannedExpression>, Option<SpannedExpression>),
+        }
+        let call = items
+            .clone()
+            .delimited_by(just(Token::LeftParen), just(Token::RightParen))
+            .map(|expr| RightUnary::Call(expr.unwrap_or(vec![])));
+        let get_index = atom
+            .clone()
+            .delimited_by(just(Token::LeftBrack), just(Token::RightBrack))
+            .map(RightUnary::GetIndex);
+        let get_key = just(Token::Dot)
+            .then(identifier_parser().map_with_span(|expr, span| (expr, span)))
+            .map(|(_, expr)| RightUnary::GetKey(expr));
+        let get_slice = atom
+            .clone()
+            .or_not()
+            .then(just(Token::Colon))
+            .then(atom.clone().or_not())
+            .delimited_by(just(Token::LeftBrack), just(Token::RightBrack))
+            .map(|((start, _), end)| RightUnary::GetSlice(start, end));
+        let right_unary = atom
             .then(
-                items
-                    .clone()
-                    .delimited_by(just(Token::LeftParen), just(Token::RightParen))
+                call.or(get_index)
+                    .or(get_key)
+                    .or(get_slice)
                     .map_with_span(|args, span: Span| (args, span))
                     .repeated(),
             )
-            .foldl(|f, args| {
-                let span = union(f.1.clone(), args.1);
-                (
-                    Expression::Call {
-                        function: Box::new(f),
-                        args: args.0.unwrap_or(vec![]),
-                    },
-                    span,
-                )
+            .foldl(|left, right| {
+                let span = union(left.1.clone(), right.1);
+                match right.0 {
+                    RightUnary::Call(args) => (
+                        Expression::Call {
+                            function: Box::new(left),
+                            args,
+                        },
+                        span,
+                    ),
+                    RightUnary::GetIndex(index) => (
+                        Expression::GetIndex {
+                            container: Box::new(left),
+                            index: Box::new(index),
+                        },
+                        span,
+                    ),
+                    RightUnary::GetKey(key) => (
+                        Expression::GetKey {
+                            container: Box::new(left),
+                            key: Box::new(key),
+                        },
+                        span,
+                    ),
+                    RightUnary::GetSlice(start, end) => (
+                        Expression::GetSlice {
+                            container: Box::new(left),
+                            start: start.map(Box::new),
+                            end: end.map(Box::new),
+                        },
+                        span,
+                    ),
+                }
             })
             .boxed();
 
-        // Next precedence: "unary" operators ("-", "not")
+        // Next precedence: "left unary" operators ("-", "not")
         let op = just(Token::Minus)
             .to(UnaryOperator::Negative)
             .or(just(Token::Not).to(UnaryOperator::Not))
             .map_with_span(|expr, span| (expr, span))
             .labelled("unary operator");
-        let unary = op
+        let left_unary = op
             .repeated()
-            .then(call.labelled("unary right operand"))
+            .then(right_unary.labelled("unary right operand"))
             .clone()
             .foldr(|op, expr| {
                 let span = union(op.1, expr.1.clone());
@@ -140,7 +172,7 @@ pub fn compiler_parser() -> impl Compiler<SpannedExpression> {
             .or(just(Token::Div).to(BinaryOperator::Div))
             .or(just(Token::Mod).to(BinaryOperator::Mod))
             .labelled("binary (factor) operator");
-        let factor = binary_operator_parser(unary, op);
+        let factor = binary_operator_parser(left_unary, op);
 
         // Next precedence: "term" operators: "+", "-"
         let op = just(Token::Plus)
@@ -449,6 +481,74 @@ mod tests {
                 )),
             },
             0..5,
+        ));
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn get_index() {
+        let one = Decimal::from_u8(1).unwrap();
+        let tokens = vec![
+            Token::Identifier("a".into()),
+            Token::LeftBrack,
+            Token::Number(one),
+            Token::RightBrack,
+        ];
+        let actual = compile(tokens);
+
+        let expected = Ok((
+            Expression::GetIndex {
+                container: Box::new((Expression::Identifier("a".into()), 0..1)),
+                index: Box::new((Expression::Number(one), 2..3)),
+            },
+            0..4,
+        ));
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn get_key() {
+        let tokens = vec![
+            Token::Identifier("a".into()),
+            Token::Dot,
+            Token::Identifier("b".into()),
+        ];
+        let actual = compile(tokens);
+
+        let expected = Ok((
+            Expression::GetKey {
+                container: Box::new((Expression::Identifier("a".into()), 0..1)),
+                key: Box::new((Expression::Identifier("b".into()), 2..3)),
+            },
+            0..3,
+        ));
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn get_slice() {
+        let one = Decimal::from_u8(1).unwrap();
+        let two = Decimal::from_u8(2).unwrap();
+        let tokens = vec![
+            Token::Identifier("a".into()),
+            Token::LeftBrack,
+            Token::Number(one),
+            Token::Colon,
+            Token::Number(two),
+            Token::RightBrack,
+        ];
+        let actual = compile(tokens);
+
+        let expected = Ok((
+            Expression::GetSlice {
+                container: Box::new((Expression::Identifier("a".into()), 0..1)),
+                start: Some(Box::new((Expression::Number(one), 2..3))),
+                end: Some(Box::new((Expression::Number(two), 4..5))),
+            },
+            0..6,
         ));
 
         assert_eq!(actual, expected);
