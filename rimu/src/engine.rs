@@ -56,7 +56,7 @@ impl Engine {
         let Some(expr) = expr else {
             todo!()
         };
-        Ok(evaluate(expr.into_inner(), env)?)
+        Ok(evaluate(expr, env)?)
     }
 
     pub(crate) fn interpolate(

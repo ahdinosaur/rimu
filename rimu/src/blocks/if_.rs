@@ -24,7 +24,7 @@ impl Block for IfBlock {
             condition
         };
 
-        if value.is_truthy() {
+        if Into::<bool>::into(value) {
             if let Some(consequent) = &self.consequent {
                 engine.render(consequent, context)
             } else {

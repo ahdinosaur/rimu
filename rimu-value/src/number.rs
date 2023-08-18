@@ -7,6 +7,7 @@ use serde::{
     de::{Unexpected, Visitor},
     forward_to_deserialize_any, Deserialize, Deserializer, Serialize,
 };
+use std::ops::{Add, BitXor, Div, Mul, Neg, Not, Rem, Sub};
 use std::{
     fmt::{Debug, Display},
     hash::{Hash, Hasher},
@@ -136,5 +137,53 @@ pub(crate) fn unexpected(_number: &Number) -> Unexpected {
 impl Hash for Number {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.hash(state)
+    }
+}
+
+impl Neg for Number {
+    type Output = Number;
+
+    fn neg(self) -> Self::Output {
+        self.0.neg().into()
+    }
+}
+
+impl Add for Number {
+    type Output = Number;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        self.0.add(rhs.0).into()
+    }
+}
+
+impl Sub for Number {
+    type Output = Number;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        self.0.sub(rhs.0).into()
+    }
+}
+
+impl Mul for Number {
+    type Output = Number;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        self.0.mul(rhs.0).into()
+    }
+}
+
+impl Div for Number {
+    type Output = Number;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        self.0.div(rhs.0).into()
+    }
+}
+
+impl Rem for Number {
+    type Output = Number;
+
+    fn rem(self, rhs: Self) -> Self::Output {
+        self.0.rem(rhs.0).into()
     }
 }

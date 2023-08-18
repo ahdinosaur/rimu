@@ -21,7 +21,6 @@ pub enum BinaryOperator {
     And,
     Or,
     Xor,
-    Not,
     Div,
     Mod,
 }

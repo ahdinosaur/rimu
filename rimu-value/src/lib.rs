@@ -3,6 +3,7 @@ pub(crate) mod de;
 pub(crate) mod error;
 pub(crate) mod from;
 pub(crate) mod number;
+pub(crate) mod ops;
 pub(crate) mod ser;
 
 use std::collections::BTreeMap;
@@ -113,11 +114,11 @@ pub fn value_get_in<'a>(value: &'a Value, keys: &[&str]) -> Option<&'a Value> {
     }
 }
 
-impl Value {
-    pub fn is_truthy(&self) -> bool {
-        match self {
+impl From<Value> for bool {
+    fn from(value: Value) -> Self {
+        match value {
             Value::Null => false,
-            Value::Boolean(boolean) => *boolean,
+            Value::Boolean(boolean) => boolean,
             Value::String(string) => string.len() > 0,
             Value::Number(number) => number.eq(&dec!(0).into()),
             Value::List(list) => list.len() > 0,
@@ -130,7 +131,7 @@ impl Value {
 mod test {
     use std::{borrow::Cow, ffi::OsString, path::PathBuf};
 
-    use crate::{Number, Value};
+    use crate::Value;
     use pretty_assertions::assert_eq;
     use rust_decimal_macros::dec;
 
