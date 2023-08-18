@@ -1,7 +1,7 @@
 use serde::Deserialize;
 
 use super::Block;
-use crate::{Context, Engine, RenderError, Template, Value};
+use crate::{Environment, Engine, RenderError, Template, Value};
 
 #[derive(Clone, Debug, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -13,10 +13,10 @@ pub struct LetBlock {
 }
 
 impl Block for LetBlock {
-    fn render(&self, engine: &Engine, context: &Context) -> Result<Value, RenderError> {
+    fn render(&self, engine: &Engine, context: &Environment) -> Result<Value, RenderError> {
         let variables = engine.render(&self.variables, context)?;
 
-        let context = Context::from_value(&variables, Some(context))?;
+        let context = Environment::from_value(&variables, Some(context))?;
 
         engine.render(&self.body, &context)
     }
@@ -47,7 +47,7 @@ zero:
         let template: Template = serde_yaml::from_str(content)?;
 
         let engine = Engine::default();
-        let mut context = Context::new();
+        let mut context = Environment::new();
         context.insert("ten", Value::Number(Number::Signed(10)));
 
         let actual: Value = engine.render(&template, &context)?;

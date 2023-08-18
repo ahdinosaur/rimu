@@ -1,7 +1,7 @@
 use serde::Deserialize;
 
 use super::Block;
-use crate::{Context, Engine, RenderError, Value};
+use crate::{Environment, Engine, RenderError, Value};
 
 #[derive(Clone, Debug, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -11,7 +11,7 @@ pub struct EvalBlock {
 }
 
 impl Block for EvalBlock {
-    fn render(&self, engine: &Engine, context: &Context) -> Result<Value, RenderError> {
+    fn render(&self, engine: &Engine, context: &Environment) -> Result<Value, RenderError> {
         engine.evaluate(&self.expr, context)
     }
 }
@@ -37,7 +37,7 @@ three:
         let template: Template = serde_yaml::from_str(content)?;
 
         let engine = Engine::default();
-        let mut context = Context::new();
+        let mut context = Environment::new();
         context.insert("one", Value::Number(Number::Signed(98)));
 
         let actual: Value = engine.render(&template, &context)?;

@@ -1,25 +1,24 @@
 use lazy_static::lazy_static;
 use regex::Regex;
-use rhai::Scope;
 use std::{collections::BTreeMap, iter::empty};
 
 use rimu_value::{value_get_in, Object, Value};
 
-pub struct Context<'a> {
+pub struct Environment<'a> {
     content: Object,
-    parent: Option<&'a Context<'a>>,
+    parent: Option<&'a Environment<'a>>,
 }
 
-impl<'a> Context<'a> {
-    pub fn new() -> Context<'a> {
-        Context {
+impl<'a> Environment<'a> {
+    pub fn new() -> Environment<'a> {
+        Environment {
             content: BTreeMap::new(),
             parent: None,
         }
     }
 
-    pub fn child(&'a self) -> Context<'a> {
-        Context {
+    pub fn child(&'a self) -> Environment<'a> {
+        Environment {
             content: BTreeMap::new(),
             parent: Some(self),
         }
@@ -27,9 +26,9 @@ impl<'a> Context<'a> {
 
     pub fn from_value(
         value: &'_ Value,
-        parent: Option<&'a Context>,
-    ) -> Result<Context<'a>, ContextError> {
-        let mut context = Context {
+        parent: Option<&'a Environment>,
+    ) -> Result<Environment<'a>, EnvironmentError> {
+        let mut context = Environment {
             content: BTreeMap::new(),
             parent,
         };
@@ -37,14 +36,14 @@ impl<'a> Context<'a> {
         if let Value::Object(object) = value {
             for key in object.keys() {
                 if !is_identifier(key) {
-                    return Err(ContextError::InvalidKey { key: key.clone() });
+                    return Err(EnvironmentError::InvalidKey { key: key.clone() });
                 }
             }
             for (key, value) in object.iter() {
                 context.insert(key, value.clone());
             }
         } else {
-            return Err(ContextError::InvalidContextValue {
+            return Err(EnvironmentError::InvalidEnvironmentValue {
                 value: value.clone(),
             });
         }
@@ -97,31 +96,14 @@ impl<'a> Context<'a> {
         let self_iter = self.content.iter();
         Box::new(parent_iter.chain(self_iter))
     }
-
-    pub fn to_rhai_scope(&'a self) -> Scope {
-        let mut scope = Scope::new();
-
-        self.iter().for_each(|(key, value)| {
-            let dynamic = match rhai::serde::to_dynamic(value) {
-                Ok(dynamic) => dynamic,
-                Err(error) => {
-                    panic!("Failed to convert context value to dynamic: {}", error);
-                }
-            };
-
-            scope.push_constant(key.clone(), dynamic);
-        });
-
-        scope
-    }
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum ContextError {
+pub enum EnvironmentError {
     #[error("top level keys of context must follow /[a-zA-Z_][a-zA-Z0-9_]*: `{key}`")]
     InvalidKey { key: String },
     #[error("context value is not an object: {:?}", value)]
-    InvalidContextValue { value: Value },
+    InvalidEnvironmentValue { value: Value },
 }
 
 fn is_identifier(identifier: &str) -> bool {

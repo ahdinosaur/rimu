@@ -1,7 +1,7 @@
 use serde::Deserialize;
 
 use super::Block;
-use crate::{Context, Engine, RenderError, Template, Value};
+use crate::{Environment, Engine, RenderError, Template, Value};
 
 #[derive(Clone, Debug, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -15,7 +15,7 @@ pub struct IfBlock {
 }
 
 impl Block for IfBlock {
-    fn render(&self, engine: &Engine, context: &Context) -> Result<Value, RenderError> {
+    fn render(&self, engine: &Engine, context: &Environment) -> Result<Value, RenderError> {
         let condition = engine.render(&self.condition, context)?;
 
         let value: Value = if let Value::String(condition) = condition {
@@ -63,7 +63,7 @@ zero:
         let template: Template = serde_yaml::from_str(content)?;
 
         let engine = Engine::default();
-        let mut context = Context::new();
+        let mut context = Environment::new();
         context.insert("five", Value::Number(Number::Signed(5)));
         context.insert("ten", Value::Number(Number::Signed(10)));
 

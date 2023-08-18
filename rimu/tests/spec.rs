@@ -1,5 +1,5 @@
 use pretty_assertions::assert_eq;
-use rimu::{from_value, Context, Engine, Template, Value};
+use rimu::{from_value, Environment, Engine, Template, Value};
 use rimu_value::ValueError;
 use std::error::Error;
 
@@ -19,7 +19,7 @@ fn test_spec(spec: Value) -> Result<(), Box<dyn Error>> {
     let title: String = from_value(title)?;
     let engine = Engine::default();
 
-    let mut context = Context::new();
+    let mut context = Environment::new();
     let Value::Object(context_obj) = context_val else {
             panic!("Spec 'context' must be object");
         };

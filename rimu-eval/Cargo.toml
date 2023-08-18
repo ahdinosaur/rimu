@@ -1,13 +1,15 @@
 [package]
-name = "rimu-value"
+name = "rimu-eval"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ryu = "1.0.15"
-serde = "1.0.181"
+rimu-report = { path = "../rimu-report" }
+rimu-expr = { path = "../rimu-expr" }
+rimu-value = { path = "../rimu-value" }
+rimu-env = { path = "../rimu-env" }
 thiserror = "1.0.44"
 
 [dev-dependencies]

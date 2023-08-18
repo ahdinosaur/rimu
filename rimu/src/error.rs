@@ -1,6 +1,6 @@
-use rhai::EvalAltResult;
+use rimu_eval::EvalError;
 
-use crate::{context::ContextError, Value, ValueError};
+use crate::{EnvironmentError, Value, ValueError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ParseError {
@@ -15,13 +15,13 @@ pub enum ParseError {
 #[derive(Debug, thiserror::Error)]
 pub enum RenderError {
     #[error("rhai eval error: {0}")]
-    RhaiEval(#[from] Box<EvalAltResult>),
+    EvalError(#[from] EvalError),
     #[error("missing context: {var}")]
-    MissingContext { var: String },
+    MissingEnvironment { var: String },
     #[error("unterminated interpolation: {src}")]
     UnterminatedInterpolation { src: String },
     #[error("interpolation of '{var}' produced an array or object: {value}")]
     ListOrObjectInterpolation { var: String, value: Value },
     #[error("context error: {0}")]
-    ContextError(#[from] ContextError),
+    EnvironmentError(#[from] EnvironmentError),
 }

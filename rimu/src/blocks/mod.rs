@@ -7,10 +7,10 @@ use serde::{de::value::MapDeserializer, Deserialize};
 pub use self::eval::EvalBlock;
 pub use self::if_::IfBlock;
 pub use self::let_::LetBlock;
-use crate::{Context, Engine, Object, ParseError, RenderError, Value};
+use crate::{Environment, Engine, Object, ParseError, RenderError, Value};
 
 pub trait Block {
-    fn render(&self, engine: &Engine, context: &Context) -> Result<Value, RenderError>;
+    fn render(&self, engine: &Engine, context: &Environment) -> Result<Value, RenderError>;
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -21,7 +21,7 @@ pub enum Blocks {
 }
 
 impl Blocks {
-    pub(crate) fn render(&self, engine: &Engine, context: &Context) -> Result<Value, RenderError> {
+    pub(crate) fn render(&self, engine: &Engine, context: &Environment) -> Result<Value, RenderError> {
         match self {
             Blocks::Eval(op) => op.render(engine, context),
             Blocks::Let(op) => op.render(engine, context),

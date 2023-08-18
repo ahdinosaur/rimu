@@ -13,20 +13,18 @@ readme = "README.md"
 
 [dependencies]
 lazy_static = "1.4.0"
-miette = "5.10.0"
-pretty_assertions = "1.4.0"
 regex = "1.9.1"
-rhai = { version = "1.15.1", features = ["serde"] }
 rimu-value = { path = "../rimu-value" }
+rimu-env = { path = "../rimu-env" }
+rimu-eval = { path = "../rimu-eval" }
+rimu-expr = { path = "../rimu-expr" }
 serde = { version = "1.0.174", features = ["derive"] }
-serde_json = "1.0.103"
-serde_yaml = "0.9.25"
 thiserror = "1.0.44"
-toml = "0.7.6"
 normalize-path = "0.2.1"
-os_info = "3.7.0"
-ryu = "1.0.15"
-serde_spanned = "0.6.3"
 
 [dev-dependencies]
+pretty_assertions = "1.4.0"
 map-macro = "0.2.6"
+serde_json = "1.0.103"
+serde_yaml = "0.9.25"
+toml = "0.7.6"
