@@ -255,7 +255,8 @@ mod tests {
         // test_number(".3", 0.3);
     }
 
-    fn assert_errors(actual: Result<Vec<(Token, Span)>, Vec<LexerError>>, expected: Vec<String>) {
+    /*
+    fn assert_errors(actual: Result<Vec<(Token, Span)>, Vec<Error>>, expected: Vec<String>) {
         assert!(actual.is_err());
         let errors = actual.unwrap_err();
         for index in 0..expected.len() {
@@ -264,6 +265,7 @@ mod tests {
             assert_eq!(actual_msg, expected_msg);
         }
     }
+    */
 
     #[test]
     fn err_unknown_token_1() {
