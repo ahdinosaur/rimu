@@ -5,18 +5,17 @@
 // - https://github.com/DennisPrediger/SLAC/blob/main/src/scanner.rs
 
 use chumsky::prelude::*;
-use rimu_report::SourceId;
 use rust_decimal::Decimal;
 use std::str::FromStr;
 
-use crate::{Span, Token};
+use crate::{SourceId, Span, Spanned, SpannedToken, Token};
 
 pub type LexerError = Simple<char, Span>;
 
 pub trait Lexer<T>: Parser<char, T, Error = LexerError> + Sized + Clone {}
 impl<P, T> Lexer<T> for P where P: Parser<char, T, Error = LexerError> + Clone {}
 
-pub fn tokenize(code: &str, source: SourceId) -> Result<Vec<(Token, Span)>, Vec<LexerError>> {
+pub fn tokenize(code: &str, source: SourceId) -> Result<Vec<SpannedToken>, Vec<LexerError>> {
     let len = code.chars().count();
     let eoi = Span::new(source.clone(), len, len);
     lexer_parser().parse(chumsky::Stream::from_iter(
@@ -27,7 +26,7 @@ pub fn tokenize(code: &str, source: SourceId) -> Result<Vec<(Token, Span)>, Vec<
     ))
 }
 
-pub fn lexer_parser() -> impl Lexer<Vec<(Token, Span)>> {
+pub fn lexer_parser() -> impl Lexer<Vec<SpannedToken>> {
     let null = just("null").to(Token::Null).labelled("null");
 
     let boolean = choice((
@@ -107,14 +106,7 @@ pub fn lexer_parser() -> impl Lexer<Vec<(Token, Span)>> {
     ))
     .recover_with(skip_then_retry_until([]));
 
-    spanned(token).padded().repeated()
-}
-
-fn spanned<P, T>(parser: P) -> impl Lexer<(T, Span)>
-where
-    P: Lexer<T>,
-{
-    parser.map_with_span(|value, span| (value, span))
+    token.map_with_span(Spanned::new).padded().repeated()
 }
 
 #[cfg(test)]
@@ -125,13 +117,14 @@ mod tests {
     use rimu_report::SourceId;
     use rust_decimal::{prelude::FromPrimitive, Decimal};
 
-    use super::{tokenize, LexerError, Span, Token};
+    use super::{tokenize, LexerError};
+    use crate::{Span, Spanned, SpannedToken, Token};
 
     fn span(range: Range<usize>) -> Span {
         Span::new(SourceId::empty(), range.start, range.end)
     }
 
-    fn test(code: &str) -> Result<Vec<(Token, Span)>, Vec<LexerError>> {
+    fn test(code: &str) -> Result<Vec<SpannedToken>, Vec<LexerError>> {
         tokenize(code, SourceId::empty())
     }
 
@@ -148,7 +141,7 @@ mod tests {
     fn simple_null() {
         let actual = test("null");
 
-        let expected = Ok(vec![(Token::Null, span(0..4))]);
+        let expected = Ok(vec![Spanned::new(Token::Null, span(0..4))]);
 
         assert_eq!(actual, expected);
     }
@@ -157,7 +150,7 @@ mod tests {
     fn simple_bool() {
         let actual = test("true");
 
-        let expected = Ok(vec![(Token::Boolean(true), span(0..4))]);
+        let expected = Ok(vec![Spanned::new(Token::Boolean(true), span(0..4))]);
 
         assert_eq!(actual, expected);
     }
@@ -166,7 +159,7 @@ mod tests {
     fn simple_integer() {
         let actual = test("9001");
 
-        let expected = Ok(vec![(
+        let expected = Ok(vec![Spanned::new(
             Token::Number(Decimal::from_u64(9001).unwrap()),
             span(0..4),
         )]);
@@ -178,7 +171,7 @@ mod tests {
     fn simple_float() {
         let actual = test("3.141592653589793");
 
-        let expected = Ok(vec![(
+        let expected = Ok(vec![Spanned::new(
             Token::Number(Decimal::from_f64(PI).unwrap()),
             span(0..17),
         )]);
@@ -190,7 +183,7 @@ mod tests {
     fn simple_string() {
         let actual = test("\"Hello World\"");
 
-        let expected = Ok(vec![(
+        let expected = Ok(vec![Spanned::new(
             Token::String(String::from("Hello World")),
             span(0..13),
         )]);
@@ -203,9 +196,9 @@ mod tests {
         let actual = test("1 + 1");
 
         let expected = Ok(vec![
-            (Token::Number(Decimal::from_u8(1).unwrap()), span(0..1)),
-            (Token::Plus, span(2..3)),
-            (Token::Number(Decimal::from_u8(1).unwrap()), span(4..5)),
+            Spanned::new(Token::Number(Decimal::from_u8(1).unwrap()), span(0..1)),
+            Spanned::new(Token::Plus, span(2..3)),
+            Spanned::new(Token::Number(Decimal::from_u8(1).unwrap()), span(4..5)),
         ]);
 
         assert_eq!(actual, expected);
@@ -216,11 +209,11 @@ mod tests {
         let actual = test("(_SOME_VAR1 * ANOTHER_ONE)");
 
         let expected = Ok(vec![
-            (Token::LeftParen, span(0..1)),
-            (Token::Identifier(String::from("_SOME_VAR1")), span(1..11)),
-            (Token::Star, span(12..13)),
-            (Token::Identifier(String::from("ANOTHER_ONE")), span(14..25)),
-            (Token::RightParen, span(25..26)),
+            Spanned::new(Token::LeftParen, span(0..1)),
+            Spanned::new(Token::Identifier(String::from("_SOME_VAR1")), span(1..11)),
+            Spanned::new(Token::Star, span(12..13)),
+            Spanned::new(Token::Identifier(String::from("ANOTHER_ONE")), span(14..25)),
+            Spanned::new(Token::RightParen, span(25..26)),
         ]);
 
         assert_eq!(actual, expected);
@@ -230,7 +223,7 @@ mod tests {
     fn unterminated_less() {
         let actual = test("<");
 
-        let expected = Ok(vec![(Token::Less, span(0..1))]);
+        let expected = Ok(vec![Spanned::new(Token::Less, span(0..1))]);
 
         assert_eq!(actual, expected);
     }
@@ -238,7 +231,7 @@ mod tests {
     fn test_number(input: &str, expected: f64) {
         let actual = test(input);
 
-        let expected = Ok(vec![(
+        let expected = Ok(vec![Spanned::new(
             Token::Number(Decimal::from_f64(expected).unwrap()),
             span(0..input.len()),
         )]);

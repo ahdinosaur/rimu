@@ -133,7 +133,12 @@ where
 
     /// Take the node's inner value.
     pub fn into_inner(self) -> T {
-        self.inner.clone()
+        self.inner
+    }
+
+    /// Take the node's inner value and span
+    pub fn take(self) -> (T, Span) {
+        (self.inner, self.span)
     }
 
     /// Get the node's span.

@@ -16,7 +16,7 @@ pub use self::error::Error;
 pub use self::expression::{Expression, SpannedExpression};
 pub use self::lexer::{lexer_parser, tokenize, LexerError};
 pub use self::operator::{BinaryOperator, UnaryOperator};
-pub use self::token::Token;
+pub use self::token::{SpannedToken, Token};
 
 pub fn parse(code: &str, source: SourceId) -> (Option<SpannedExpression>, Vec<Error>) {
     let lexer = lexer_parser();
@@ -36,13 +36,13 @@ pub fn parse(code: &str, source: SourceId) -> (Option<SpannedExpression>, Vec<Er
     errors.append(&mut lex_errors.into_iter().map(Error::Lexer).collect());
 
     let tokens = if let Some(tokens) = tokens {
-        tokens
+        tokens.into_iter().map(|spanned| spanned.take())
     } else {
         return (None, errors);
     };
 
     let (output, compile_errors) =
-        compiler.parse_recovery(chumsky::Stream::from_iter(eoi.clone(), tokens.into_iter()));
+        compiler.parse_recovery(chumsky::Stream::from_iter(eoi.clone(), tokens));
     errors.append(&mut compile_errors.into_iter().map(Error::Compiler).collect());
 
     (output, errors)
