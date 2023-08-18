@@ -1,7 +1,7 @@
 use serde::Deserialize;
 
 use super::Block;
-use crate::{Environment, Engine, RenderError, Template, Value};
+use crate::{Engine, Environment, RenderError, Template, Value};
 
 #[derive(Clone, Debug, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -45,10 +45,11 @@ mod tests {
     use std::error::Error;
 
     use super::*;
-    use crate::{Number, Value};
+    use crate::Value;
 
     use map_macro::btree_map;
     use pretty_assertions::assert_eq;
+    use rust_decimal_macros::dec;
 
     #[test]
     fn if_() -> Result<(), Box<dyn Error>> {
@@ -64,13 +65,13 @@ zero:
 
         let engine = Engine::default();
         let mut context = Environment::new();
-        context.insert("five", Value::Number(Number::Signed(5)));
-        context.insert("ten", Value::Number(Number::Signed(10)));
+        context.insert("five", Value::Number(dec!(5).into()));
+        context.insert("ten", Value::Number(dec!(10).into()));
 
         let actual: Value = engine.render(&template, &context)?;
 
         let expected: Value = Value::Object(btree_map! {
-            "zero".into() => Value::Number(Number::Signed(5))
+            "zero".into() => Value::Number(dec!(5).into())
         });
 
         assert_eq!(expected, actual);

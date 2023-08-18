@@ -12,6 +12,7 @@ pub type Object = BTreeMap<String, Value>;
 
 use std::fmt::{Debug, Display};
 
+use rust_decimal_macros::dec;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
@@ -118,11 +119,7 @@ impl Value {
             Value::Null => false,
             Value::Boolean(boolean) => *boolean,
             Value::String(string) => string.len() > 0,
-            Value::Number(number) => match number {
-                Number::Unsigned(u) => u != &0_u64,
-                Number::Signed(s) => s != &0_i64,
-                Number::Float(f) => f != &0_f64,
-            },
+            Value::Number(number) => number.eq(&dec!(0).into()),
             Value::List(list) => list.len() > 0,
             Value::Object(object) => object.len() > 0,
         }
@@ -135,6 +132,7 @@ mod test {
 
     use crate::{Number, Value};
     use pretty_assertions::assert_eq;
+    use rust_decimal_macros::dec;
 
     #[test]
     fn from_string_tests() {
@@ -196,17 +194,7 @@ mod test {
         );
 
         assert_eq!(
-            format!("{:?}", Value::Number(Number::Unsigned(2))),
-            "Number(2)".to_string()
-        );
-
-        assert_eq!(
-            format!("{:?}", Value::Number(Number::Signed(2))),
-            "Number(2)".to_string()
-        );
-
-        assert_eq!(
-            format!("{:?}", Value::Number(Number::Float(2.0))),
+            format!("{:?}", Value::Number(dec!(2).into())),
             "Number(2)".to_string()
         );
     }

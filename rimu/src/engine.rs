@@ -51,12 +51,12 @@ impl Engine {
         }
     }
 
-    pub(crate) fn evaluate(&self, expr: &str, context: &Environment) -> Result<Value, RenderError> {
+    pub(crate) fn evaluate(&self, expr: &str, env: &Environment) -> Result<Value, RenderError> {
         let (expr, _errors) = parse(expr, SourceId::empty());
         let Some(expr) = expr else {
             todo!()
         };
-        Ok(evaluate(expr.into_inner())?)
+        Ok(evaluate(expr.into_inner(), env)?)
     }
 
     pub(crate) fn interpolate(
