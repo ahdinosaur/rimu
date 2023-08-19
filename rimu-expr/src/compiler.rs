@@ -63,11 +63,10 @@ pub fn compiler_parser() -> impl Compiler<SpannedExpression> {
             })
             .boxed();
 
-        // Next precedence: "factor" operators: "*", "/", "div", "mod"
+        // Next precedence: "factor" operators: "*", "/", "mod"
         let op = just(Token::Star)
             .to(BinaryOperator::Multiply)
             .or(just(Token::Slash).to(BinaryOperator::Divide))
-            .or(just(Token::Div).to(BinaryOperator::Div))
             .or(just(Token::Mod).to(BinaryOperator::Mod))
             .labelled("binary (factor) operator");
         let factor = binary_operator_parser(left_unary, op);

@@ -7,7 +7,7 @@ use serde::{
     de::{Unexpected, Visitor},
     forward_to_deserialize_any, Deserialize, Deserializer, Serialize,
 };
-use std::ops::{Add, BitXor, Div, Mul, Neg, Not, Rem, Sub};
+use std::ops::{Add, Deref, Div, Mul, Neg, Rem, Sub};
 use std::{
     fmt::{Debug, Display},
     hash::{Hash, Hasher},
@@ -15,7 +15,7 @@ use std::{
 
 use crate::ValueError;
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy)]
 pub struct Number(Decimal);
 
 impl Debug for Number {
@@ -33,6 +33,14 @@ impl Display for Number {
 impl From<Decimal> for Number {
     fn from(value: Decimal) -> Self {
         Self(value)
+    }
+}
+
+impl Deref for Number {
+    type Target = Decimal;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
@@ -134,9 +142,33 @@ pub(crate) fn unexpected(_number: &Number) -> Unexpected {
     Unexpected::Other("number")
 }
 
+impl PartialEq for Number {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.eq(&other.0)
+    }
+}
+
+impl Eq for Number {
+    fn assert_receiver_is_total_eq(&self) {
+        self.0.assert_receiver_is_total_eq()
+    }
+}
+
+impl PartialOrd for Number {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.0.partial_cmp(&other.0)
+    }
+}
+
+impl Ord for Number {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.0.cmp(&other.0)
+    }
+}
+
 impl Hash for Number {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.hash(state)
+        Decimal::hash(&self.0, state)
     }
 }
 

@@ -9,6 +9,7 @@ edition = "2021"
 ryu = "1.0.15"
 serde = "1.0.181"
 thiserror = "1.0.44"
+rimu-expr = { path = "../rimu-expr" }
 rust_decimal = { version = "1.31.0", features = ["serde-with-float"] }
 rust_decimal_macros = "1.31.0"
 

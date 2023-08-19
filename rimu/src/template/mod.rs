@@ -50,6 +50,7 @@ impl TryFrom<Value> for Template {
                 }
                 Ok(Template::Object(next_object))
             }
+            Value::Function(_) => todo!(),
         }
     }
 }

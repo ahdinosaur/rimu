@@ -90,11 +90,12 @@ pub fn lexer_parser() -> impl Lexer<Vec<SpannedToken>> {
         just(">=").to(Token::GreaterEqual),
         just('<').to(Token::Less),
         just("<=").to(Token::LessEqual),
+        just("==").to(Token::Equal),
+        just("!=").to(Token::NotEqual),
         just("and").to(Token::And),
         just("or").to(Token::Or),
         just("xor").to(Token::Xor),
         just("not").to(Token::Not),
-        just("div").to(Token::Div),
         just("mod").to(Token::Mod),
     ))
     .labelled("operator");

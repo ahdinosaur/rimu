@@ -1,12 +1,12 @@
 /// A unary operator.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum UnaryOperator {
     Negative,
     Not,
 }
 
 /// A binary operator.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum BinaryOperator {
     Add,
     Subtract,
@@ -21,6 +21,5 @@ pub enum BinaryOperator {
     And,
     Or,
     Xor,
-    Div,
     Mod,
 }

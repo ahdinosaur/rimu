@@ -2,6 +2,7 @@ pub(crate) mod convert;
 pub(crate) mod de;
 pub(crate) mod error;
 pub(crate) mod from;
+pub(crate) mod function;
 pub(crate) mod number;
 pub(crate) mod ops;
 pub(crate) mod ser;
@@ -19,6 +20,7 @@ use serde::Serialize;
 
 pub use self::convert::convert;
 pub use self::error::ValueError;
+pub use self::function::Function;
 pub use self::number::Number;
 use self::ser::Serializer;
 
@@ -30,6 +32,7 @@ pub enum Value {
     Number(Number),
     List(List),
     Object(Object),
+    Function(Function),
 }
 
 impl Default for Value {
@@ -70,6 +73,9 @@ impl Debug for Value {
                 formatter.write_str("Object ")?;
                 formatter.debug_map().entries(object).finish()
             }
+            Value::Function(function) => {
+                write!(formatter, "Function({:?})", function)
+            }
         }
     }
 }
@@ -97,6 +103,7 @@ impl Display for Value {
                     .join(", ");
                 write!(f, "{{{}}}", entries)
             }
+            Value::Function(function) => write!(f, "{}", function),
         }
     }
 }
@@ -120,9 +127,10 @@ impl From<Value> for bool {
             Value::Null => false,
             Value::Boolean(boolean) => boolean,
             Value::String(string) => string.len() > 0,
-            Value::Number(number) => number.eq(&dec!(0).into()),
+            Value::Number(number) => number.ne(&dec!(0).into()),
             Value::List(list) => list.len() > 0,
             Value::Object(object) => object.len() > 0,
+            Value::Function(_) => true,
         }
     }
 }

@@ -1,6 +1,6 @@
 use rimu_expr::{parse, SourceId};
 
-use crate::{evaluate, Environment, Object, RenderError, Template, Value};
+use crate::{Environment, Evaluator, Object, RenderError, Template, Value};
 
 pub struct Engine {}
 
@@ -56,7 +56,7 @@ impl Engine {
         let Some(expr) = expr else {
             todo!()
         };
-        Ok(evaluate(expr, env)?)
+        Ok(Evaluator::evaluate(&expr, env)?)
     }
 
     pub(crate) fn interpolate(
@@ -102,8 +102,8 @@ impl Engine {
                     Value::Boolean(true) => result.push_str("true"),
                     Value::Boolean(false) => result.push_str("false"),
                     Value::String(s) => result.push_str(&s),
-                    Value::List(_) | Value::Object(_) => {
-                        return Err(RenderError::ListOrObjectInterpolation {
+                    Value::List(_) | Value::Object(_) | Value::Function(_) => {
+                        return Err(RenderError::InvalidValueInterpolation {
                             var: var_str.to_string(),
                             value: value.clone(),
                         });

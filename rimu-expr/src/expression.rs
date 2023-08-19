@@ -3,7 +3,7 @@ use rust_decimal::Decimal;
 use crate::{BinaryOperator, Spanned, UnaryOperator};
 
 /// An expression represents an entity which can be evaluated to a value.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Expression {
     /// Literal null.
     Null,

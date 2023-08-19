@@ -17,6 +17,7 @@ impl Serialize for Value {
             Value::String(string) => serializer.serialize_str(string),
             Value::List(list) => list.serialize(serializer),
             Value::Object(object) => object.serialize(serializer),
+            Value::Function(_) => todo!(),
         }
     }
 }

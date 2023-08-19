@@ -20,8 +20,8 @@ pub enum RenderError {
     MissingEnvironment { var: String },
     #[error("unterminated interpolation: {src}")]
     UnterminatedInterpolation { src: String },
-    #[error("interpolation of '{var}' produced an array or object: {value}")]
-    ListOrObjectInterpolation { var: String, value: Value },
+    #[error("'{var}' cannot be interpolated into a string: {value}")]
+    InvalidValueInterpolation { var: String, value: Value },
     #[error("context error: {0}")]
     EnvironmentError(#[from] EnvironmentError),
 }
