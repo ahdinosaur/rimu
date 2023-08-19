@@ -98,7 +98,7 @@ impl<'a> Environment<'a> {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, Clone, PartialEq, PartialOrd)]
 pub enum EnvironmentError {
     #[error("top level keys of context must follow /[a-zA-Z_][a-zA-Z0-9_]*: `{key}`")]
     InvalidKey { key: String },

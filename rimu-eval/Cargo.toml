@@ -10,7 +10,10 @@ rimu-report = { path = "../rimu-report" }
 rimu-expr = { path = "../rimu-expr" }
 rimu-value = { path = "../rimu-value" }
 rimu-env = { path = "../rimu-env" }
+rust_decimal = "1.31.0"
+rust_decimal_macros = "1.31.0"
 thiserror = "1.0.44"
 
 [dev-dependencies]
+map-macro = "0.2.6"
 pretty_assertions = "1.4.0"
