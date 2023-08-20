@@ -313,6 +313,7 @@ impl<'a> Evaluator<'a> {
             let arg_value = args
                 .get(index)
                 .map(ToOwned::to_owned)
+                // TODO missing arg error or missing context error
                 .unwrap_or_else(|| Value::Null);
             function_env.insert(arg_name, arg_value);
         }
