@@ -4,6 +4,8 @@
 use rimu_env::{Environment, EnvironmentError};
 use rimu_expr::{BinaryOperator, Expression, SpannedExpression, UnaryOperator};
 use rimu_value::{Number, Object, Value};
+use rust_decimal::prelude::ToPrimitive;
+use std::ops::Deref;
 
 #[derive(Debug, thiserror::Error, Clone, PartialEq, PartialOrd)]
 pub enum EvalError {
@@ -15,6 +17,12 @@ pub enum EvalError {
     CallNonFunction, // { expr: SpannedExpression },
     #[error("error expression")]
     ErrorExpression,
+    #[error("type error, expected: {expected}, got: {got}")]
+    TypeError { expected: String, got: Value },
+    #[error("index out of bounds, index: {index}, length: {length}")]
+    IndexOutOfBounds { index: isize, length: usize },
+    #[error("key error, key: {key}, object: {object:?}")]
+    KeyNotFound { key: String, object: Object },
 }
 
 /// A tree walking interpreter which given an [`Environment`] and an [`Expression`]
@@ -52,25 +60,35 @@ impl<'a> Evaluator<'a> {
 
             Expression::Identifier(var) => self.variable(var)?,
 
-            Expression::Unary { right, operator } => self.unary(right.as_ref(), &operator)?,
+            Expression::Unary {
+                ref right,
+                ref operator,
+            } => self.unary(right, operator)?,
 
             Expression::Binary {
-                left,
-                right,
-                operator,
-            } => self.binary(&left, &operator, &right)?,
+                ref left,
+                ref right,
+                ref operator,
+            } => self.binary(left, operator, right)?,
 
-            Expression::Call { function, args } => self.call(function.as_ref(), &args)?,
+            Expression::Call {
+                ref function,
+                ref args,
+            } => self.call(function, args)?,
 
-            Expression::GetIndex { container, index } => todo!(),
+            Expression::GetIndex { container, index } => self.get_index(container, index)?,
 
-            Expression::GetKey { container, key } => todo!(),
+            Expression::GetKey { container, key } => self.get_key(container, key)?,
 
             Expression::GetSlice {
                 container,
-                start,
-                end,
-            } => todo!(),
+                ref start,
+                ref end,
+            } => self.get_slice(
+                container,
+                &start.as_ref().map(|s| s.deref().clone()),
+                &end.as_ref().map(|e| e.deref().clone()),
+            )?,
 
             Expression::Error => todo!(),
         };
@@ -219,14 +237,88 @@ impl<'a> Evaluator<'a> {
         index: &SpannedExpression,
     ) -> Result<Value, EvalError> {
         let container = self.expression(container)?;
+        let index = self.expression(index)?;
 
-        Ok(Value::Null)
+        match (container.clone(), index.clone()) {
+            (Value::List(list), Value::Number(number)) => {
+                let Some(mut index) = number.to_isize() else {
+                    return Err(EvalError::TypeError {
+                        expected: "integer".into(),
+                        got: index.clone(),
+                    });
+                };
+                let length = list.len();
+                if index < 0 {
+                    // handle negative indices
+                    index = length as isize + index
+                }
+                if index < 0 {
+                    return Err(EvalError::IndexOutOfBounds { index, length });
+                }
+                let Some(item) = list.get(index as usize) else {
+                    return Err(EvalError::IndexOutOfBounds { index, length });
+                };
+                Ok(item.clone())
+            }
+            (Value::List(_list), _) => {
+                return Err(EvalError::TypeError {
+                    expected: "number".into(),
+                    got: container.clone(),
+                });
+            }
+            (Value::String(string), Value::Number(number)) => {
+                let Some(mut index) = number.to_isize() else {
+                    return Err(EvalError::TypeError {
+                        expected: "integer".into(),
+                        got: index,
+                    });
+                };
+                let length = string.len();
+                if index < 0 {
+                    // handle negative indices
+                    index = length as isize + index
+                }
+                if index < 0 {
+                    return Err(EvalError::IndexOutOfBounds { index, length });
+                }
+                let Some(substring) = string.get(index as usize..) else {
+                    return Err(EvalError::IndexOutOfBounds { index, length });
+                };
+                let Some(ch) = substring.chars().next() else {
+                    return Err(EvalError::IndexOutOfBounds { index, length });
+                };
+                Ok(Value::String(ch.into()))
+            }
+            (Value::String(_list), _) => {
+                return Err(EvalError::TypeError {
+                    expected: "number".into(),
+                    got: container,
+                });
+            }
+            (Value::Object(object), Value::String(key)) => object
+                .get(&key)
+                .map(Clone::clone)
+                .ok_or_else(|| EvalError::KeyNotFound {
+                    key: key.clone(),
+                    object: object.clone(),
+                }),
+            (Value::Object(_list), _) => {
+                return Err(EvalError::TypeError {
+                    expected: "string".into(),
+                    got: container,
+                });
+            }
+            _ => Err(EvalError::TypeError {
+                expected: "list | string | object".into(),
+                got: container,
+            }),
+        }
     }
 
     fn get_key(
         &self,
         container: &SpannedExpression,
-        index: &SpannedExpression,
+        key: &SpannedExpression,
     ) -> Result<Value, EvalError> {
         Ok(Value::Null)
     }
@@ -234,8 +326,8 @@ impl<'a> Evaluator<'a> {
     fn get_slice(
         &self,
         container: &SpannedExpression,
-        start: &SpannedExpression,
-        end: &SpannedExpression,
+        start: &Option<SpannedExpression>,
+        end: &Option<SpannedExpression>,
     ) -> Result<Value, EvalError> {
         Ok(Value::Null)
     }
@@ -243,14 +335,14 @@ impl<'a> Evaluator<'a> {
 
 #[cfg(test)]
 mod tests {
-    use std::ops::Range;
+    use std::{collections::BTreeMap, ops::Range};
 
     use map_macro::btree_map;
     use pretty_assertions::assert_eq;
     use rimu_env::Environment;
-    use rimu_expr::{BinaryOperator, Expression, SpannedExpression};
+    use rimu_expr::{parse, BinaryOperator, Expression, SpannedExpression};
     use rimu_report::{SourceId, Span, Spanned};
-    use rimu_value::{Function, Number, Value};
+    use rimu_value::{Function, Number, Object, Value};
     use rust_decimal_macros::dec;
 
     use super::{EvalError, Evaluator};
@@ -259,15 +351,35 @@ mod tests {
         Span::new(SourceId::empty(), range.start, range.end)
     }
 
-    fn test(expr: SpannedExpression, env: Environment) -> Result<Value, EvalError> {
+    fn test_expr(
+        expr: SpannedExpression,
+        env_object: Option<BTreeMap<String, Value>>,
+    ) -> Result<Value, EvalError> {
+        let mut env = Environment::new();
+        if let Some(env_object) = env_object {
+            for (key, value) in env_object.into_iter() {
+                env.insert(key, value);
+            }
+        }
+
         Evaluator::evaluate(&expr, &env)
+    }
+
+    fn test_code(
+        code: &str,
+        env_object: Option<BTreeMap<String, Value>>,
+    ) -> Result<Value, EvalError> {
+        let (Some(expr), errors) = parse(code, SourceId::empty()) else {
+            panic!()
+        };
+        assert_eq!(errors.len(), 0);
+        test_expr(expr, env_object)
     }
 
     #[test]
     fn simple_null() {
-        let env = Environment::new();
         let expr = Spanned::new(Expression::Null, span(0..1));
-        let actual = test(expr, env);
+        let actual = test_expr(expr, None);
 
         let expected = Ok(Value::Null);
 
@@ -276,9 +388,8 @@ mod tests {
 
     #[test]
     fn simple_bool() {
-        let env = Environment::new();
         let expr = Spanned::new(Expression::Boolean(false), span(0..1));
-        let actual = test(expr, env);
+        let actual = test_expr(expr, None);
 
         let expected = Ok(Value::Boolean(false));
 
@@ -287,10 +398,9 @@ mod tests {
 
     #[test]
     fn simple_number() {
-        let env = Environment::new();
         let number = dec!(9001).into();
         let expr = Spanned::new(Expression::Number(number), span(0..1));
-        let actual = test(expr, env);
+        let actual = test_expr(expr, None);
 
         let expected = Ok(Value::Number(number.into()));
 
@@ -299,7 +409,6 @@ mod tests {
 
     #[test]
     fn simple_list() {
-        let env = Environment::new();
         let expr = Spanned::new(
             Expression::List(vec![
                 Spanned::new(Expression::String("hello".into()), span(1..2)),
@@ -308,7 +417,7 @@ mod tests {
             ]),
             span(0..8),
         );
-        let actual = test(expr, env);
+        let actual = test_expr(expr, None);
 
         let expected = Ok(Value::List(vec![
             Value::String("hello".into()),
@@ -321,7 +430,6 @@ mod tests {
 
     #[test]
     fn simple_object() {
-        let env = Environment::new();
         let expr = Spanned::new(
             Expression::Object(vec![
                 (
@@ -335,7 +443,7 @@ mod tests {
             ]),
             span(0..10),
         );
-        let actual = test(expr, env);
+        let actual = test_expr(expr, None);
 
         let expected = Ok(Value::Object(btree_map! {
             "a".into() => "hello".into(),
@@ -347,10 +455,8 @@ mod tests {
 
     #[test]
     fn simple_function_call() {
-        let mut env = Environment::new();
-        env.insert(
-            "add",
-            Value::Function(Function {
+        let env = btree_map! {
+            "add".into() => Value::Function(Function {
                 name: "add".into(),
                 args: vec!["a".into(), "b".into()],
                 body: Spanned::new(
@@ -368,9 +474,9 @@ mod tests {
                     span(0..3),
                 ),
             }),
-        );
-        env.insert("one", Value::Number(dec!(1).into()));
-        env.insert("two", Value::Number(dec!(2).into()));
+            "one".into() => Value::Number(dec!(1).into()),
+            "two".into() => Value::Number(dec!(2).into()),
+        };
 
         let expr = Spanned::new(
             Expression::Call {
@@ -386,103 +492,65 @@ mod tests {
             span(0..7),
         );
 
-        let actual = test(expr, env);
+        let actual = test_expr(expr, Some(env));
 
         let expected = Ok(Value::Number(dec!(3).into()));
 
         assert_eq!(actual, expected);
     }
 
+    #[test]
+    fn arithmetic() {
+        let env = btree_map! {
+            "x".into() => Value::Number(dec!(10).into()),
+            "y".into() => Value::Number(dec!(20).into()),
+            "z".into() => Value::Number(dec!(40).into()),
+            "w".into() => Value::Number(dec!(80).into()),
+        };
+        let actual = test_code("x + y * (z / w)", Some(env));
+
+        let expected = Ok(Value::Number(dec!(20).into()));
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn get_list_index() {
+        let env = btree_map! {
+            "list".into() => Value::List(vec![
+                Value::String("a".into()),
+                Value::String("b".into()),
+                Value::String("c".into()),
+                Value::String("d".into()),
+            ]),
+            "index".into() => Value::Number(dec!(2).into()),
+        };
+        let actual = test_code("list[index]", Some(env));
+
+        let expected = Ok(Value::String("c".into()));
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn get_list_index_negative() {
+        let env = btree_map! {
+            "list".into() => Value::List(vec![
+                Value::String("a".into()),
+                Value::String("b".into()),
+                Value::String("c".into()),
+                Value::String("d".into()),
+            ]),
+            "index".into() => Value::Number(dec!(-2).into()),
+        };
+        let actual = test_code("list[index]", Some(env));
+
+        let expected = Ok(Value::String("c".into()));
+
+        assert_eq!(actual, expected);
+    }
+
     /*
-    #[test]
-    fn negate_number() {
-        let one = Decimal::from_u8(1).unwrap();
-        let tokens = vec![Token::Minus, Token::Number(one)];
-        let actual = test(tokens);
-
-        let expected = Ok(Spanned::new(
-            Expression::Unary {
-                operator: UnaryOperator::Negative,
-                right: Box::new(Spanned::new(Expression::Number(one), span(1..2))),
-            },
-            span(0..2),
-        ));
-
-        assert_eq!(actual, expected);
-    }
-
-    #[test]
-    fn add_numbers() {
-        let one = Decimal::from_u8(1).unwrap();
-        let tokens = vec![Token::Number(one), Token::Plus, Token::Number(one)];
-        let actual = test(tokens);
-
-        let expected = Ok(Spanned::new(
-            Expression::Binary {
-                left: Box::new(Spanned::new(Expression::Number(one), span(0..1))),
-                operator: BinaryOperator::Add,
-                right: Box::new(Spanned::new(Expression::Number(one), span(2..3))),
-            },
-            span(0..3),
-        ));
-
-        assert_eq!(actual, expected);
-    }
-
-    #[test]
-    fn precedence_multiply_addition() {
-        let one = Decimal::from_u8(1).unwrap();
-        let two = Decimal::from_u8(2).unwrap();
-        let three = Decimal::from_u8(3).unwrap();
-
-        let actual = test(vec![
-            Token::Number(one),
-            Token::Plus,
-            Token::Number(two),
-            Token::Star,
-            Token::Number(three),
-        ]);
-        let expected = Ok(Spanned::new(
-            Expression::Binary {
-                left: Box::new(Spanned::new(Expression::Number(one), span(0..1))),
-                operator: BinaryOperator::Add,
-                right: Box::new(Spanned::new(
-                    Expression::Binary {
-                        left: Box::new(Spanned::new(Expression::Number(two), span(2..3))),
-                        operator: BinaryOperator::Multiply,
-                        right: Box::new(Spanned::new(Expression::Number(three), span(4..5))),
-                    },
-                    span(2..5),
-                )),
-            },
-            span(0..5),
-        ));
-
-        assert_eq!(actual, expected);
-    }
-
-    #[test]
-    fn get_index() {
-        let one = Decimal::from_u8(1).unwrap();
-        let tokens = vec![
-            Token::Identifier("a".into()),
-            Token::LeftBrack,
-            Token::Number(one),
-            Token::RightBrack,
-        ];
-        let actual = test(tokens);
-
-        let expected = Ok(Spanned::new(
-            Expression::GetIndex {
-                container: Box::new(Spanned::new(Expression::Identifier("a".into()), span(0..1))),
-                index: Box::new(Spanned::new(Expression::Number(one), span(2..3))),
-            },
-            span(0..4),
-        ));
-
-        assert_eq!(actual, expected);
-    }
-
     #[test]
     fn get_key() {
         let tokens = vec![

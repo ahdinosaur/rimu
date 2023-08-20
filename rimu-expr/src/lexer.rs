@@ -107,7 +107,11 @@ pub fn lexer_parser() -> impl Lexer<Vec<SpannedToken>> {
     ))
     .recover_with(skip_then_retry_until([]));
 
-    token.map_with_span(Spanned::new).padded().repeated()
+    token
+        .map_with_span(Spanned::new)
+        .padded()
+        .repeated()
+        .then_ignore(end())
 }
 
 #[cfg(test)]
@@ -265,9 +269,7 @@ mod tests {
     fn err_unknown_token_1() {
         let actual = test("$");
 
-        let expected = Ok(vec![]);
-
-        assert_eq!(actual, expected);
+        assert!(actual.is_err());
     }
 
     #[test]

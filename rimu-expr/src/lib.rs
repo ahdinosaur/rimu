@@ -47,3 +47,73 @@ pub fn parse(code: &str, source: SourceId) -> (Option<SpannedExpression>, Vec<Er
 
     (output, errors)
 }
+
+#[cfg(test)]
+mod tests {
+    use std::ops::Range;
+
+    use pretty_assertions::assert_eq;
+    use rust_decimal::{prelude::FromPrimitive, Decimal};
+
+    use crate::{
+        parse, BinaryOperator, Error, Expression, SourceId, Span, Spanned, SpannedExpression,
+        Token, UnaryOperator,
+    };
+
+    fn span(range: Range<usize>) -> Span {
+        Span::new(SourceId::empty(), range.start, range.end)
+    }
+
+    fn test(code: &str) -> (Option<SpannedExpression>, Vec<Error>) {
+        parse(code, SourceId::empty())
+    }
+
+    #[test]
+    fn empty_input() {
+        let (actual_expr, errors) = test("");
+
+        assert_eq!(actual_expr, None);
+        // TODO improve this error
+        assert!(errors.len() > 0);
+    }
+
+    #[test]
+    fn arithmetic() {
+        let (actual_expr, errors) = test("x + y * (z / w)");
+
+        let expected_expr = Some(Spanned::new(
+            Expression::Binary {
+                left: Box::new(Spanned::new(Expression::Identifier("x".into()), span(0..1))),
+                right: Box::new(Spanned::new(
+                    Expression::Binary {
+                        left: Box::new(Spanned::new(
+                            Expression::Identifier("y".into()),
+                            span(4..5),
+                        )),
+                        right: Box::new(Spanned::new(
+                            Expression::Binary {
+                                left: Box::new(Spanned::new(
+                                    Expression::Identifier("z".into()),
+                                    span(9..10),
+                                )),
+                                right: Box::new(Spanned::new(
+                                    Expression::Identifier("w".into()),
+                                    span(13..14),
+                                )),
+                                operator: BinaryOperator::Divide,
+                            },
+                            span(8..15),
+                        )),
+                        operator: BinaryOperator::Multiply,
+                    },
+                    span(4..15),
+                )),
+                operator: BinaryOperator::Add,
+            },
+            span(0..15),
+        ));
+
+        assert_eq!(actual_expr, expected_expr);
+        assert_eq!(errors.len(), 0);
+    }
+}
