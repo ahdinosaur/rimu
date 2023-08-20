@@ -4,7 +4,6 @@ pub(crate) mod error;
 pub(crate) mod from;
 pub(crate) mod function;
 pub(crate) mod number;
-pub(crate) mod ops;
 pub(crate) mod ser;
 
 use std::collections::BTreeMap;

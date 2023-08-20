@@ -103,9 +103,18 @@ impl<'a> Evaluator<'a> {
     ) -> Result<Value, EvalError> {
         let right = self.expression(right)?;
         let value = match operator {
-            UnaryOperator::Negative => -right,
-            UnaryOperator::Not => !right,
-        };
+            UnaryOperator::Negative => match right.clone() {
+                Value::Number(number) => Ok(Value::Number(-number)),
+                _ => Err(EvalError::TypeError {
+                    expected: "number".into(),
+                    got: right.clone(),
+                }),
+            },
+            UnaryOperator::Not => {
+                let boolean: bool = right.into();
+                Ok(Value::Boolean(!boolean))
+            }
+        }?;
         Ok(value)
     }
 
@@ -124,19 +133,105 @@ impl<'a> Evaluator<'a> {
                 match operator {
                     BinaryOperator::Or => unreachable!(),
                     BinaryOperator::And => unreachable!(),
-                    BinaryOperator::Add => left + right,
-                    BinaryOperator::Subtract => left - right,
-                    BinaryOperator::Multiply => left * right,
-                    BinaryOperator::Divide => left / right,
-                    BinaryOperator::Mod => left % right,
-                    BinaryOperator::Xor => left ^ right,
-                    BinaryOperator::Greater => Value::Boolean(left > right),
-                    BinaryOperator::GreaterEqual => Value::Boolean(left >= right),
-                    BinaryOperator::Less => Value::Boolean(left < right),
-                    BinaryOperator::LessEqual => Value::Boolean(left <= right),
-                    BinaryOperator::Equal => Value::Boolean(left == right),
-                    BinaryOperator::NotEqual => Value::Boolean(left != right),
-                }
+                    BinaryOperator::Add => match (left.clone(), right.clone()) {
+                        (Value::Number(left), Value::Number(right)) => {
+                            Ok(Value::Number(left + right))
+                        }
+                        (Value::Number(_left), right) => Err(EvalError::TypeError {
+                            expected: "number".into(),
+                            got: right,
+                        }),
+                        (Value::String(left), Value::String(right)) => {
+                            Ok(Value::String([left, right].join("")))
+                        }
+                        (Value::String(_left), right) => Err(EvalError::TypeError {
+                            expected: "string".into(),
+                            got: right,
+                        }),
+                        (Value::List(left), Value::List(right)) => {
+                            Ok(Value::List([left, right].concat()))
+                        }
+                        (Value::List(_left), right) => Err(EvalError::TypeError {
+                            expected: "list".into(),
+                            got: right,
+                        }),
+                        _ => Err(EvalError::TypeError {
+                            expected: "number | string | list".into(),
+                            got: left,
+                        }),
+                    },
+                    BinaryOperator::Subtract => match (left.clone(), right.clone()) {
+                        (Value::Number(left), Value::Number(right)) => {
+                            Ok(Value::Number(left - right))
+                        }
+                        (Value::Number(_left), right) => Err(EvalError::TypeError {
+                            expected: "number".into(),
+                            got: right,
+                        }),
+                        _ => Err(EvalError::TypeError {
+                            expected: "number".into(),
+                            got: left,
+                        }),
+                    },
+                    BinaryOperator::Multiply => match (left.clone(), right.clone()) {
+                        (Value::Number(left), Value::Number(right)) => {
+                            Ok(Value::Number(left * right))
+                        }
+                        (Value::Number(_left), right) => Err(EvalError::TypeError {
+                            expected: "number".into(),
+                            got: right,
+                        }),
+                        _ => Err(EvalError::TypeError {
+                            expected: "number".into(),
+                            got: left,
+                        }),
+                    },
+                    BinaryOperator::Divide => match (left.clone(), right.clone()) {
+                        (Value::Number(left), Value::Number(right)) => {
+                            Ok(Value::Number(left / right))
+                        }
+                        (Value::Number(_left), right) => Err(EvalError::TypeError {
+                            expected: "number".into(),
+                            got: right,
+                        }),
+                        _ => Err(EvalError::TypeError {
+                            expected: "number".into(),
+                            got: left,
+                        }),
+                    },
+                    BinaryOperator::Mod => match (left.clone(), right.clone()) {
+                        (Value::Number(left), Value::Number(right)) => {
+                            Ok(Value::Number(left % right))
+                        }
+                        (Value::Number(_left), right) => Err(EvalError::TypeError {
+                            expected: "number".into(),
+                            got: right,
+                        }),
+                        _ => Err(EvalError::TypeError {
+                            expected: "number".into(),
+                            got: left,
+                        }),
+                    },
+                    BinaryOperator::Xor => match (left.clone(), right.clone()) {
+                        (Value::Boolean(left), Value::Boolean(right)) => {
+                            Ok(Value::Boolean(left ^ right))
+                        }
+                        (Value::Boolean(_left), right) => Err(EvalError::TypeError {
+                            expected: "boolean".into(),
+                            got: right,
+                        }),
+                        _ => Err(EvalError::TypeError {
+                            expected: "boolean".into(),
+                            got: left,
+                        }),
+                    },
+                    BinaryOperator::Greater => Ok(Value::Boolean(left > right)),
+                    BinaryOperator::GreaterEqual => Ok(Value::Boolean(left >= right)),
+                    BinaryOperator::Less => Ok(Value::Boolean(left < right)),
+                    BinaryOperator::LessEqual => Ok(Value::Boolean(left <= right)),
+                    BinaryOperator::Equal => Ok(Value::Boolean(left == right)),
+                    BinaryOperator::NotEqual => Ok(Value::Boolean(left != right)),
+                }?
             }
         };
         Ok(value)
@@ -148,19 +243,13 @@ impl<'a> Evaluator<'a> {
         right: &SpannedExpression,
         full_evaluate_on: bool,
     ) -> Result<Value, EvalError> {
-        let value = match left {
-            Value::Boolean(left) => {
-                if left == full_evaluate_on {
-                    // if `left` is not the result we need, evaluate `right`
-                    match self.expression(right)? {
-                        Value::Boolean(right) => Value::Boolean(right),
-                        _ => Value::Null,
-                    }
-                } else {
-                    Value::Boolean(left) // short circuit
-                }
-            }
-            _ => Value::Null,
+        let left: bool = left.into();
+        let value = if left == full_evaluate_on {
+            // if `left` is not the result we need, evaluate `right`
+            let right: bool = self.expression(right)?.into();
+            Value::Boolean(right)
+        } else {
+            Value::Boolean(left) // short circuit
         };
         Ok(value)
     }
@@ -263,7 +352,7 @@ impl<'a> Evaluator<'a> {
             (Value::List(_list), _) => {
                 return Err(EvalError::TypeError {
                     expected: "number".into(),
-                    got: container.clone(),
+                    got: index.clone(),
                 });
             }
             (Value::String(string), Value::Number(number)) => {
@@ -292,7 +381,7 @@ impl<'a> Evaluator<'a> {
             (Value::String(_list), _) => {
                 return Err(EvalError::TypeError {
                     expected: "number".into(),
-                    got: container,
+                    got: index,
                 });
             }
             (Value::Object(object), Value::String(key)) => object
@@ -305,7 +394,7 @@ impl<'a> Evaluator<'a> {
             (Value::Object(_list), _) => {
                 return Err(EvalError::TypeError {
                     expected: "string".into(),
-                    got: container,
+                    got: index,
                 });
             }
             _ => Err(EvalError::TypeError {
