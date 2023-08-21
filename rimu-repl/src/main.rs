@@ -18,7 +18,6 @@ fn main() -> Result<()> {
         match readline {
             Ok(line) => {
                 rl.add_history_entry(line.as_str())?;
-                println!("Line: {}", line);
                 let (expr, errors) = parse(line.as_str(), SourceId::repl());
                 if errors.len() > 0 {
                     for error in errors {
@@ -30,7 +29,7 @@ fn main() -> Result<()> {
                         println!("No expression.");
                         continue;
                     };
-                println!("Expression: {:?}", expr);
+                println!("Expression: {}", expr);
                 match Evaluator::evaluate(&expr, &env) {
                     Ok(value) => println!("Value: {}", value),
                     Err(error) => println!("Eval error: {}", error),

@@ -60,16 +60,16 @@ pub enum Token {
     Equal,
     /// !=
     NotEqual,
-    /// and
+    /// &&
     And,
-    /// or
+    /// ||
     Or,
-    /// xor
+    /// ^
     Xor,
-    /// not
+    /// !
     Not,
-    /// mod
-    Mod,
+    /// %
+    Rem,
 }
 
 impl fmt::Display for Token {
@@ -103,11 +103,11 @@ impl fmt::Display for Token {
             Token::LessEqual => write!(f, "<="),
             Token::Equal => write!(f, "=="),
             Token::NotEqual => write!(f, "!="),
-            Token::And => write!(f, "and"),
-            Token::Or => write!(f, "or"),
-            Token::Xor => write!(f, "xor"),
-            Token::Not => write!(f, "not"),
-            Token::Mod => write!(f, "mod"),
+            Token::And => write!(f, "&&"),
+            Token::Or => write!(f, "||"),
+            Token::Xor => write!(f, "^"),
+            Token::Not => write!(f, "!"),
+            Token::Rem => write!(f, "%"),
         }
     }
 }

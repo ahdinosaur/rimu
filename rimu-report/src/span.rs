@@ -1,4 +1,7 @@
-use std::{fmt, ops::Range};
+use std::{
+    fmt::{self, Display},
+    ops::Range,
+};
 
 use crate::SourceId;
 
@@ -144,5 +147,11 @@ where
     /// Get the node's span.
     pub fn span(&self) -> Span {
         self.span.clone()
+    }
+}
+
+impl<T: Display> Display for Spanned<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.inner.fmt(f)
     }
 }

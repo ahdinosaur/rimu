@@ -1,3 +1,5 @@
+use core::fmt;
+
 use rust_decimal::Decimal;
 
 use crate::{BinaryOperator, Spanned, UnaryOperator};
@@ -21,7 +23,7 @@ pub enum Expression {
     List(Vec<SpannedExpression>),
 
     /// Literal key-value object.
-    Object(Vec<(SpannedExpression, SpannedExpression)>),
+    Object(Vec<(Spanned<String>, SpannedExpression)>),
 
     /// A named local variable.
     Identifier(String),
@@ -54,7 +56,7 @@ pub enum Expression {
     /// Get key operation (`c.z`).
     GetKey {
         container: Box<SpannedExpression>,
-        key: Box<SpannedExpression>,
+        key: Spanned<String>,
     },
 
     /// Slice operation (`b[x:y]`).
@@ -68,3 +70,59 @@ pub enum Expression {
 }
 
 pub type SpannedExpression = Spanned<Expression>;
+
+impl fmt::Display for Expression {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Expression::Null => write!(f, "null"),
+            Expression::Boolean(boolean) => write!(f, "{}", boolean),
+            Expression::String(string) => write!(f, "\"{}\"", string),
+            Expression::Number(number) => write!(f, "{}", number),
+            Expression::List(list) => {
+                let keys = list
+                    .iter()
+                    .map(ToString::to_string)
+                    .collect::<Vec<String>>()
+                    .join(", ");
+                write!(f, "[{}]", keys)
+            }
+            Expression::Object(object) => {
+                let entries = object
+                    .iter()
+                    .map(|(key, value)| format!("\"{}\": {}", key, value.to_string()))
+                    .collect::<Vec<String>>()
+                    .join(", ");
+                write!(f, "{{{}}}", entries)
+            }
+            Expression::Identifier(identifier) => write!(f, "{}", identifier),
+            Expression::Unary { right, operator } => write!(f, "{}{}", operator, right),
+            Expression::Binary {
+                left,
+                operator,
+                right,
+            } => write!(f, "{} {} {}", left, operator, right),
+            Expression::Call { function, args } => {
+                let args = args
+                    .iter()
+                    .map(ToString::to_string)
+                    .collect::<Vec<String>>()
+                    .join(", ");
+                write!(f, "{}({})", function, args)
+            }
+            Expression::GetIndex { container, index } => write!(f, "{}[{}]", container, index),
+            Expression::GetKey { container, key } => write!(f, "{}.{}", container, key),
+            Expression::GetSlice {
+                container,
+                start,
+                end,
+            } => write!(
+                f,
+                "{}[{}:{}]",
+                container,
+                start.as_ref().map(|s| s.to_string()).unwrap_or("".into()),
+                end.as_ref().map(|e| e.to_string()).unwrap_or("".into()),
+            ),
+            Expression::Error => write!(f, "error"),
+        }
+    }
+}

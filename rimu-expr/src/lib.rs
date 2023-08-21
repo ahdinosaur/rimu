@@ -53,11 +53,9 @@ mod tests {
     use std::ops::Range;
 
     use pretty_assertions::assert_eq;
-    use rust_decimal::{prelude::FromPrimitive, Decimal};
 
     use crate::{
         parse, BinaryOperator, Error, Expression, SourceId, Span, Spanned, SpannedExpression,
-        Token, UnaryOperator,
     };
 
     fn span(range: Range<usize>) -> Span {

@@ -3,6 +3,7 @@
 
 use rimu_env::{Environment, EnvironmentError};
 use rimu_expr::{BinaryOperator, Expression, SpannedExpression, UnaryOperator};
+use rimu_report::Spanned;
 use rimu_value::{Number, Object, Value};
 use rust_decimal::prelude::ToPrimitive;
 use std::ops::Deref;
@@ -54,9 +55,9 @@ impl<'a> Evaluator<'a> {
 
             Expression::Number(decimal) => Value::Number(Into::<Number>::into(*decimal)),
 
-            Expression::List(items) => self.list(&items)?,
+            Expression::List(ref items) => self.list(items)?,
 
-            Expression::Object(entries) => self.object(&entries)?,
+            Expression::Object(ref entries) => self.object(entries)?,
 
             Expression::Identifier(var) => self.variable(var)?,
 
@@ -86,8 +87,8 @@ impl<'a> Evaluator<'a> {
                 ref end,
             } => self.get_slice(
                 container,
-                &start.as_ref().map(|s| s.deref().clone()),
-                &end.as_ref().map(|e| e.deref().clone()),
+                start.as_ref().map(|s| s.deref()),
+                end.as_ref().map(|e| e.deref()),
             )?,
 
             Expression::Error => todo!(),
@@ -103,7 +104,7 @@ impl<'a> Evaluator<'a> {
     ) -> Result<Value, EvalError> {
         let right = self.expression(right)?;
         let value = match operator {
-            UnaryOperator::Negative => match right.clone() {
+            UnaryOperator::Negate => match right.clone() {
                 Value::Number(number) => Ok(Value::Number(-number)),
                 _ => Err(EvalError::TypeError {
                     expected: "number".into(),
@@ -199,7 +200,7 @@ impl<'a> Evaluator<'a> {
                             got: left,
                         }),
                     },
-                    BinaryOperator::Mod => match (left.clone(), right.clone()) {
+                    BinaryOperator::Rem => match (left.clone(), right.clone()) {
                         (Value::Number(left), Value::Number(right)) => {
                             Ok(Value::Number(left % right))
                         }
@@ -265,14 +266,11 @@ impl<'a> Evaluator<'a> {
 
     fn object(
         &self,
-        entries: &Vec<(SpannedExpression, SpannedExpression)>,
+        entries: &Vec<(Spanned<String>, SpannedExpression)>,
     ) -> Result<Value, EvalError> {
         let mut object = Object::new();
         for (key, value) in entries.into_iter() {
-            let Expression::Identifier(key) = key.inner() else {
-                    panic!();
-                };
-            let key = key.clone();
+            let key = key.clone().into_inner();
             let value = self.expression(&value)?;
             object.insert(key, value);
         }
@@ -330,60 +328,14 @@ impl<'a> Evaluator<'a> {
         let index = self.expression(index)?;
 
         match (container.clone(), index.clone()) {
-            (Value::List(list), Value::Number(number)) => {
-                let Some(mut index) = number.to_isize() else {
-                    return Err(EvalError::TypeError {
-                        expected: "integer".into(),
-                        got: index.clone(),
-                    });
-                };
-                let length = list.len();
-                if index < 0 {
-                    // handle negative indices
-                    index = length as isize + index
-                }
-                if index < 0 {
-                    return Err(EvalError::IndexOutOfBounds { index, length });
-                }
-                let Some(item) = list.get(index as usize) else {
-                    return Err(EvalError::IndexOutOfBounds { index, length });
-                };
-                Ok(item.clone())
+            (Value::List(list), index_value) => {
+                let index = get_index(index_value, list.len())?;
+                Ok(list[index as usize].clone())
             }
-            (Value::List(_list), _) => {
-                return Err(EvalError::TypeError {
-                    expected: "number".into(),
-                    got: index.clone(),
-                });
-            }
-            (Value::String(string), Value::Number(number)) => {
-                let Some(mut index) = number.to_isize() else {
-                    return Err(EvalError::TypeError {
-                        expected: "integer".into(),
-                        got: index,
-                    });
-                };
-                let length = string.len();
-                if index < 0 {
-                    // handle negative indices
-                    index = length as isize + index
-                }
-                if index < 0 {
-                    return Err(EvalError::IndexOutOfBounds { index, length });
-                }
-                let Some(substring) = string.get(index as usize..) else {
-                    return Err(EvalError::IndexOutOfBounds { index, length });
-                };
-                let Some(ch) = substring.chars().next() else {
-                    return Err(EvalError::IndexOutOfBounds { index, length });
-                };
+            (Value::String(string), index_value) => {
+                let index = get_index(index_value, string.len())?;
+                let ch = string[index as usize..].chars().next().unwrap();
                 Ok(Value::String(ch.into()))
-            }
-            (Value::String(_list), _) => {
-                return Err(EvalError::TypeError {
-                    expected: "number".into(),
-                    got: index,
-                });
             }
             (Value::Object(object), Value::String(key)) => object
                 .get(&key)
@@ -408,19 +360,95 @@ impl<'a> Evaluator<'a> {
     fn get_key(
         &self,
         container: &SpannedExpression,
-        key: &SpannedExpression,
+        key: &Spanned<String>,
     ) -> Result<Value, EvalError> {
-        Ok(Value::Null)
+        let container = self.expression(container)?;
+
+        let Value::Object(object) = container.clone() else {
+            return Err(EvalError::TypeError {
+                expected: "object".into(),
+                got: container,
+            })
+        };
+
+        object
+            .get(key.inner())
+            .ok_or_else(|| EvalError::KeyNotFound {
+                key: key.clone().into_inner(),
+                object: object.clone(),
+            })
+            .map(Clone::clone)
     }
 
     fn get_slice(
         &self,
         container: &SpannedExpression,
-        start: &Option<SpannedExpression>,
-        end: &Option<SpannedExpression>,
+        start: Option<&SpannedExpression>,
+        end: Option<&SpannedExpression>,
     ) -> Result<Value, EvalError> {
-        Ok(Value::Null)
+        let container = self.expression(container)?;
+        let start = match start {
+            Some(start) => Some(self.expression(start)?),
+            None => None,
+        };
+        let end = match end {
+            Some(end) => Some(self.expression(end)?),
+            None => None,
+        };
+
+        let Value::List(list) = container.clone() else {
+            return Err(EvalError::TypeError {
+                expected: "list".into(),
+                got: container,
+            });
+        };
+
+        let length = list.len();
+        match (start.clone(), end.clone()) {
+            (None, None) => Ok(Value::List(list)),
+            (Some(start), None) => {
+                let start = get_index(start, length)?;
+                Ok(Value::List(list[start..].to_vec()))
+            }
+            (None, Some(end)) => {
+                let end = get_index(end, length)?;
+                Ok(Value::List(list[..end].to_vec()))
+            }
+            (Some(start), Some(end)) => {
+                let start = get_index(start, length)?;
+                let end = get_index(end, length)?;
+                Ok(Value::List(list[start..end].to_vec()))
+            }
+        }
     }
+}
+
+fn get_index(value: Value, length: usize) -> Result<usize, EvalError> {
+    let Value::Number(number) = value else {
+                    return Err(EvalError::TypeError {
+                        expected: "number".into(),
+                        got: value,
+                    });
+            };
+    let number = if number.is_integer() {
+        number.to_isize()
+    } else {
+        None
+    };
+    let Some(mut index) = number else {
+                    return Err(EvalError::TypeError {
+                        expected: "integer".into(),
+                        got: value,
+                    });
+                };
+    if index <= -(length as isize) || index >= length as isize {
+        return Err(EvalError::IndexOutOfBounds { index, length });
+    }
+    // handle negative indices
+    if index < 0 {
+        index += length as isize
+    }
+    Ok(index as usize)
 }
 
 #[cfg(test)]
@@ -432,7 +460,7 @@ mod tests {
     use rimu_env::Environment;
     use rimu_expr::{parse, BinaryOperator, Expression, SpannedExpression};
     use rimu_report::{SourceId, Span, Spanned};
-    use rimu_value::{Function, Number, Object, Value};
+    use rimu_value::{Function, Value};
     use rust_decimal_macros::dec;
 
     use super::{EvalError, Evaluator};
@@ -523,11 +551,11 @@ mod tests {
         let expr = Spanned::new(
             Expression::Object(vec![
                 (
-                    Spanned::new(Expression::Identifier("a".into()), span(1..2)),
+                    Spanned::new("a".into(), span(1..2)),
                     Spanned::new(Expression::String("hello".into()), span(3..4)),
                 ),
                 (
-                    Spanned::new(Expression::Identifier("b".into()), span(5..6)),
+                    Spanned::new("b".into(), span(5..6)),
                     Spanned::new(Expression::String("world".into()), span(7..8)),
                 ),
             ]),
@@ -640,51 +668,43 @@ mod tests {
         assert_eq!(actual, expected);
     }
 
-    /*
     #[test]
     fn get_key() {
-        let tokens = vec![
-            Token::Identifier("a".into()),
-            Token::Dot,
-            Token::Identifier("b".into()),
-        ];
-        let actual = test(tokens);
+        let env = btree_map! {
+            "object".into() => Value::Object(btree_map! {
+                "a".into() => Value::String("apple".into()),
+                "b".into() => Value::String("bear".into()),
+                "c".into() => Value::String("cranberry".into()),
+                "d".into() => Value::String("dog".into()),
+            }),
+        };
+        let actual = test_code("object.a", Some(env));
 
-        let expected = Ok(Spanned::new(
-            Expression::GetKey {
-                container: Box::new(Spanned::new(Expression::Identifier("a".into()), span(0..1))),
-                key: Box::new(Spanned::new(Expression::Identifier("b".into()), span(2..3))),
-            },
-            span(0..3),
-        ));
+        let expected = Ok(Value::String("apple".into()));
 
         assert_eq!(actual, expected);
     }
 
     #[test]
-    fn get_slice() {
-        let one = Decimal::from_u8(1).unwrap();
-        let two = Decimal::from_u8(2).unwrap();
-        let tokens = vec![
-            Token::Identifier("a".into()),
-            Token::LeftBrack,
-            Token::Number(one),
-            Token::Colon,
-            Token::Number(two),
-            Token::RightBrack,
-        ];
-        let actual = test(tokens);
+    fn get_slice_start_end() {
+        let env = btree_map! {
+            "list".into() => Value::List(vec![
+                Value::String("a".into()),
+                Value::String("b".into()),
+                Value::String("c".into()),
+                Value::String("d".into()),
+                Value::String("e".into()),
+            ]),
+            "start".into() => Value::Number(dec!(1).into()),
+            "end".into() => Value::Number(dec!(3).into()),
+        };
+        let actual = test_code("list[start:end]", Some(env));
 
-        let expected = Ok(Spanned::new(
-            Expression::GetSlice {
-                container: Box::new(Spanned::new(Expression::Identifier("a".into()), span(0..1))),
-                start: Some(Box::new(Spanned::new(Expression::Number(one), span(2..3)))),
-                end: Some(Box::new(Spanned::new(Expression::Number(two), span(4..5)))),
-            },
-            span(0..6),
-        ));
+        let expected = Ok(Value::List(vec![
+            Value::String("b".into()),
+            Value::String("c".into()),
+        ]));
 
         assert_eq!(actual, expected);
     }
-    */
 }
