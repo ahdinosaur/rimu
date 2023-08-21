@@ -331,11 +331,11 @@ impl<'a> Evaluator<'a> {
 
         match (container.clone(), index.clone()) {
             (Value::List(list), index_value) => {
-                let index = get_index(index_value, list.len())?;
+                let index = get_index(index_value, list.len(), false)?;
                 Ok(list[index as usize].clone())
             }
             (Value::String(string), index_value) => {
-                let index = get_index(index_value, string.len())?;
+                let index = get_index(index_value, string.len(), false)?;
                 let ch = string[index as usize..].chars().next().unwrap();
                 Ok(Value::String(ch.into()))
             }
@@ -404,16 +404,16 @@ impl<'a> Evaluator<'a> {
                 match (start.clone(), end.clone()) {
                     (None, None) => Ok(Value::List(list)),
                     (Some(start), None) => {
-                        let start = get_index(start, length)?;
+                        let start = get_index(start, length, false)?;
                         Ok(Value::List(list[start..].to_vec()))
                     }
                     (None, Some(end)) => {
-                        let end = get_index(end, length)?;
+                        let end = get_index(end, length, true)?;
                         Ok(Value::List(list[..end].to_vec()))
                     }
                     (Some(start), Some(end)) => {
-                        let start = get_index(start, length)?;
-                        let end = get_index(end, length)?;
+                        let start = get_index(start, length, false)?;
+                        let end = get_index(end, length, true)?;
                         if start >= end {
                             return Err(EvalError::RangeStartGreaterThanOrEqualToEnd {
                                 start,
@@ -429,16 +429,16 @@ impl<'a> Evaluator<'a> {
                 match (start.clone(), end.clone()) {
                     (None, None) => Ok(Value::String(string)),
                     (Some(start), None) => {
-                        let start = get_index(start, length)?;
+                        let start = get_index(start, length, false)?;
                         Ok(Value::String(string[start..].to_string()))
                     }
                     (None, Some(end)) => {
-                        let end = get_index(end, length)?;
+                        let end = get_index(end, length, true)?;
                         Ok(Value::String(string[..end].to_string()))
                     }
                     (Some(start), Some(end)) => {
-                        let start = get_index(start, length)?;
-                        let end = get_index(end, length)?;
+                        let start = get_index(start, length, false)?;
+                        let end = get_index(end, length, true)?;
                         if start >= end {
                             return Err(EvalError::RangeStartGreaterThanOrEqualToEnd {
                                 start,
@@ -459,7 +459,7 @@ impl<'a> Evaluator<'a> {
     }
 }
 
-fn get_index(value: Value, length: usize) -> Result<usize, EvalError> {
+fn get_index(value: Value, length: usize, is_range_end: bool) -> Result<usize, EvalError> {
     let Value::Number(number) = value else {
         return Err(EvalError::TypeError {
             expected: "number".into(),
@@ -477,7 +477,13 @@ fn get_index(value: Value, length: usize) -> Result<usize, EvalError> {
             got: value,
         });
     };
-    if index <= -(length as isize) || index >= length as isize {
+    let is_under = index <= -(length as isize);
+    let is_over = if !is_range_end {
+        index >= length as isize
+    } else {
+        index > length as isize
+    };
+    if is_under || is_over {
         return Err(EvalError::IndexOutOfBounds { index, length });
     }
     // handle negative indices
@@ -743,8 +749,4 @@ mod tests {
 
         assert_eq!(actual, expected);
     }
-
-    // TODO test for "abcdef"[1:1]
-    // TODO test for "abcdef"[1:3]
-    // TODO test for "abcdef"[-2:-4]
 }
