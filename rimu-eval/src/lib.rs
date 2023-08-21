@@ -24,6 +24,8 @@ pub enum EvalError {
     IndexOutOfBounds { index: isize, length: usize },
     #[error("key error, key: {key}, object: {object:?}")]
     KeyNotFound { key: String, object: Object },
+    #[error("range start >= end, start: {start}, end: {end}")]
+    RangeStartGreaterThanOrEqualToEnd { start: usize, end: usize },
 }
 
 /// A tree walking interpreter which given an [`Environment`] and an [`Expression`]
@@ -396,28 +398,62 @@ impl<'a> Evaluator<'a> {
             None => None,
         };
 
-        let Value::List(list) = container.clone() else {
-            return Err(EvalError::TypeError {
-                expected: "list".into(),
-                got: container,
-            });
-        };
-
-        let length = list.len();
-        match (start.clone(), end.clone()) {
-            (None, None) => Ok(Value::List(list)),
-            (Some(start), None) => {
-                let start = get_index(start, length)?;
-                Ok(Value::List(list[start..].to_vec()))
+        match container.clone() {
+            Value::List(list) => {
+                let length = list.len();
+                match (start.clone(), end.clone()) {
+                    (None, None) => Ok(Value::List(list)),
+                    (Some(start), None) => {
+                        let start = get_index(start, length)?;
+                        Ok(Value::List(list[start..].to_vec()))
+                    }
+                    (None, Some(end)) => {
+                        let end = get_index(end, length)?;
+                        Ok(Value::List(list[..end].to_vec()))
+                    }
+                    (Some(start), Some(end)) => {
+                        let start = get_index(start, length)?;
+                        let end = get_index(end, length)?;
+                        if start >= end {
+                            return Err(EvalError::RangeStartGreaterThanOrEqualToEnd {
+                                start,
+                                end,
+                            });
+                        }
+                        Ok(Value::List(list[start..end].to_vec()))
+                    }
+                }
             }
-            (None, Some(end)) => {
-                let end = get_index(end, length)?;
-                Ok(Value::List(list[..end].to_vec()))
+            Value::String(string) => {
+                let length = string.len();
+                match (start.clone(), end.clone()) {
+                    (None, None) => Ok(Value::String(string)),
+                    (Some(start), None) => {
+                        let start = get_index(start, length)?;
+                        Ok(Value::String(string[start..].to_string()))
+                    }
+                    (None, Some(end)) => {
+                        let end = get_index(end, length)?;
+                        Ok(Value::String(string[..end].to_string()))
+                    }
+                    (Some(start), Some(end)) => {
+                        let start = get_index(start, length)?;
+                        let end = get_index(end, length)?;
+                        if start >= end {
+                            return Err(EvalError::RangeStartGreaterThanOrEqualToEnd {
+                                start,
+                                end,
+                            });
+                        }
+                        Ok(Value::String(string[start..end].to_string()))
+                    }
+                }
             }
-            (Some(start), Some(end)) => {
-                let start = get_index(start, length)?;
-                let end = get_index(end, length)?;
-                Ok(Value::List(list[start..end].to_vec()))
+            _ => {
+                return Err(EvalError::TypeError {
+                    expected: "list".into(),
+                    got: container,
+                });
             }
         }
     }
@@ -425,22 +461,22 @@ impl<'a> Evaluator<'a> {
 
 fn get_index(value: Value, length: usize) -> Result<usize, EvalError> {
     let Value::Number(number) = value else {
-                    return Err(EvalError::TypeError {
-                        expected: "number".into(),
-                        got: value,
-                    });
-            };
+        return Err(EvalError::TypeError {
+            expected: "number".into(),
+            got: value,
+        });
+    };
     let number = if number.is_integer() {
         number.to_isize()
     } else {
         None
     };
     let Some(mut index) = number else {
-                    return Err(EvalError::TypeError {
-                        expected: "integer".into(),
-                        got: value,
-                    });
-                };
+        return Err(EvalError::TypeError {
+            expected: "integer".into(),
+            got: value,
+        });
+    };
     if index <= -(length as isize) || index >= length as isize {
         return Err(EvalError::IndexOutOfBounds { index, length });
     }
@@ -707,4 +743,8 @@ mod tests {
 
         assert_eq!(actual, expected);
     }
+
+    // TODO test for "abcdef"[1:1]
+    // TODO test for "abcdef"[1:3]
+    // TODO test for "abcdef"[-2:-4]
 }
