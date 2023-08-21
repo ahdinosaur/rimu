@@ -6,4 +6,5 @@ members = [
     "rimu-value",
     "rimu-env",
     "rimu-eval",
+    "rimu-repl",
 ]
