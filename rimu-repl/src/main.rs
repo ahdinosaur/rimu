@@ -22,7 +22,7 @@ fn main() -> Result<()> {
                 let (expr, errors) = parse(line.as_str(), SourceId::repl());
                 if errors.len() > 0 {
                     for error in errors {
-                        error.display(line.as_str());
+                        error.display(line.as_str(), SourceId::repl());
                     }
                     continue;
                 }
