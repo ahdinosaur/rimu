@@ -8,9 +8,6 @@ pub(crate) mod ser;
 
 use std::collections::BTreeMap;
 
-pub type List = Vec<Value>;
-pub type Object = BTreeMap<String, Value>;
-
 use std::fmt::{Debug, Display};
 
 use rust_decimal_macros::dec;
@@ -22,6 +19,9 @@ pub use self::error::ValueError;
 pub use self::function::Function;
 pub use self::number::Number;
 use self::ser::Serializer;
+
+pub type List = Vec<Value>;
+pub type Object = BTreeMap<String, Value>;
 
 #[derive(Clone, PartialEq, PartialOrd)]
 pub enum Value {
