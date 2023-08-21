@@ -223,7 +223,7 @@ fn right_unary_parser<'a>(
     expr: impl Compiler<SpannedExpression> + 'a,
     atom: impl Compiler<SpannedExpression> + 'a,
 ) -> impl Compiler<SpannedExpression> + 'a {
-    let items = items_parser(expr);
+    let items = items_parser(expr.clone());
     #[derive(Clone)]
     enum RightUnary {
         Call(Vec<SpannedExpression>),
@@ -235,18 +235,18 @@ fn right_unary_parser<'a>(
         .clone()
         .delimited_by(just(Token::LeftParen), just(Token::RightParen))
         .map(|expr| RightUnary::Call(expr.unwrap_or(vec![])));
-    let get_index = atom
+    let get_index = expr
         .clone()
         .delimited_by(just(Token::LeftBrack), just(Token::RightBrack))
         .map(RightUnary::GetIndex);
     let get_key = just(Token::Dot)
         .then(identifier_parser().map_with_span(Spanned::new))
         .map(|(_, expr)| RightUnary::GetKey(expr));
-    let get_slice = atom
+    let get_slice = expr
         .clone()
         .or_not()
         .then(just(Token::Colon))
-        .then(atom.clone().or_not())
+        .then(expr.clone().or_not())
         .delimited_by(just(Token::LeftBrack), just(Token::RightBrack))
         .map(|((start, _), end)| RightUnary::GetSlice(start, end));
 
