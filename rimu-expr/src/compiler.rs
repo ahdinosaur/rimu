@@ -41,9 +41,9 @@ pub fn compiler_parser() -> impl Compiler<SpannedExpression> {
         // Next precedence: right unary (function calls or member get)
         let right_unary = right_unary_parser(expr, atom);
 
-        // Next precedence: "left unary" operators ("-", "not")
+        // Next precedence: "left unary" operators ("-", "!")
         let op = just(Token::Minus)
-            .to(UnaryOperator::Negative)
+            .to(UnaryOperator::Negate)
             .or(just(Token::Not).to(UnaryOperator::Not))
             .map_with_span(Spanned::new)
             .labelled("unary operator");
@@ -63,12 +63,11 @@ pub fn compiler_parser() -> impl Compiler<SpannedExpression> {
             })
             .boxed();
 
-        // Next precedence: "factor" operators: "*", "/", "div", "mod"
+        // Next precedence: "factor" operators: "*", "/", "%"
         let op = just(Token::Star)
             .to(BinaryOperator::Multiply)
             .or(just(Token::Slash).to(BinaryOperator::Divide))
-            .or(just(Token::Div).to(BinaryOperator::Div))
-            .or(just(Token::Mod).to(BinaryOperator::Mod))
+            .or(just(Token::Rem).to(BinaryOperator::Rem))
             .labelled("binary (factor) operator");
         let factor = binary_operator_parser(left_unary, op);
 
@@ -95,19 +94,19 @@ pub fn compiler_parser() -> impl Compiler<SpannedExpression> {
             .labelled("binary (equality) operator");
         let equality = binary_operator_parser(comparison, op);
 
-        // Next precedence: "xor" operator
+        // Next precedence: "^" (xor) operator
         let op = just(Token::Xor)
             .to(BinaryOperator::Xor)
             .labelled("binary (xor) operator");
         let xor = binary_operator_parser(equality, op);
 
-        // Next precedence: "and" operator
+        // Next precedence: "&&" (and) operator
         let op = just(Token::And)
             .to(BinaryOperator::And)
             .labelled("binary (and) operator");
         let and = binary_operator_parser(xor, op);
 
-        // Next precedence: "or" operator
+        // Next precedence: "||" (or) operator
         let op = just(Token::Or)
             .to(BinaryOperator::Or)
             .labelled("binary (or) operator");
@@ -115,6 +114,7 @@ pub fn compiler_parser() -> impl Compiler<SpannedExpression> {
 
         or
     })
+    .then_ignore(end())
 }
 
 fn atom_parser<'a>(
@@ -200,17 +200,24 @@ fn object_parser<'a>(
     expr: impl Compiler<SpannedExpression> + 'a,
 ) -> impl Compiler<Expression> + 'a {
     nested_parser(
-        identifier_parser()
-            .map_with_span(|expr, span| Spanned::new(expr, span))
-            .then(just(Token::Colon).ignore_then(expr.clone().or_not()))
-            .map(|(field, value)| match value {
-                Some(value) => (field, value),
-                None => (field.clone(), field.clone()),
-            })
-            .separated_by(just(Token::Comma))
-            .allow_trailing()
-            .map(Some)
-            .boxed(),
+        select! {
+            Token::Identifier(key) => key,
+            Token::String(key) => key
+        }
+        .map_with_span(|key, span| Spanned::new(key, span))
+        .then(just(Token::Colon).ignore_then(expr.clone().or_not()))
+        .map(|(key, value)| match value {
+            Some(value) => (key, value),
+            None => {
+                let (key_string, span) = key.clone().take();
+                let value = Spanned::new(Expression::Identifier(key_string), span);
+                (key, value)
+            }
+        })
+        .separated_by(just(Token::Comma))
+        .allow_trailing()
+        .map(Some)
+        .boxed(),
         Token::LeftBrace,
         Token::RightBrace,
         |_| None,
@@ -223,30 +230,33 @@ fn right_unary_parser<'a>(
     expr: impl Compiler<SpannedExpression> + 'a,
     atom: impl Compiler<SpannedExpression> + 'a,
 ) -> impl Compiler<SpannedExpression> + 'a {
-    let items = items_parser(expr);
+    let items = items_parser(expr.clone());
     #[derive(Clone)]
     enum RightUnary {
         Call(Vec<SpannedExpression>),
         GetIndex(SpannedExpression),
-        GetKey(SpannedExpression),
+        GetKey(Spanned<String>),
         GetSlice(Option<SpannedExpression>, Option<SpannedExpression>),
     }
     let call = items
         .clone()
         .delimited_by(just(Token::LeftParen), just(Token::RightParen))
         .map(|expr| RightUnary::Call(expr.unwrap_or(vec![])));
-    let get_index = atom
+    let get_index = expr
         .clone()
         .delimited_by(just(Token::LeftBrack), just(Token::RightBrack))
         .map(RightUnary::GetIndex);
     let get_key = just(Token::Dot)
-        .then(identifier_parser().map_with_span(Spanned::new))
-        .map(|(_, expr)| RightUnary::GetKey(expr));
-    let get_slice = atom
+        .then(
+            select! { Token::Identifier(key) => key }
+                .map_with_span(|key, span| Spanned::new(key, span)),
+        )
+        .map(|(_, key)| RightUnary::GetKey(key));
+    let get_slice = expr
         .clone()
         .or_not()
         .then(just(Token::Colon))
-        .then(atom.clone().or_not())
+        .then(expr.clone().or_not())
         .delimited_by(just(Token::LeftBrack), just(Token::RightBrack))
         .map(|((start, _), end)| RightUnary::GetSlice(start, end));
 
@@ -270,7 +280,7 @@ fn right_unary_parser<'a>(
             },
             RightUnary::GetKey(key) => Expression::GetKey {
                 container: Box::new(left),
-                key: Box::new(key),
+                key,
             },
             RightUnary::GetSlice(start, end) => Expression::GetSlice {
                 container: Box::new(left),
@@ -402,11 +412,11 @@ mod tests {
         let expected = Ok(Spanned::new(
             Expression::Object(vec![
                 (
-                    Spanned::new(Expression::Identifier("a".into()), span(1..2)),
+                    Spanned::new("a".into(), span(1..2)),
                     Spanned::new(Expression::String("hello".into()), span(3..4)),
                 ),
                 (
-                    Spanned::new(Expression::Identifier("b".into()), span(5..6)),
+                    Spanned::new("b".into(), span(5..6)),
                     Spanned::new(Expression::String("world".into()), span(7..8)),
                 ),
             ]),
@@ -465,7 +475,7 @@ mod tests {
 
         let expected = Ok(Spanned::new(
             Expression::Unary {
-                operator: UnaryOperator::Negative,
+                operator: UnaryOperator::Negate,
                 right: Box::new(Spanned::new(Expression::Number(one), span(1..2))),
             },
             span(0..2),
@@ -558,7 +568,7 @@ mod tests {
         let expected = Ok(Spanned::new(
             Expression::GetKey {
                 container: Box::new(Spanned::new(Expression::Identifier("a".into()), span(0..1))),
-                key: Box::new(Spanned::new(Expression::Identifier("b".into()), span(2..3))),
+                key: Spanned::new("b".into(), span(2..3)),
             },
             span(0..3),
         ));

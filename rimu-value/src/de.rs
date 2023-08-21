@@ -179,6 +179,7 @@ impl<'de> Deserializer<'de> for Value {
             Value::String(v) => visitor.visit_string(v),
             Value::List(v) => visit_list(v, visitor),
             Value::Object(v) => visit_object(v, visitor),
+            Value::Function(_f) => todo!(),
         }
     }
 
@@ -721,6 +722,7 @@ impl Value {
             Value::String(s) => Unexpected::Str(s),
             Value::List(_) => Unexpected::Seq,
             Value::Object(_) => Unexpected::Map,
+            Value::Function(_f) => todo!(),
         }
     }
 }

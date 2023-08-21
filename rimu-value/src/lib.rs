@@ -2,6 +2,7 @@ pub(crate) mod convert;
 pub(crate) mod de;
 pub(crate) mod error;
 pub(crate) mod from;
+pub(crate) mod function;
 pub(crate) mod number;
 pub(crate) mod ser;
 
@@ -12,11 +13,13 @@ pub type Object = BTreeMap<String, Value>;
 
 use std::fmt::{Debug, Display};
 
+use rust_decimal_macros::dec;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
 pub use self::convert::convert;
 pub use self::error::ValueError;
+pub use self::function::Function;
 pub use self::number::Number;
 use self::ser::Serializer;
 
@@ -28,6 +31,7 @@ pub enum Value {
     Number(Number),
     List(List),
     Object(Object),
+    Function(Function),
 }
 
 impl Default for Value {
@@ -68,6 +72,9 @@ impl Debug for Value {
                 formatter.write_str("Object ")?;
                 formatter.debug_map().entries(object).finish()
             }
+            Value::Function(function) => {
+                write!(formatter, "Function({:?})", function)
+            }
         }
     }
 }
@@ -95,6 +102,7 @@ impl Display for Value {
                     .join(", ");
                 write!(f, "{{{}}}", entries)
             }
+            Value::Function(function) => write!(f, "{}", function),
         }
     }
 }
@@ -112,19 +120,16 @@ pub fn value_get_in<'a>(value: &'a Value, keys: &[&str]) -> Option<&'a Value> {
     }
 }
 
-impl Value {
-    pub fn is_truthy(&self) -> bool {
-        match self {
+impl From<Value> for bool {
+    fn from(value: Value) -> Self {
+        match value {
             Value::Null => false,
-            Value::Boolean(boolean) => *boolean,
+            Value::Boolean(boolean) => boolean,
             Value::String(string) => string.len() > 0,
-            Value::Number(number) => match number {
-                Number::Unsigned(u) => u != &0_u64,
-                Number::Signed(s) => s != &0_i64,
-                Number::Float(f) => f != &0_f64,
-            },
+            Value::Number(number) => number.ne(&dec!(0).into()),
             Value::List(list) => list.len() > 0,
             Value::Object(object) => object.len() > 0,
+            Value::Function(_) => true,
         }
     }
 }
@@ -133,8 +138,9 @@ impl Value {
 mod test {
     use std::{borrow::Cow, ffi::OsString, path::PathBuf};
 
-    use crate::{Number, Value};
+    use crate::Value;
     use pretty_assertions::assert_eq;
+    use rust_decimal_macros::dec;
 
     #[test]
     fn from_string_tests() {
@@ -196,17 +202,7 @@ mod test {
         );
 
         assert_eq!(
-            format!("{:?}", Value::Number(Number::Unsigned(2))),
-            "Number(2)".to_string()
-        );
-
-        assert_eq!(
-            format!("{:?}", Value::Number(Number::Signed(2))),
-            "Number(2)".to_string()
-        );
-
-        assert_eq!(
-            format!("{:?}", Value::Number(Number::Float(2.0))),
+            format!("{:?}", Value::Number(dec!(2).into())),
             "Number(2)".to_string()
         );
     }

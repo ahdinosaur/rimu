@@ -1,7 +1,7 @@
 use serde::Deserialize;
 
 use super::Block;
-use crate::{Context, Engine, RenderError, Template, Value};
+use crate::{Engine, Environment, RenderError, Template, Value};
 
 #[derive(Clone, Debug, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -13,10 +13,10 @@ pub struct LetBlock {
 }
 
 impl Block for LetBlock {
-    fn render(&self, engine: &Engine, context: &Context) -> Result<Value, RenderError> {
+    fn render(&self, engine: &Engine, context: &Environment) -> Result<Value, RenderError> {
         let variables = engine.render(&self.variables, context)?;
 
-        let context = Context::from_value(&variables, Some(context))?;
+        let context = Environment::from_value(&variables, Some(context))?;
 
         engine.render(&self.body, &context)
     }
@@ -27,10 +27,11 @@ mod tests {
     use std::error::Error;
 
     use super::*;
-    use crate::{Number, Value};
+    use crate::Value;
 
     use map_macro::btree_map;
     use pretty_assertions::assert_eq;
+    use rust_decimal_macros::dec;
 
     #[test]
     fn let_() -> Result<(), Box<dyn Error>> {
@@ -47,14 +48,14 @@ zero:
         let template: Template = serde_yaml::from_str(content)?;
 
         let engine = Engine::default();
-        let mut context = Context::new();
-        context.insert("ten", Value::Number(Number::Signed(10)));
+        let mut context = Environment::new();
+        context.insert("ten", Value::Number(dec!(10).into()));
 
         let actual: Value = engine.render(&template, &context)?;
 
         let expected: Value = Value::Object(btree_map! {
             "zero".into() => Value::Object(btree_map! {
-                "three".into() => Value::Number(Number::Signed(12))
+                "three".into() => Value::Number(dec!(12).into())
             })
         });
 

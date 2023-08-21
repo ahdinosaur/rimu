@@ -1,7 +1,7 @@
 use serde::Deserialize;
 
 use super::Block;
-use crate::{Context, Engine, RenderError, Value};
+use crate::{Engine, Environment, RenderError, Value};
 
 #[derive(Clone, Debug, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -11,7 +11,7 @@ pub struct EvalBlock {
 }
 
 impl Block for EvalBlock {
-    fn render(&self, engine: &Engine, context: &Context) -> Result<Value, RenderError> {
+    fn render(&self, engine: &Engine, context: &Environment) -> Result<Value, RenderError> {
         engine.evaluate(&self.expr, context)
     }
 }
@@ -21,10 +21,11 @@ mod tests {
     use std::error::Error;
 
     use super::*;
-    use crate::{Number, Template, Value};
+    use crate::{Template, Value};
 
     use map_macro::btree_map;
     use pretty_assertions::assert_eq;
+    use rust_decimal_macros::dec;
 
     #[test]
     fn eval() -> Result<(), Box<dyn Error>> {
@@ -37,13 +38,13 @@ three:
         let template: Template = serde_yaml::from_str(content)?;
 
         let engine = Engine::default();
-        let mut context = Context::new();
-        context.insert("one", Value::Number(Number::Signed(98)));
+        let mut context = Environment::new();
+        context.insert("one", Value::Number(dec!(98).into()));
 
         let actual: Value = engine.render(&template, &context)?;
 
         let expected: Value = Value::Object(btree_map! {
-            "zero".into() => Value::Number(100.into()),
+            "zero".into() => Value::Number(dec!(100).into()),
             "three".into() => Value::Object(btree_map! {
                 "four".into() => Value::String("five".into())
             })

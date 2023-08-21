@@ -90,12 +90,13 @@ pub fn lexer_parser() -> impl Lexer<Vec<SpannedToken>> {
         just(">=").to(Token::GreaterEqual),
         just('<').to(Token::Less),
         just("<=").to(Token::LessEqual),
-        just("and").to(Token::And),
-        just("or").to(Token::Or),
-        just("xor").to(Token::Xor),
-        just("not").to(Token::Not),
-        just("div").to(Token::Div),
-        just("mod").to(Token::Mod),
+        just("==").to(Token::Equal),
+        just("!=").to(Token::NotEqual),
+        just("&&").to(Token::And),
+        just("||").to(Token::Or),
+        just("^").to(Token::Xor),
+        just("!").to(Token::Not),
+        just("%").to(Token::Rem),
     ))
     .labelled("operator");
 
@@ -106,7 +107,11 @@ pub fn lexer_parser() -> impl Lexer<Vec<SpannedToken>> {
     ))
     .recover_with(skip_then_retry_until([]));
 
-    token.map_with_span(Spanned::new).padded().repeated()
+    token
+        .map_with_span(Spanned::new)
+        .padded()
+        .repeated()
+        .then_ignore(end())
 }
 
 #[cfg(test)]
@@ -264,9 +269,7 @@ mod tests {
     fn err_unknown_token_1() {
         let actual = test("$");
 
-        let expected = Ok(vec![]);
-
-        assert_eq!(actual, expected);
+        assert!(actual.is_err());
     }
 
     #[test]

@@ -1,17 +1,15 @@
 [package]
-name = "rimu-value"
+name = "rimu-env"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ryu = "1.0.15"
-serde = "1.0.181"
+lazy_static = "1.4.0"
+regex = "1.9.1"
+rimu-value = { path = "../rimu-value" }
 thiserror = "1.0.44"
-rimu-expr = { path = "../rimu-expr" }
-rust_decimal = { version = "1.31.0", features = ["serde-with-float"] }
-rust_decimal_macros = "1.31.0"
 
 [dev-dependencies]
 pretty_assertions = "1.4.0"

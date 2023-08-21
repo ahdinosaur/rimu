@@ -48,7 +48,7 @@ Template:
 message: hello {{key}}
 ```
 
-Context:
+Environment:
 
 ```yaml
 key: world
@@ -76,7 +76,7 @@ Template:
 - $eval: a + b
 ```
 
-Context:
+Environment:
 
 ```yaml
 a: 1
@@ -107,7 +107,7 @@ foo:
     - $eval: bar * baz
 ```
 
-Context:
+Environment:
 
 ```yaml
 ten: 10
@@ -134,7 +134,7 @@ k1:
 k2: 3
 ```
 
-Context:
+Environment:
 
 ```yaml
 cond: true

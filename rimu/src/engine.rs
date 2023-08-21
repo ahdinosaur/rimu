@@ -1,25 +1,21 @@
-use rhai::Dynamic;
+use rimu_expr::{parse, SourceId};
 
-use crate::{Context, Object, RenderError, Template, Value};
+use crate::{evaluate, Environment, Object, RenderError, Template, Value};
 
-pub struct Engine {
-    rhai: rhai::Engine,
-}
+pub struct Engine {}
 
 impl Default for Engine {
     fn default() -> Self {
-        Self {
-            rhai: rhai::Engine::new(),
-        }
+        Self {}
     }
 }
 
 impl Engine {
-    pub fn new(rhai: rhai::Engine) -> Self {
-        Self { rhai }
+    pub fn new() -> Self {
+        Self {}
     }
 
-    pub fn render(&self, template: &Template, context: &Context) -> Result<Value, RenderError> {
+    pub fn render(&self, template: &Template, context: &Environment) -> Result<Value, RenderError> {
         match template {
             Template::Null => Ok(Value::Null),
             Template::Boolean(boolean) => Ok(Value::Boolean(boolean.clone())),
@@ -55,27 +51,18 @@ impl Engine {
         }
     }
 
-    pub(crate) fn evaluate(&self, expr: &str, context: &Context) -> Result<Value, RenderError> {
-        let mut rhai_scope = context.to_rhai_scope();
-
-        let result: Dynamic = self
-            .rhai
-            .eval_expression_with_scope(&mut rhai_scope, &expr)?;
-
-        let value: Value = match rhai::serde::from_dynamic(&result) {
-            Ok(value) => value,
-            Err(error) => {
-                panic!("Failed to convert dynamic to value: {}", error);
-            }
+    pub(crate) fn evaluate(&self, expr: &str, env: &Environment) -> Result<Value, RenderError> {
+        let (expr, _errors) = parse(expr, SourceId::empty());
+        let Some(expr) = expr else {
+            todo!()
         };
-
-        Ok(value)
+        Ok(evaluate(&expr, env)?)
     }
 
     pub(crate) fn interpolate(
         &self,
         mut source: &str,
-        context: &Context,
+        context: &Environment,
     ) -> Result<String, RenderError> {
         // shortcut the common no-interpolation case
         if source.find('$') == None {
@@ -103,7 +90,7 @@ impl Engine {
                 let var_path: Vec<&str> = var_str.split(".").collect();
 
                 let Some(value) = context.get_in(var_path) else {
-                    return Err(RenderError::MissingContext {
+                    return Err(RenderError::MissingEnvironment {
                         var: var_str.to_string(),
                     });
                 };
@@ -115,8 +102,8 @@ impl Engine {
                     Value::Boolean(true) => result.push_str("true"),
                     Value::Boolean(false) => result.push_str("false"),
                     Value::String(s) => result.push_str(&s),
-                    Value::List(_) | Value::Object(_) => {
-                        return Err(RenderError::ListOrObjectInterpolation {
+                    Value::List(_) | Value::Object(_) | Value::Function(_) => {
+                        return Err(RenderError::InvalidValueInterpolation {
                             var: var_str.to_string(),
                             value: value.clone(),
                         });
@@ -155,7 +142,7 @@ mod tests {
     fn test_interpolate() -> Result<(), RenderError> {
         let content = "one ${ two } three ${ four.five }";
 
-        let mut context = Context::new();
+        let mut context = Environment::new();
         context.insert("two", Value::String("2".into()));
         context.insert(
             "four",

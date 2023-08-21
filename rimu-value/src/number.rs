@@ -1,133 +1,46 @@
+use rust_decimal::{
+    prelude::{FromPrimitive, ToPrimitive},
+    serde::float::{deserialize, serialize},
+    Decimal,
+};
 use serde::{
     de::{Unexpected, Visitor},
     forward_to_deserialize_any, Deserialize, Deserializer, Serialize,
 };
+use std::ops::{Add, Deref, Div, Mul, Neg, Rem, Sub};
 use std::{
-    cmp::Ordering,
-    fmt::{self, Debug, Display},
+    fmt::{Debug, Display},
     hash::{Hash, Hasher},
 };
 
 use crate::ValueError;
 
 #[derive(Clone, Copy)]
-pub enum Number {
-    Unsigned(u64),
-    Signed(i64),
-    Float(f64),
-}
+pub struct Number(Decimal);
 
 impl Debug for Number {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(formatter, "Number({})", self)
+        Debug::fmt(&self.0, formatter)
     }
 }
 
 impl Display for Number {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Number::Unsigned(number) => Display::fmt(&number, formatter),
-            Number::Signed(number) => Display::fmt(&number, formatter),
-            Number::Float(number) => Display::fmt(&number, formatter),
-        }
+        Display::fmt(&self.0, formatter)
     }
 }
 
-impl Number {
-    fn total_cmp(&self, other: &Self) -> Ordering {
-        match (*self, *other) {
-            (Number::Unsigned(a), Number::Unsigned(b)) => a.cmp(&b),
-            (Number::Signed(a), Number::Signed(b)) => a.cmp(&b),
-            (Number::Unsigned(a), Number::Signed(b)) => (a as i64).cmp(&b),
-            (Number::Signed(a), Number::Unsigned(b)) => a.cmp(&(b as i64)),
-            (Number::Float(a), Number::Float(b)) => {
-                // FIXME: change to total_cmp for Rust >= 1.62.0
-                a.partial_cmp(&b).unwrap_or_else(|| {
-                    // arbitrarily sort the NaN last
-                    if !a.is_nan() {
-                        Ordering::Less
-                    } else if !b.is_nan() {
-                        Ordering::Greater
-                    } else {
-                        Ordering::Equal
-                    }
-                })
-            }
-            (Number::Signed(a), Number::Float(b)) => {
-                // FIXME: change to total_cmp for Rust >= 1.62.0
-                (a as f64).partial_cmp(&b).unwrap_or_else(|| {
-                    // arbitrarily sort the NaN last
-                    if !(a as f64).is_nan() {
-                        Ordering::Less
-                    } else if !b.is_nan() {
-                        Ordering::Greater
-                    } else {
-                        Ordering::Equal
-                    }
-                })
-            }
-            (Number::Unsigned(a), Number::Float(b)) => {
-                // FIXME: change to total_cmp for Rust >= 1.62.0
-                (a as f64).partial_cmp(&b).unwrap_or_else(|| {
-                    // arbitrarily sort the NaN last
-                    if !(a as f64).is_nan() {
-                        Ordering::Less
-                    } else if !b.is_nan() {
-                        Ordering::Greater
-                    } else {
-                        Ordering::Equal
-                    }
-                })
-            }
-            (Number::Float(a), Number::Signed(b)) => {
-                // FIXME: change to total_cmp for Rust >= 1.62.0
-                a.partial_cmp(&(b as f64)).unwrap_or_else(|| {
-                    // arbitrarily sort the NaN last
-                    if !a.is_nan() {
-                        Ordering::Less
-                    } else if !(b as f64).is_nan() {
-                        Ordering::Greater
-                    } else {
-                        Ordering::Equal
-                    }
-                })
-            }
-            (Number::Float(a), Number::Unsigned(b)) => {
-                // FIXME: change to total_cmp for Rust >= 1.62.0
-                a.partial_cmp(&(b as f64)).unwrap_or_else(|| {
-                    // arbitrarily sort the NaN last
-                    if !a.is_nan() {
-                        Ordering::Less
-                    } else if !(b as f64).is_nan() {
-                        Ordering::Greater
-                    } else {
-                        Ordering::Equal
-                    }
-                })
-            }
-        }
+impl From<Decimal> for Number {
+    fn from(value: Decimal) -> Self {
+        Self(value)
     }
 }
 
-impl PartialEq for Number {
-    fn eq(&self, other: &Self) -> bool {
-        match (*self, *other) {
-            (Number::Unsigned(a), Number::Unsigned(b)) => a == b,
-            (Number::Signed(a), Number::Signed(b)) => a == b,
-            (Number::Float(a), Number::Float(b)) => a == b,
-            (Number::Unsigned(a), Number::Signed(b)) => (a as i64) == b,
-            (Number::Signed(a), Number::Unsigned(b)) => a == (b as i64),
-            (Number::Unsigned(a), Number::Float(b)) => (a as f64) == b,
-            (Number::Signed(a), Number::Float(b)) => (a as f64) == b,
-            (Number::Float(a), Number::Unsigned(b)) => a == (b as f64),
-            (Number::Float(a), Number::Signed(b)) => a == (b as f64),
-        }
-    }
-}
+impl Deref for Number {
+    type Target = Decimal;
 
-impl PartialOrd for Number {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.total_cmp(other))
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
@@ -136,13 +49,7 @@ impl Serialize for Number {
     where
         S: serde::Serializer,
     {
-        {
-            match self {
-                Number::Unsigned(u) => serializer.serialize_u64(*u),
-                Number::Signed(s) => serializer.serialize_i64(*s),
-                Number::Float(f) => serializer.serialize_f64(*f),
-            }
-        }
+        serialize(&self.0, serializer)
     }
 }
 
@@ -152,32 +59,7 @@ impl<'de> Deserialize<'de> for Number {
     where
         D: Deserializer<'de>,
     {
-        struct NumberVisitor;
-
-        impl<'de> Visitor<'de> for NumberVisitor {
-            type Value = Number;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("a number")
-            }
-
-            #[inline]
-            fn visit_i64<E>(self, value: i64) -> Result<Number, E> {
-                Ok(value.into())
-            }
-
-            #[inline]
-            fn visit_u64<E>(self, value: u64) -> Result<Number, E> {
-                Ok(value.into())
-            }
-
-            #[inline]
-            fn visit_f64<E>(self, value: f64) -> Result<Number, E> {
-                Ok(value.into())
-            }
-        }
-
-        deserializer.deserialize_any(NumberVisitor)
+        deserialize(deserializer).map(Number)
     }
 }
 
@@ -189,11 +71,10 @@ impl<'de> Deserializer<'de> for Number {
     where
         V: Visitor<'de>,
     {
-        match self {
-            Number::Unsigned(u) => visitor.visit_u64(u),
-            Number::Signed(s) => visitor.visit_i64(s),
-            Number::Float(f) => visitor.visit_f64(f),
-        }
+        let Some(f) = self.0.to_f64() else {
+            return Err(ValueError::NumberOutOfRange)
+        };
+        visitor.visit_f64(f)
     }
 
     forward_to_deserialize_any! {
@@ -211,11 +92,10 @@ impl<'de, 'a> Deserializer<'de> for &'a Number {
     where
         V: Visitor<'de>,
     {
-        match self {
-            Number::Unsigned(u) => visitor.visit_u64(*u),
-            Number::Signed(s) => visitor.visit_i64(*s),
-            Number::Float(f) => visitor.visit_f64(*f),
-        }
+        let Some(f) = self.0.to_f64() else {
+            return Err(ValueError::NumberOutOfRange)
+        };
+        visitor.visit_f64(f)
     }
 
     forward_to_deserialize_any! {
@@ -225,27 +105,14 @@ impl<'de, 'a> Deserializer<'de> for &'a Number {
     }
 }
 
-macro_rules! from_signed {
-    ($($signed_ty:ident)*) => {
+macro_rules! from_integer {
+    ($($ty:ident)*) => {
         $(
-            impl From<$signed_ty> for Number {
+            impl From<$ty> for Number {
                 #[inline]
                 #[allow(clippy::cast_sign_loss)]
-                fn from(s: $signed_ty) -> Self {
-                    Number::Signed(s as i64)
-                }
-            }
-        )*
-    };
-}
-
-macro_rules! from_unsigned {
-    ($($unsigned_ty:ident)*) => {
-        $(
-            impl From<$unsigned_ty> for Number {
-                #[inline]
-                fn from(u: $unsigned_ty) -> Self {
-                    Number::Unsigned(u as u64)
+                fn from(n: $ty) -> Self {
+                    Number(n.into())
                 }
             }
         )*
@@ -253,157 +120,102 @@ macro_rules! from_unsigned {
 }
 
 macro_rules! from_float {
-    ($($float_ty:ident)*) => {
+    ($($ty:ident)*) => {
         $(
-            impl From<$float_ty> for Number {
+            impl From<$ty> for Number {
                 #[inline]
-                fn from(f: $float_ty) -> Self {
-                    Number::Float(f as f64)
+                #[allow(clippy::cast_sign_loss)]
+                fn from(n: $ty) -> Self {
+                    // TODO what to do
+                    Number(Decimal::from_f64(n as f64).unwrap())
                 }
             }
         )*
+    };
+}
+
+from_integer!(i8 i16 i32 i64 isize);
+from_integer!(u8 u16 u32 u64 usize);
+from_float!(f32 f64);
+
+pub(crate) fn unexpected(_number: &Number) -> Unexpected {
+    Unexpected::Other("number")
+}
+
+impl PartialEq for Number {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.eq(&other.0)
     }
 }
 
-from_signed!(i8 i16 i32 i64 isize);
-from_unsigned!(u8 u16 u32 u64 usize);
-from_float!(f32 f64);
+impl Eq for Number {
+    fn assert_receiver_is_total_eq(&self) {
+        self.0.assert_receiver_is_total_eq()
+    }
+}
+
+impl PartialOrd for Number {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.0.partial_cmp(&other.0)
+    }
+}
+
+impl Ord for Number {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.0.cmp(&other.0)
+    }
+}
 
 impl Hash for Number {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        match self {
-            Number::Unsigned(u) => u.hash(state),
-            Number::Signed(s) => s.hash(state),
-            Number::Float(_f) => unimplemented!(),
-        }
+        Decimal::hash(&self.0, state)
     }
 }
 
-pub(crate) fn unexpected(number: &Number) -> Unexpected {
-    match number {
-        Number::Unsigned(u) => Unexpected::Unsigned(*u),
-        Number::Signed(s) => Unexpected::Signed(*s),
-        Number::Float(f) => Unexpected::Float(*f),
+impl Neg for Number {
+    type Output = Number;
+
+    fn neg(self) -> Self::Output {
+        self.0.neg().into()
     }
 }
 
-#[cfg(test)]
-mod test {
-    use crate::{Number, Value};
-    use pretty_assertions::assert_eq;
+impl Add for Number {
+    type Output = Number;
 
-    #[test]
-    fn number_compare_test() {
-        // unsigned
-        assert_eq!(
-            true,
-            Value::Number(Number::Unsigned(2)) == Value::Number(Number::Unsigned(2))
-        );
+    fn add(self, rhs: Self) -> Self::Output {
+        self.0.add(rhs.0).into()
+    }
+}
 
-        assert_eq!(
-            true,
-            Value::Number(Number::Unsigned(3)) > Value::Number(Number::Unsigned(2))
-        );
+impl Sub for Number {
+    type Output = Number;
 
-        assert_eq!(
-            true,
-            Value::Number(Number::Unsigned(2)) < Value::Number(Number::Unsigned(3))
-        );
+    fn sub(self, rhs: Self) -> Self::Output {
+        self.0.sub(rhs.0).into()
+    }
+}
 
-        // signed
-        assert_eq!(
-            true,
-            Value::Number(Number::Signed(2)) == Value::Number(Number::Signed(2))
-        );
+impl Mul for Number {
+    type Output = Number;
 
-        assert_eq!(
-            true,
-            Value::Number(Number::Signed(3)) > Value::Number(Number::Signed(2))
-        );
+    fn mul(self, rhs: Self) -> Self::Output {
+        self.0.mul(rhs.0).into()
+    }
+}
 
-        assert_eq!(
-            true,
-            Value::Number(Number::Signed(2)) < Value::Number(Number::Signed(3))
-        );
+impl Div for Number {
+    type Output = Number;
 
-        // float
-        assert_eq!(
-            true,
-            Value::Number(Number::Float(2.0)) == Value::Number(Number::Float(2.0))
-        );
+    fn div(self, rhs: Self) -> Self::Output {
+        self.0.div(rhs.0).into()
+    }
+}
 
-        assert_eq!(
-            true,
-            Value::Number(Number::Float(3.0)) > Value::Number(Number::Float(2.0))
-        );
+impl Rem for Number {
+    type Output = Number;
 
-        assert_eq!(
-            true,
-            Value::Number(Number::Float(2.0)) < Value::Number(Number::Float(3.0))
-        );
-
-        // unsigned with signed
-        assert_eq!(
-            true,
-            Value::Number(Number::Unsigned(2)) == Value::Number(Number::Signed(2))
-        );
-
-        assert_eq!(
-            true,
-            Value::Number(Number::Unsigned(3)) > Value::Number(Number::Signed(2))
-        );
-
-        assert_eq!(
-            true,
-            Value::Number(Number::Unsigned(2)) < Value::Number(Number::Signed(3))
-        );
-
-        // signed with unsigned
-        assert_eq!(
-            true,
-            Value::Number(Number::Signed(2)) == Value::Number(Number::Unsigned(2))
-        );
-
-        assert_eq!(
-            true,
-            Value::Number(Number::Signed(3)) > Value::Number(Number::Unsigned(2))
-        );
-
-        assert_eq!(
-            true,
-            Value::Number(Number::Signed(2)) < Value::Number(Number::Unsigned(3))
-        );
-
-        // signed with float
-        assert_eq!(
-            true,
-            Value::Number(Number::Signed(2)) == Value::Number(Number::Float(2.0))
-        );
-
-        assert_eq!(
-            true,
-            Value::Number(Number::Signed(3)) > Value::Number(Number::Float(2.0))
-        );
-
-        assert_eq!(
-            true,
-            Value::Number(Number::Signed(2)) < Value::Number(Number::Float(3.0))
-        );
-
-        // unsigned with float
-        assert_eq!(
-            true,
-            Value::Number(Number::Unsigned(2)) == Value::Number(Number::Float(2.0))
-        );
-
-        assert_eq!(
-            true,
-            Value::Number(Number::Unsigned(3)) > Value::Number(Number::Float(2.0))
-        );
-
-        assert_eq!(
-            true,
-            Value::Number(Number::Unsigned(2)) < Value::Number(Number::Float(3.0))
-        );
+    fn rem(self, rhs: Self) -> Self::Output {
+        self.0.rem(rhs.0).into()
     }
 }

@@ -1,7 +1,7 @@
 use serde::Deserialize;
 
 use super::Block;
-use crate::{Context, Engine, RenderError, Template, Value};
+use crate::{Engine, Environment, RenderError, Template, Value};
 
 #[derive(Clone, Debug, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -15,7 +15,7 @@ pub struct IfBlock {
 }
 
 impl Block for IfBlock {
-    fn render(&self, engine: &Engine, context: &Context) -> Result<Value, RenderError> {
+    fn render(&self, engine: &Engine, context: &Environment) -> Result<Value, RenderError> {
         let condition = engine.render(&self.condition, context)?;
 
         let value: Value = if let Value::String(condition) = condition {
@@ -24,7 +24,7 @@ impl Block for IfBlock {
             condition
         };
 
-        if value.is_truthy() {
+        if Into::<bool>::into(value) {
             if let Some(consequent) = &self.consequent {
                 engine.render(consequent, context)
             } else {
@@ -45,10 +45,11 @@ mod tests {
     use std::error::Error;
 
     use super::*;
-    use crate::{Number, Value};
+    use crate::Value;
 
     use map_macro::btree_map;
     use pretty_assertions::assert_eq;
+    use rust_decimal_macros::dec;
 
     #[test]
     fn if_() -> Result<(), Box<dyn Error>> {
@@ -63,14 +64,14 @@ zero:
         let template: Template = serde_yaml::from_str(content)?;
 
         let engine = Engine::default();
-        let mut context = Context::new();
-        context.insert("five", Value::Number(Number::Signed(5)));
-        context.insert("ten", Value::Number(Number::Signed(10)));
+        let mut context = Environment::new();
+        context.insert("five", Value::Number(dec!(5).into()));
+        context.insert("ten", Value::Number(dec!(10).into()));
 
         let actual: Value = engine.render(&template, &context)?;
 
         let expected: Value = Value::Object(btree_map! {
-            "zero".into() => Value::Number(Number::Signed(5))
+            "zero".into() => Value::Number(dec!(5).into())
         });
 
         assert_eq!(expected, actual);

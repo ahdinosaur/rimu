@@ -4,4 +4,7 @@ members = [
     "rimu-report",
     "rimu-expr",
     "rimu-value",
+    "rimu-env",
+    "rimu-eval",
+    "rimu-repl",
 ]
