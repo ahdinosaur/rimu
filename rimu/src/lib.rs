@@ -6,7 +6,7 @@ mod template;
 pub use engine::Engine;
 pub use error::{ParseError, RenderError};
 pub use rimu_env::{Environment, EnvironmentError};
-pub use rimu_eval::Evaluator;
+pub use rimu_eval::evaluate;
 pub use rimu_expr::parse;
 pub use rimu_value::{convert, from_value, List, Number, Object, Value, ValueError};
 pub use template::Template;

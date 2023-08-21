@@ -1,6 +1,6 @@
 use rimu_expr::{parse, SourceId};
 
-use crate::{Environment, Evaluator, Object, RenderError, Template, Value};
+use crate::{evaluate, Environment, Object, RenderError, Template, Value};
 
 pub struct Engine {}
 
@@ -56,7 +56,7 @@ impl Engine {
         let Some(expr) = expr else {
             todo!()
         };
-        Ok(Evaluator::evaluate(&expr, env)?)
+        Ok(evaluate(&expr, env)?)
     }
 
     pub(crate) fn interpolate(

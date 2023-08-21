@@ -28,6 +28,13 @@ pub enum EvalError {
     RangeStartGreaterThanOrEqualToEnd { start: usize, end: usize },
 }
 
+pub fn evaluate<'a>(
+    expression: &SpannedExpression,
+    env: &'a Environment<'a>,
+) -> Result<Value, EvalError> {
+    Evaluator::new(env).expression(expression)
+}
+
 /// A tree walking interpreter which given an [`Environment`] and an [`Expression`]
 /// recursivly walks the tree and computes a single [`Value`].
 pub struct Evaluator<'a> {
@@ -35,18 +42,11 @@ pub struct Evaluator<'a> {
 }
 
 impl<'a> Evaluator<'a> {
-    pub fn new(env: &'a Environment) -> Self {
+    fn new(env: &'a Environment) -> Self {
         Self { env }
     }
 
-    pub fn evaluate(
-        expression: &SpannedExpression,
-        env: &'a Environment<'a>,
-    ) -> Result<Value, EvalError> {
-        Self::new(env).expression(expression)
-    }
-
-    pub fn expression(&self, expr: &SpannedExpression) -> Result<Value, EvalError> {
+    fn expression(&self, expr: &SpannedExpression) -> Result<Value, EvalError> {
         let _span = expr.span();
         let value = match expr.inner() {
             Expression::Null => Value::Null,
@@ -99,7 +99,7 @@ impl<'a> Evaluator<'a> {
         Ok(value)
     }
 
-    pub fn unary(
+    fn unary(
         &self,
         right: &SpannedExpression,
         operator: &UnaryOperator,
@@ -121,7 +121,7 @@ impl<'a> Evaluator<'a> {
         Ok(value)
     }
 
-    pub fn binary(
+    fn binary(
         &self,
         left: &SpannedExpression,
         operator: &BinaryOperator,
@@ -318,7 +318,7 @@ impl<'a> Evaluator<'a> {
             function_env.insert(arg_name, arg_value);
         }
 
-        Evaluator::evaluate(&function.body, &function_env)
+        evaluate(&function.body, &function_env)
     }
 
     fn get_index(
@@ -505,7 +505,7 @@ mod tests {
     use rimu_value::{Function, Value};
     use rust_decimal_macros::dec;
 
-    use super::{EvalError, Evaluator};
+    use super::{evaluate, EvalError};
 
     fn span(range: Range<usize>) -> Span {
         Span::new(SourceId::empty(), range.start, range.end)
@@ -522,7 +522,7 @@ mod tests {
             }
         }
 
-        Evaluator::evaluate(&expr, &env)
+        evaluate(&expr, &env)
     }
 
     fn test_code(

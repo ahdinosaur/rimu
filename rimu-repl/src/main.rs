@@ -3,7 +3,7 @@ use rimu_report::SourceId;
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result};
 
-use rimu_eval::Evaluator;
+use rimu_eval::evaluate;
 use rimu_expr::parse;
 
 fn main() -> Result<()> {
@@ -30,7 +30,7 @@ fn main() -> Result<()> {
                         continue;
                     };
                 println!("Expression: {}", expr);
-                match Evaluator::evaluate(&expr, &env) {
+                match evaluate(&expr, &env) {
                     Ok(value) => println!("Value: {}", value),
                     Err(error) => println!("Eval error: {}", error),
                 }
