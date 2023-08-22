@@ -25,6 +25,13 @@ pub enum Expression {
     /// Literal key-value object.
     Object(Vec<(Spanned<String>, SpannedExpression)>),
 
+    /// Literal function.
+    Function {
+        name: Spanned<String>,
+        args: Vec<Spanned<String>>,
+        body: Box<SpannedExpression>,
+    },
+
     /// A named local variable.
     Identifier(String),
 
@@ -34,14 +41,14 @@ pub enum Expression {
         operator: UnaryOperator,
     },
 
-    /// An operation on two [`Expression`] operands with a an [`Operator`].
+    /// An operation on two [`Expression`] operands with an [`Operator`].
     Binary {
         left: Box<SpannedExpression>,
         right: Box<SpannedExpression>,
         operator: BinaryOperator,
     },
 
-    /// A function invocation with a list of [`Expression`] parameters.
+    /// A function invocation with a list of [`Expression`] argument.
     Call {
         function: Box<SpannedExpression>,
         args: Vec<SpannedExpression>,
@@ -66,6 +73,12 @@ pub enum Expression {
         end: Option<Box<SpannedExpression>>,
     },
 
+    /// A let expression.
+    Let {
+        entries: Vec<(Spanned<String>, SpannedExpression)>,
+        body: Box<SpannedExpression>,
+    },
+
     Error,
 }
 
@@ -86,13 +99,22 @@ impl fmt::Display for Expression {
                     .join(", ");
                 write!(f, "[{}]", keys)
             }
-            Expression::Object(object) => {
-                let entries = object
+            Expression::Object(entries) => {
+                let entries = entries
                     .iter()
                     .map(|(key, value)| format!("\"{}\": {}", key, value.to_string()))
                     .collect::<Vec<String>>()
                     .join(", ");
                 write!(f, "{{{}}}", entries)
+            }
+            Expression::Function { name, args, body } => {
+                let args = args
+                    .iter()
+                    .map(ToString::to_string)
+                    .collect::<Vec<String>>()
+                    .join(", ");
+
+                write!(f, "fn {} ({}) {{ {} }}", name, args, body)
             }
             Expression::Identifier(identifier) => write!(f, "{}", identifier),
             Expression::Unary { right, operator } => write!(f, "{}{}", operator, right),
@@ -122,6 +144,14 @@ impl fmt::Display for Expression {
                 start.as_ref().map(|s| s.to_string()).unwrap_or("".into()),
                 end.as_ref().map(|e| e.to_string()).unwrap_or("".into()),
             ),
+            Expression::Let { entries, body } => {
+                let entries = entries
+                    .iter()
+                    .map(|(key, value)| format!("\"{}\": {}", key, value.to_string()))
+                    .collect::<Vec<String>>()
+                    .join(", ");
+                write!(f, "let ({}) {{ {body} }}", entries)
+            }
             Expression::Error => write!(f, "error"),
         }
     }

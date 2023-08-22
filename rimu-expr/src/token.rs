@@ -70,6 +70,11 @@ pub enum Token {
     Not,
     /// %
     Rem,
+
+    /// fn
+    Fn,
+    /// Let
+    Let,
 }
 
 impl fmt::Display for Token {
@@ -108,6 +113,8 @@ impl fmt::Display for Token {
             Token::Xor => write!(f, "^"),
             Token::Not => write!(f, "!"),
             Token::Rem => write!(f, "%"),
+            Token::Fn => write!(f, "fn"),
+            Token::Let => write!(f, "let"),
         }
     }
 }
