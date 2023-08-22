@@ -33,7 +33,7 @@ fn main() -> Result<()> {
                 println!("Expression: {}", expr);
                 match evaluate(&expr, &env) {
                     Ok(value) => println!("Value: {}", value),
-                    Err(error) => println!("Eval error: {}", error),
+                    Err(error) => error.display(line.as_str(), SourceId::repl()),
                 }
             }
             Err(ReadlineError::Interrupted) => {
