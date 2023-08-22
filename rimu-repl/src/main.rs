@@ -5,6 +5,7 @@ use rustyline::{DefaultEditor, Result};
 
 use rimu_eval::evaluate;
 use rimu_expr::parse;
+use rimu_report::ReportError;
 
 fn main() -> Result<()> {
     // `()` can be used when no completer is required
@@ -21,7 +22,7 @@ fn main() -> Result<()> {
                 let (expr, errors) = parse(line.as_str(), SourceId::repl());
                 if errors.len() > 0 {
                     for error in errors {
-                        println!("Parse error: {:?}", error);
+                        error.display(line.as_str(), SourceId::repl());
                     }
                     continue;
                 }
@@ -29,10 +30,10 @@ fn main() -> Result<()> {
                         println!("No expression.");
                         continue;
                     };
-                println!("Expression: {}", expr);
+                // println!("Expression: {}", expr);
                 match evaluate(&expr, &env) {
-                    Ok(value) => println!("Value: {}", value),
-                    Err(error) => println!("Eval error: {}", error),
+                    Ok(value) => println!("{}", value),
+                    Err(error) => error.display(line.as_str(), SourceId::repl()),
                 }
             }
             Err(ReadlineError::Interrupted) => {

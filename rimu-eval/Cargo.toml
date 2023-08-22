@@ -13,6 +13,7 @@ rimu-env = { path = "../rimu-env" }
 rust_decimal = "1.31.0"
 rust_decimal_macros = "1.31.0"
 thiserror = "1.0.44"
+ariadne = "0.3.0"
 
 [dev-dependencies]
 map-macro = "0.2.6"

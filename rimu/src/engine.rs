@@ -1,4 +1,5 @@
-use rimu_expr::{parse, SourceId};
+use rimu_expr::parse;
+use rimu_report::SourceId;
 
 use crate::{evaluate, Environment, Object, RenderError, Template, Value};
 

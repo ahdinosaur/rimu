@@ -28,24 +28,31 @@ impl<'a> Environment<'a> {
         value: &'_ Value,
         parent: Option<&'a Environment>,
     ) -> Result<Environment<'a>, EnvironmentError> {
+        if let Value::Object(object) = value {
+            Self::from_object(object, parent)
+        } else {
+            Err(EnvironmentError::InvalidEnvironmentValue {
+                value: value.clone(),
+            })
+        }
+    }
+
+    pub fn from_object(
+        object: &'_ Object,
+        parent: Option<&'a Environment>,
+    ) -> Result<Environment<'a>, EnvironmentError> {
         let mut context = Environment {
             content: BTreeMap::new(),
             parent,
         };
 
-        if let Value::Object(object) = value {
-            for key in object.keys() {
-                if !is_identifier(key) {
-                    return Err(EnvironmentError::InvalidKey { key: key.clone() });
-                }
+        for key in object.keys() {
+            if !is_identifier(key) {
+                return Err(EnvironmentError::InvalidKey { key: key.clone() });
             }
-            for (key, value) in object.iter() {
-                context.insert(key, value.clone());
-            }
-        } else {
-            return Err(EnvironmentError::InvalidEnvironmentValue {
-                value: value.clone(),
-            });
+        }
+        for (key, value) in object.iter() {
+            context.insert(key, value.clone());
         }
 
         Ok(context)

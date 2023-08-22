@@ -9,7 +9,7 @@ mod operator;
 mod token;
 
 use chumsky::Parser;
-pub use rimu_report::{SourceId, Span, Spanned};
+use rimu_report::{SourceId, Span, Spanned};
 
 pub use self::compiler::{compile, compiler_parser, CompilerError};
 pub use self::error::Error;
