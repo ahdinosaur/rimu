@@ -333,7 +333,7 @@ impl<'a> Evaluator<'a> {
 
     fn get_index(
         &self,
-        span: Span,
+        _span: Span,
         container: &SpannedExpression,
         index: &SpannedExpression,
     ) -> Result<Value, EvalError> {
@@ -355,9 +355,10 @@ impl<'a> Evaluator<'a> {
                 .get(&key)
                 .map(Clone::clone)
                 .ok_or_else(|| EvalError::KeyNotFound {
-                    span,
-                    key: key.clone(),
+                    object_span: container_span,
                     object: object.clone(),
+                    key_span: index_span,
+                    key: key.clone(),
                 }),
             (Value::Object(_list), _) => {
                 return Err(EvalError::TypeError {
@@ -376,7 +377,7 @@ impl<'a> Evaluator<'a> {
 
     fn get_key(
         &self,
-        span: Span,
+        _span: Span,
         container: &SpannedExpression,
         key: &Spanned<String>,
     ) -> Result<Value, EvalError> {
@@ -393,9 +394,10 @@ impl<'a> Evaluator<'a> {
         object
             .get(key.inner())
             .ok_or_else(|| EvalError::KeyNotFound {
-                span,
-                key: key.clone().into_inner(),
+                object_span: container_span,
                 object: object.clone(),
+                key: key.clone().into_inner(),
+                key_span: key.span(),
             })
             .map(Clone::clone)
     }
@@ -517,7 +519,8 @@ fn get_index(
     };
     if is_under || is_over {
         return Err(EvalError::IndexOutOfBounds {
-            span: container_span,
+            container_span,
+            index_span: value_span,
             index,
             length,
         });

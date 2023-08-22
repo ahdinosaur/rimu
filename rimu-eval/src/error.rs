@@ -24,14 +24,16 @@ pub enum EvalError {
     },
     #[error("index out of bounds, index: {index}, length: {length}")]
     IndexOutOfBounds {
-        span: Span,
+        container_span: Span,
+        index_span: Span,
         index: isize,
         length: usize,
     },
     #[error("key error, key: {key}, object: {object:?}")]
     KeyNotFound {
-        span: Span,
+        key_span: Span,
         key: String,
+        object_span: Span,
         object: Object,
     },
     #[error("range start >= end, start: {start}, end: {end}")]
@@ -48,24 +50,24 @@ impl ReportError for EvalError {
     fn display<'a>(&self, source: &'a str, source_id: rimu_report::SourceId) {
         let (msg, spans, notes): (&str, Vec<(Span, String, Color)>, Vec<String>) = match self {
             EvalError::Environment { span, source } => (
-                "EvalError",
+                "Eval: Environment error",
                 vec![(span.clone(), format!("{}", source), Color::Cyan)],
                 vec![],
             ),
             EvalError::MissingVariable { span, var } => (
-                "EvalError",
+                "Eval: Missing variable",
                 vec![(
                     span.clone(),
-                    format!("Missing variable: {}", var),
+                    format!("Not in environment: {}", var),
                     Color::Cyan,
                 )],
                 vec![],
             ),
             EvalError::CallNonFunction { span, expr } => (
-                "EvalError",
+                "Eval: Tried to call non-function",
                 vec![(
                     span.clone(),
-                    format!("Tried to call non-function: {}", expr),
+                    format!("Not a function: {}", expr),
                     Color::Cyan,
                 )],
                 vec![],
@@ -75,52 +77,56 @@ impl ReportError for EvalError {
                 expected,
                 got,
             } => (
-                "EvalError",
+                "Eval: Unexpected type",
                 vec![(
                     span.clone(),
-                    format!("Type error, expected: {}, got: {}", expected, got),
+                    format!("Expected: {}, got: {}", expected, got),
                     Color::Cyan,
                 )],
                 vec![],
             ),
             EvalError::IndexOutOfBounds {
-                span,
+                container_span,
                 index,
+                index_span,
                 length,
             } => (
-                "EvalError",
-                vec![(
-                    span.clone(),
-                    format!("Index out of bounds, index: {}, length: {}", index, length),
-                    Color::Cyan,
-                )],
+                "Eval: Index out of bounds",
+                vec![
+                    (
+                        container_span.clone(),
+                        format!("Length: {}", length),
+                        Color::Cyan,
+                    ),
+                    (index_span.clone(), format!("Index: {}", index), Color::Cyan),
+                ],
                 vec![],
             ),
-            EvalError::KeyNotFound { span, key, object } => (
-                "EvalError",
-                vec![(
-                    span.clone(),
-                    format!(
-                        "Key not found, key: {}, object: {}",
-                        key,
-                        Value::Object(object.clone())
+            EvalError::KeyNotFound {
+                key_span,
+                key,
+                object_span,
+                object,
+            } => (
+                "Eval: Key not found",
+                vec![
+                    (
+                        object_span.clone(),
+                        format!("Object: {}", Value::Object(object.clone())),
+                        Color::Cyan,
                     ),
-                    Color::Cyan,
-                )],
+                    (key_span.clone(), format!("Key: {}", key), Color::Cyan),
+                ],
                 vec![],
             ),
             EvalError::RangeStartGreaterThanOrEqualToEnd { span, start, end } => (
-                "EvalError",
-                vec![(
-                    span.clone(),
-                    format!("Range start >= end, start: {}, end: {}", start, end),
-                    Color::Cyan,
-                )],
+                "Eval: Range start >= end",
+                vec![(span.clone(), format!("{} >= {}", start, end), Color::Cyan)],
                 vec![],
             ),
             EvalError::ErrorExpression { span } => (
-                "EvalError",
-                vec![(span.clone(), format!("Expression error"), Color::Cyan)],
+                "Eval: Expression error",
+                vec![(span.clone(), format!("Error"), Color::Cyan)],
                 vec![],
             ),
         };
@@ -131,7 +137,7 @@ impl ReportError for EvalError {
                 .first()
                 .map(|s| s.0.source())
                 .unwrap_or(source_id.clone()),
-            spans.first().map(|s| s.0.start()).unwrap_or(0),
+            spans.first().map(|s| s.0.end()).unwrap_or(0),
         )
         .with_message(msg);
 

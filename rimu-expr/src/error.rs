@@ -16,7 +16,7 @@ impl ReportError for Error {
     fn display<'a>(&self, source: &'a str, source_id: SourceId) {
         let (msg, spans, notes) = match self {
             Error::Lexer(error) => (
-                "LexerError: Unexpected character",
+                "Lexer: Unexpected character",
                 vec![(error.span(), format!("{}", error), ariadne::Color::Blue)],
                 if let Some(e) = error.label() {
                     vec![format!("Label is `{}`", e)]
@@ -25,7 +25,7 @@ impl ReportError for Error {
                 },
             ),
             Error::Compiler(error) => (
-                "CompilerError: Unexpected token",
+                "Compiler: Unexpected token",
                 vec![(error.span(), format!("{}", error), ariadne::Color::Green)],
                 if let Some(e) = error.label() {
                     vec![format!("Label is `{}`", e)]

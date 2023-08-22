@@ -30,9 +30,9 @@ fn main() -> Result<()> {
                         println!("No expression.");
                         continue;
                     };
-                println!("Expression: {}", expr);
+                // println!("Expression: {}", expr);
                 match evaluate(&expr, &env) {
-                    Ok(value) => println!("Value: {}", value),
+                    Ok(value) => println!("{}", value),
                     Err(error) => error.display(line.as_str(), SourceId::repl()),
                 }
             }
