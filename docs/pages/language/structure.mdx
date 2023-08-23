@@ -1,0 +1,95 @@
+# Rimu structure
+
+Rimu is structured similar to [YAML](https://yaml.org/), with some important differences.
+
+## Collections
+
+### Objects
+
+```yaml
+mikey:
+  name: "Mikey"
+  website: "https://mikey.nz"
+```
+
+### Lists
+
+```yaml
+similar_projects:
+- JSON-e
+- Nickel
+- Jsonnet
+```
+
+### Keys
+
+Keys must either be
+
+### Lists
+
+## Scalars
+
+Unlike YAML, scalars are expressions.
+
+So this means Rimu is both more strict and more expressive:
+
+- Strings must be wrapped in quotes, otherwise is assumed to be an identifier.
+- No more implicit typing (aka the ["Norway Problem"](https://hitchdev.com/strictyaml/why/implicit-typing-removed/))
+
+Before we go into expressions in more detail, here are the basic scalars, as similar to YAML.
+
+### Null
+
+```yaml
+mikey: null
+```
+
+### Boolean
+
+```yaml
+nonsense: true
+```
+
+### Number
+
+```yaml
+bottles_of_beer_on_the_wall: 99
+```
+
+### String
+
+```yaml
+cat: "Charlie"
+```
+
+## Multi-line
+
+Rimu supports multi-line values with `>` and `>"`
+
+### `>`
+
+A multi-line expression.
+
+Identation is removed, newlines are removed.
+
+```yaml
+story: >
+  """Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+  tempor incididunt ut labore et dolore magna aliqua. Eleifend donec pretium
+  vulputate sapien nec sagittis aliquam malesuada."""
+```
+
+`"""` is the multi-line string character.
+
+### `>"`
+
+A multi-line string.
+
+Identation is removed. Newlines are preserved.
+
+```yaml
+story: >"
+  Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+  tempor incididunt ut labore et dolore magna aliqua. Eleifend donec pretium
+  vulputate sapien nec sagittis aliquam malesuada.
+```
