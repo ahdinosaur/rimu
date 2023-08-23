@@ -2,6 +2,7 @@ import { useRouter } from 'next/router'
 
 export default {
   logo: <span>Rimu</span>,
+  docsRepositoryBase: 'https://github.com/ahdinosaur/rimu/tree/main/docs',
   project: {
     link: 'https://github.com/ahdinosaur/rimu',
   },

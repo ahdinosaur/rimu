@@ -1,6 +1,9 @@
 {
-  "structure": "Structure",
+  "types": "Types",
+  "values": "Values",
   "expressions": "Expressions",
+  "structure": "Structure",
   "blocks": "Blocks",
-  "stdlib": "Standard Library"
+  "stdlib": "Standard Library",
+  "schemas": "Schemas"
 }
