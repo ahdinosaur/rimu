@@ -35,3 +35,50 @@ Rimu should be suitable for any situation where you want functional data or expr
 - Complex configurations: when your infrastructure-as-code ([Kubernetes](https://kubernetes.io/), [Terraform](https://www.terraform.io/), [NixOps](https://github.com/NixOS/nixops)), declarative package managers ([Nix](https://nixos.org/)), or build systems ([Bazel](https://bazel.build/)) are complex enough to need functional config generation.
 
 The "programmatic user data" case is the motivating use case for the [author](https://mikey.nz), so this may inform future developments.
+
+## Example
+
+Let's say we wanted to make a mini [Salt Stack](https://docs.saltproject.io/en/getstarted/), similar to [Comtrya](https://github.com/comtrya/comtrya).
+
+Here's a _contrived_ example,
+
+A user's template (input):
+
+```yaml
+$let:
+  pkgs:
+    - "zsh"
+    - "vim"
+in:
+  $map: pkgs
+  item: pkg
+  each:
+    $switch:
+      - case: os.name == "macos"
+        then:
+          $type: brew_install
+          pkg: pkg
+      - case: os.name == "linux" && os.distribution == "debian"
+        then:
+          $type: apt_install
+          pkg: pkg
+```
+
+With an environment (context):
+
+```yaml
+os:
+  name: "linux"
+  distribution: "debian"
+```
+
+Becomes the output:
+
+(Where this could be any output format: JSON, YAML, TOML, etc)
+
+```yaml
+- type: "apt_install"
+  pkg: "zsh"
+- type: "apt_install"
+  pkg: "vim"
+```

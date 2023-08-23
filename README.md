@@ -26,53 +26,47 @@ Learn more at [rimu.dev](https://rimu.dev)
 
 ## Example
 
+Let's say we wanted to make a mini [Salt Stack](https://docs.saltproject.io/en/getstarted/), similar to [Comtrya](https://github.com/comtrya/comtrya).
+
+Here's a _contrived_ example,
+
 The template:
 
 ```yaml
 $let:
-  users:
-    - name: "Alice"
-      animal: "zebra"
-      number: 15
-    - name: "Bob"
-      animal: "fish"
-      number: 5
-    - name: "Charlie"
-      animal: "cat"
-      number: 10
+  pkgs:
+    - "zsh"
+    - "vim"
 in:
-  $map: users
-  item: user
+  $map: pkgs
+  item: pkg
   each:
-    name: user.name
-    welcome: "Hi ${user.name}!"
-    capital: capitalize(animal),
-    double: 2 * number
+    $switch:
+      - case: os.name == "macos"
+        then:
+          $type: brew_install
+          pkg: pkg
+      - case: os.name == "linux" && os.distribution == "debian"
+        then:
+          $type: apt_install
+          pkg: pkg
 ```
 
-Becomes
+With an environment (context):
 
 ```yaml
-- name: "Alice"
-  welcome: "Hi Alice!"
-  capital: "Zebra"
-  double: 30
-- name: "Bob"
-  welcome: "Hi Bob!"
-  capital: "Fish"
-  double: 10
-- name: "Charlie"
-  welcome: "Hi Charlie!"
-  capital: "Cat"
-  double: 20
+os:
+  name: "linux"
+  distribution: "debian"
 ```
 
-## Install
+Becomes:
 
-Add `rimu` to your Cargo.toml
-
-```toml
-rimu = "*"
+```yaml
+- type: "apt_install"
+  pkg: "zsh"
+- type: "apt_install"
+  pkg: "vim"
 ```
 
 ## Usage
