@@ -7,12 +7,12 @@ use rimu_report::{ReportError, SourceId};
 use crate::{CompilerError, LexerError};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Error {
-    Lexer(LexerError),
-    Compiler(CompilerError),
+pub enum Error<'src> {
+    Lexer(LexerError<'src>),
+    Compiler(CompilerError<'src>),
 }
 
-impl ReportError for Error {
+impl<'src> ReportError for Error<'src> {
     fn display<'a>(&self, source: &'a str, source_id: SourceId) {
         let (msg, spans, notes) = match self {
             Error::Lexer(error) => (

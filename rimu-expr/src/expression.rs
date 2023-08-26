@@ -6,7 +6,7 @@ use crate::{BinaryOperator, Spanned, UnaryOperator};
 
 /// An expression represents an entity which can be evaluated to a value.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Expression {
+pub enum Expression<'src> {
     /// Literal null.
     Null,
 
@@ -14,64 +14,64 @@ pub enum Expression {
     Boolean(bool),
 
     /// Literal string.
-    String(String),
+    String(&'src str),
 
     /// Literal number.
     Number(Decimal),
 
     /// Literal list.
-    List(Vec<SpannedExpression>),
+    List(Vec<SpannedExpression<'src>>),
 
     /// Literal key-value object.
-    Object(Vec<(Spanned<String>, SpannedExpression)>),
+    Object(Vec<(Spanned<&'src str>, SpannedExpression<'src>)>),
 
     /// A named local variable.
-    Identifier(String),
+    Identifier(&'src str),
 
     /// An operation on a single [`Expression`] operand with an [`Operator`]
     Unary {
-        right: Box<SpannedExpression>,
+        right: Box<SpannedExpression<'src>>,
         operator: UnaryOperator,
     },
 
     /// An operation on two [`Expression`] operands with a an [`Operator`].
     Binary {
-        left: Box<SpannedExpression>,
-        right: Box<SpannedExpression>,
+        left: Box<SpannedExpression<'src>>,
+        right: Box<SpannedExpression<'src>>,
         operator: BinaryOperator,
     },
 
     /// A function invocation with a list of [`Expression`] parameters.
     Call {
-        function: Box<SpannedExpression>,
-        args: Vec<SpannedExpression>,
+        function: Box<SpannedExpression<'src>>,
+        args: Vec<SpannedExpression<'src>>,
     },
 
     /// Get index operation (`a[x]`).
     GetIndex {
-        container: Box<SpannedExpression>,
-        index: Box<SpannedExpression>,
+        container: Box<SpannedExpression<'src>>,
+        index: Box<SpannedExpression<'src>>,
     },
 
     /// Get key operation (`c.z`).
     GetKey {
-        container: Box<SpannedExpression>,
-        key: Spanned<String>,
+        container: Box<SpannedExpression<'src>>,
+        key: Spanned<&'src str>,
     },
 
     /// Slice operation (`b[x:y]`).
     GetSlice {
-        container: Box<SpannedExpression>,
-        start: Option<Box<SpannedExpression>>,
-        end: Option<Box<SpannedExpression>>,
+        container: Box<SpannedExpression<'src>>,
+        start: Option<Box<SpannedExpression<'src>>>,
+        end: Option<Box<SpannedExpression<'src>>>,
     },
 
     Error,
 }
 
-pub type SpannedExpression = Spanned<Expression>;
+pub type SpannedExpression<'src> = Spanned<Expression<'src>>;
 
-impl fmt::Display for Expression {
+impl<'src> fmt::Display for Expression<'src> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Expression::Null => write!(f, "null"),

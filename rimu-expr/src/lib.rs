@@ -8,7 +8,7 @@ mod lexer;
 mod operator;
 mod token;
 
-use chumsky::Parser;
+use chumsky::{input::Stream, Parser};
 use rimu_report::{SourceId, Span, Spanned};
 
 pub use self::compiler::{compile, compiler_parser, CompilerError};
@@ -25,10 +25,8 @@ pub fn parse(code: &str, source: SourceId) -> (Option<SpannedExpression>, Vec<Er
     let mut errors = Vec::new();
 
     let len = code.chars().count();
-    let eoi = Span::new(source.clone(), len, len);
 
-    let (tokens, lex_errors) = lexer.parse_recovery(chumsky::Stream::from_iter(
-        eoi.clone(),
+    let (tokens, lex_errors) = lexer.parse_recovery(Stream::from_iter(
         code.chars()
             .enumerate()
             .map(|(i, c)| (c, Span::new(source.clone(), i, i + 1))),
@@ -41,8 +39,7 @@ pub fn parse(code: &str, source: SourceId) -> (Option<SpannedExpression>, Vec<Er
         return (None, errors);
     };
 
-    let (output, compile_errors) =
-        compiler.parse_recovery(chumsky::Stream::from_iter(eoi.clone(), tokens));
+    let (output, compile_errors) = compiler.parse_recovery(Stream::from_iter(tokens));
     errors.append(&mut compile_errors.into_iter().map(Error::Compiler).collect());
 
     (output, errors)

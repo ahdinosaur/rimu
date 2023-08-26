@@ -6,18 +6,18 @@ use crate::Spanned;
 /// A [`Token`] is the smallest logical unit evaluated by the compiler.
 /// It containes either an operator or a literal value.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum Token {
+pub enum Token<'src> {
     Invalid(char),
 
     Null,
 
     Boolean(bool),
 
-    String(String),
+    String(&'src str),
 
     Number(Decimal),
 
-    Identifier(String),
+    Identifier(&'src str),
 
     /// (
     LeftParen,
@@ -72,7 +72,7 @@ pub enum Token {
     Rem,
 }
 
-impl fmt::Display for Token {
+impl<'src> fmt::Display for Token<'src> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Token::Invalid(c) => write!(f, "{:?}", c),
@@ -112,4 +112,4 @@ impl fmt::Display for Token {
     }
 }
 
-pub type SpannedToken = Spanned<Token>;
+pub type SpannedToken<'src> = Spanned<Token<'src>>;

@@ -4,29 +4,40 @@
 // - https://github.com/noir-lang/noir/blob/master/crates/noirc_frontend/src/lexer/lexer.rs
 // - https://github.com/DennisPrediger/SLAC/blob/main/src/scanner.rs
 
+use chumsky::input::{Stream, Input};
 use chumsky::prelude::*;
 use rust_decimal::Decimal;
 use std::str::FromStr;
 
 use crate::{SourceId, Span, Spanned, SpannedToken, Token};
 
-pub type LexerError = Simple<char, Span>;
+pub type LexerError<'src> = Rich<'src, char, Span>;
 
-pub trait Lexer<T>: Parser<char, T, Error = LexerError> + Sized + Clone {}
-impl<P, T> Lexer<T> for P where P: Parser<char, T, Error = LexerError> + Clone {}
+pub trait Lexer<'src, T>:
+    Parser<'src, &'src str, T, extra::Err<LexerError<'src>>> + Sized + Clone
+where
+    T: 'src,
+{
+}
+impl<'src, P, T> Lexer<'src, T> for P where
+    P: Parser<'src, &'src str, T, extra::Err<LexerError<'src>>> + Sized + Clone
+{
+}
+
+impl<'src> Input<'src> for &'src str {
+    fn
+}
 
 pub fn tokenize(code: &str, source: SourceId) -> Result<Vec<SpannedToken>, Vec<LexerError>> {
     let len = code.chars().count();
-    let eoi = Span::new(source.clone(), len, len);
-    lexer_parser().parse(chumsky::Stream::from_iter(
-        eoi,
+    lexer_parser().parse(Stream::from_iter(
         code.chars()
             .enumerate()
             .map(|(i, c)| (c, Span::new(source.clone(), i, i + 1))),
     ))
 }
 
-pub fn lexer_parser() -> impl Lexer<Vec<SpannedToken>> {
+pub fn lexer_parser<'src>() -> impl Lexer<'src, Vec<SpannedToken<'src>>> {
     let null = just("null").to(Token::Null).labelled("null");
 
     let boolean = choice((
@@ -58,7 +69,7 @@ pub fn lexer_parser() -> impl Lexer<Vec<SpannedToken>> {
         .labelled("escape");
 
     let string = just('"')
-        .ignore_then(filter(|c| *c != '\\' && *c != '"').or(escape).repeated())
+        .ignore_then(just("\\").or(just('"')).not().or(escape).repeated())
         .then_ignore(just('"'))
         .collect::<String>()
         .map(Token::String)
@@ -104,14 +115,14 @@ pub fn lexer_parser() -> impl Lexer<Vec<SpannedToken>> {
 
     let token = choice((
         null, boolean, number, string, delimiter, control, operator, identifier,
-    ))
-    .recover_with(skip_then_retry_until([]));
+    ));
 
     token
         .map_with_span(Spanned::new)
         .padded()
+        .recover_with(skip_then_retry_until(any().ignored(), end()))
         .repeated()
-        .then_ignore(end())
+        .collect()
 }
 
 #[cfg(test)]

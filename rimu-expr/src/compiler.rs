@@ -5,16 +5,25 @@
 // - https://github.com/noir-lang/noir/blob/master/crates/noirc_frontend/src/parser/parser.rs
 // - https://github.com/DennisPrediger/SLAC/blob/main/src/compiler.rs
 
+use chumsky::input::Stream;
 use chumsky::prelude::*;
 
 use crate::{
     BinaryOperator, Expression, SourceId, Span, Spanned, SpannedExpression, Token, UnaryOperator,
 };
 
-pub type CompilerError = Simple<Token, Span>;
+pub type CompilerError<'src> = Rich<'src, Token<'src>, Span>;
 
-pub trait Compiler<T>: Parser<Token, T, Error = CompilerError> + Sized + Clone {}
-impl<P, T> Compiler<T> for P where P: Parser<Token, T, Error = CompilerError> + Clone {}
+pub trait Compiler<'src, T>:
+    Parser<'src, &'src str, T, extra::Err<CompilerError<'src>>> + Sized + Clone
+where
+    T: 'src,
+{
+}
+impl<'src, P, T> Compiler<'src, T> for P where
+    P: Parser<'src, &'src str, T, extra::Err<CompilerError<'src>>> + Sized + Clone
+{
+}
 
 pub fn compile(
     tokens: Vec<Token>,
@@ -22,8 +31,7 @@ pub fn compile(
 ) -> Result<SpannedExpression, Vec<CompilerError>> {
     let len = tokens.len();
     let eoi = Span::new(source.clone(), len, len);
-    compiler_parser().parse(chumsky::Stream::from_iter(
-        eoi,
+    compiler_parser().parse(Stream::from_iter(
         tokens
             .into_iter()
             .enumerate()
@@ -31,7 +39,7 @@ pub fn compile(
     ))
 }
 
-pub fn compiler_parser() -> impl Compiler<SpannedExpression> {
+pub fn compiler_parser<'src>() -> impl Compiler<'src, SpannedExpression<'src>> {
     recursive(|expr| {
         // Begin precedence order:
 
@@ -117,9 +125,9 @@ pub fn compiler_parser() -> impl Compiler<SpannedExpression> {
     .then_ignore(end())
 }
 
-fn atom_parser<'a>(
-    expr: impl Compiler<SpannedExpression> + 'a,
-) -> impl Compiler<SpannedExpression> + 'a {
+fn atom_parser<'src>(
+    expr: impl Compiler<'src, SpannedExpression<'src>>,
+) -> impl Compiler<'src, SpannedExpression<'src>> {
     let scalar = scalar_parser();
     let identifier = identifier_parser();
     let list = list_parser(expr.clone());
@@ -141,7 +149,7 @@ fn atom_parser<'a>(
         .boxed()
 }
 
-fn scalar_parser() -> impl Compiler<Expression> {
+fn scalar_parser<'src>() -> impl Compiler<'src, Expression<'src>> {
     select! {
         Token::Null => Expression::Null,
         Token::Boolean(x) => Expression::Boolean(x),
@@ -151,17 +159,17 @@ fn scalar_parser() -> impl Compiler<Expression> {
     .labelled("scalar")
 }
 
-fn identifier_parser() -> impl Compiler<Expression> {
+fn identifier_parser<'src>() -> impl Compiler<'src, Expression<'src>> {
     select! { Token::Identifier(identifier) => Expression::Identifier(identifier) }
         .labelled("identifier")
 }
 
-fn nested_parser<'a, T: 'a>(
-    parser: impl Compiler<T> + 'a,
-    open: Token,
-    close: Token,
-    f: impl Fn(Span) -> T + Clone + 'a,
-) -> impl Compiler<T> + 'a {
+fn nested_parser<'src, T: 'src>(
+    parser: impl Compiler<'src, T>,
+    open: Token<'src>,
+    close: Token<'src>,
+    f: impl Fn(Span) -> T + Clone + 'src,
+) -> impl Compiler<'src, T> {
     parser
         .delimited_by(just(open.clone()), just(close.clone()))
         .recover_with(nested_delimiters(
@@ -177,16 +185,18 @@ fn nested_parser<'a, T: 'a>(
         .boxed()
 }
 
-fn items_parser<'a>(
-    expr: impl Compiler<SpannedExpression> + 'a,
-) -> impl Compiler<Option<Vec<SpannedExpression>>> + 'a {
+fn items_parser<'src>(
+    expr: impl Compiler<'src, SpannedExpression<'src>>,
+) -> impl Compiler<'src, Option<Vec<SpannedExpression<'src>>>> {
     expr.separated_by(just(Token::Comma))
         .allow_trailing()
         .map(Some)
         .boxed()
 }
 
-fn list_parser<'a>(expr: impl Compiler<SpannedExpression> + 'a) -> impl Compiler<Expression> + 'a {
+fn list_parser<'src>(
+    expr: impl Compiler<'src, SpannedExpression<'src>>,
+) -> impl Compiler<'src, Expression<'src>> {
     let items = items_parser(expr);
     nested_parser(items, Token::LeftBrack, Token::RightBrack, |_| None)
         .map(|x| match x {
@@ -196,9 +206,9 @@ fn list_parser<'a>(expr: impl Compiler<SpannedExpression> + 'a) -> impl Compiler
         .labelled("list")
 }
 
-fn object_parser<'a>(
-    expr: impl Compiler<SpannedExpression> + 'a,
-) -> impl Compiler<Expression> + 'a {
+fn object_parser<'src>(
+    expr: impl Compiler<'src, SpannedExpression<'src>>,
+) -> impl Compiler<'src, Expression<'src>> {
     nested_parser(
         select! {
             Token::Identifier(key) => key,
@@ -226,17 +236,20 @@ fn object_parser<'a>(
     .labelled("object")
 }
 
-fn right_unary_parser<'a>(
-    expr: impl Compiler<SpannedExpression> + 'a,
-    atom: impl Compiler<SpannedExpression> + 'a,
-) -> impl Compiler<SpannedExpression> + 'a {
+fn right_unary_parser<'src>(
+    expr: impl Compiler<'src, SpannedExpression<'src>>,
+    atom: impl Compiler<'src, SpannedExpression<'src>>,
+) -> impl Compiler<'src, SpannedExpression<'src>> {
     let items = items_parser(expr.clone());
     #[derive(Clone)]
-    enum RightUnary {
-        Call(Vec<SpannedExpression>),
-        GetIndex(SpannedExpression),
+    enum RightUnary<'src> {
+        Call(Vec<SpannedExpression<'src>>),
+        GetIndex(SpannedExpression<'src>),
         GetKey(Spanned<String>),
-        GetSlice(Option<SpannedExpression>, Option<SpannedExpression>),
+        GetSlice(
+            Option<SpannedExpression<'src>>,
+            Option<SpannedExpression<'src>>,
+        ),
     }
     let call = items
         .clone()
@@ -293,10 +306,10 @@ fn right_unary_parser<'a>(
     .boxed()
 }
 
-fn binary_operator_parser<'a>(
-    prev: impl Compiler<SpannedExpression> + 'a,
-    op: impl Compiler<BinaryOperator> + 'a,
-) -> impl Compiler<SpannedExpression> + 'a {
+fn binary_operator_parser<'src>(
+    prev: impl Compiler<'src, SpannedExpression<'src>>,
+    op: impl Compiler<'src, BinaryOperator>,
+) -> impl Compiler<'src, SpannedExpression<'src>> {
     prev.clone()
         .labelled("left operand")
         .then(op.then(prev.clone().labelled("right operand")).repeated())
