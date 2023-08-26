@@ -34,7 +34,7 @@ export default {
     key: 'star-on-github',
     text: (
       <a href="https://github.com/ahdinosaur/rimu" target="_blank">
-        ⭐ Star Rimu on Github! ⭐
+        ⭐ Like what you see? Star on Github! ⭐
       </a>
     ),
   },
