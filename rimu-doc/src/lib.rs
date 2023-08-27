@@ -34,28 +34,37 @@ use regex::Regex;
 use rimu_report::{SourceId, Span, Spanned};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum LineToken {
+pub enum LineToken<'src> {
     Indent,
     Dedent,
     Whitespace,
-    Line(String),
+    Line(&'src str),
 }
 
-pub type SpannedLineToken = Spanned<LineToken>;
+pub type SpannedLineToken<'src> = Spanned<LineToken<'src>>;
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq, PartialOrd, Ord)]
-pub enum LineLexerError {
+pub enum LineLexerError<'src> {
     #[error("unexpected end of file")]
     EndOfFile,
+
+    #[error("mixed leading whitespace")]
+    MixedLeadingWhitespace { whitespace: &'src str },
+
+    #[error("inconsistent leading whitespace")]
+    InconsistentLeadingWhitespace {
+        expected: &'src str,
+        found: &'src str,
+    },
 }
 
-type Result<T> = std::result::Result<T, LineLexerError>;
+type Result<'src, T> = std::result::Result<T, LineLexerError<'src>>;
 
 struct LineLexer<'src> {
     code: &'src str,
     source_id: SourceId,
     chars: Chars<'src>,
-    tokens: Vec<SpannedLineToken>,
+    tokens: Vec<SpannedLineToken<'src>>,
     start: usize,
     current: usize,
     indentation: Vec<&'src str>,
@@ -96,11 +105,11 @@ impl<'src> LineLexer<'src> {
         self.chars.nth(self.current - 1)
     }
 
-    fn next_is(&self, c: char) -> bool {
+    fn next_is(&mut self, c: char) -> bool {
         self.next() == Some(c)
     }
 
-    fn next_is_whitespace(&self) -> bool {
+    fn next_is_whitespace(&mut self) -> bool {
         self.next_is(' ') || self.next_is('\t')
     }
 
@@ -116,14 +125,14 @@ impl<'src> LineLexer<'src> {
         &self.code[self.start..self.current]
     }
 
-    fn token(&mut self, token: LineToken) {
-        let span = Span::new(self.source_id, self.start, self.current);
+    fn token(&mut self, token: LineToken<'src>) {
+        let span = Span::new(self.source_id.clone(), self.start, self.current);
         self.tokens.push(Spanned::new(token, span));
 
         self.start = self.current;
     }
 
-    fn at_eol(&self) -> bool {
+    fn at_eol(&mut self) -> bool {
         self.next_is('\n') || self.rest_starts_with("\r\n")
     }
 
@@ -131,20 +140,8 @@ impl<'src> LineLexer<'src> {
         self.rest().is_empty()
     }
 
-    fn at_eol_or_eof(&self) -> bool {
+    fn at_eol_or_eof(&mut self) -> bool {
         self.at_eol() || self.at_eof()
-    }
-
-    fn is_identifier_start(c: char) -> bool {
-        matches!(c, 'a'..='z' | 'A'..='Z' | '_')
-    }
-
-    fn is_identifier_continue(c: char) -> bool {
-        if Self::is_identifier_start(c) {
-            return true;
-        }
-
-        matches!(c, '0'..='9' | '-')
     }
 
     fn indentation(&self) -> &'src str {
@@ -155,9 +152,10 @@ impl<'src> LineLexer<'src> {
         !self.indentation().is_empty()
     }
 
-    fn tokenize(&mut self) -> Result<Vec<SpannedLineToken>> {
+    fn tokenize(&mut self) -> Result<'src, Vec<SpannedLineToken>> {
         while !self.at_eof() {
-            self.lex_line_start()?;
+            self.lex_indent()?;
+            self.lex_line();
         }
 
         while self.indented() {
@@ -167,11 +165,11 @@ impl<'src> LineLexer<'src> {
         if self.tokens.is_empty() {
             Err(LineLexerError::EndOfFile)
         } else {
-            Ok(self.tokens)
+            Ok(self.tokens.clone())
         }
     }
 
-    fn lex_line_start(&mut self) -> Result<Vec<SpannedLineToken>> {
+    fn lex_indent(&mut self) -> Result<'src, ()> {
         use Indentation::*;
 
         let nonblank_index = self
@@ -230,10 +228,10 @@ impl<'src> LineLexer<'src> {
             Blank => {
                 if !whitespace.is_empty() {
                     while self.next_is_whitespace() {
-                        self.advance()?;
+                        self.advance();
                     }
 
-                    self.token(Whitespace);
+                    self.token(LineToken::Whitespace);
                 };
 
                 Ok(())
@@ -241,10 +239,10 @@ impl<'src> LineLexer<'src> {
             Continue => {
                 if !self.indentation().is_empty() {
                     for _ in self.indentation().chars() {
-                        self.advance()?;
+                        self.advance();
                     }
 
-                    self.token(Whitespace);
+                    self.token(LineToken::Whitespace);
                 }
 
                 Ok(())
@@ -256,60 +254,56 @@ impl<'src> LineLexer<'src> {
 
                 if !whitespace.is_empty() {
                     while self.next_is_whitespace() {
-                        self.advance()?;
+                        self.advance();
                     }
 
-                    self.token(Whitespace);
+                    self.token(LineToken::Whitespace);
                 }
 
                 Ok(())
             }
             Mixed { whitespace } => {
                 for _ in whitespace.chars() {
-                    self.advance()?;
+                    self.advance();
                 }
 
-                Err(self.error(MixedLeadingWhitespace { whitespace }))
+                Err(LineLexerError::MixedLeadingWhitespace { whitespace })
             }
             Inconsistent => {
                 for _ in whitespace.chars() {
-                    self.advance()?;
+                    self.advance();
                 }
 
-                Err(self.error(InconsistentLeadingWhitespace {
+                Err(LineLexerError::InconsistentLeadingWhitespace {
                     expected: self.indentation(),
                     found: whitespace,
-                }))
+                })
             }
             Increase => {
                 while self.next_is_whitespace() {
-                    self.advance()?;
+                    self.advance();
                 }
 
-                if self.open_delimiters() {
-                    self.token(Whitespace);
-                } else {
-                    let indentation = self.lexeme();
-                    self.indentation.push(indentation);
-                    self.token(Indent);
-                    if self.recipe_body_pending {
-                        self.recipe_body = true;
-                    }
-                }
+                let indentation = self.lexeme();
+                self.indentation.push(indentation);
+                self.token(LineToken::Indent);
 
                 Ok(())
             }
         }
     }
 
-    fn lex_dedent(&self) {
-        fn lex_dedent(&mut self) {
-            assert_eq!(self.current_token_length(), 0);
-            self.token(Dedent);
-            self.indentation.pop();
-            self.recipe_body_pending = false;
-            self.recipe_body = false;
+    fn lex_line(&mut self) {
+        while !self.at_eol_or_eof() {
+            self.advance()
         }
+        let line = self.lexeme();
+        self.token(LineToken::Line(line));
+    }
+
+    fn lex_dedent(&mut self) {
+        self.token(LineToken::Dedent);
+        self.indentation.pop();
     }
 }
 
