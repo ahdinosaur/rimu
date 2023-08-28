@@ -22,20 +22,11 @@
 // - list
 // - expression: string
 
-mod lines;
+mod lexer;
 
 use std::collections::BTreeMap;
 
 use rimu_report::Spanned;
-
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Token {
-    Indent,
-    Dedent,
-    Key(String),
-    Value(String),
-    ListItem(String),
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Doc {

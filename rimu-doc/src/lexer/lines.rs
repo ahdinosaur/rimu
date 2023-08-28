@@ -2,32 +2,27 @@
 // - https://github.com/casey/just/blob/4b5dd245fa040377312eb65c1312a980c0634a91/src/lexer.rs#L11
 // - https://github.com/DennisPrediger/SLAC/blob/main/src/scanner.rs
 
-use std::{str::Chars, thread::current};
-
-use line_span::{LineSpan, LineSpanIter, LineSpans};
+use line_span::{LineSpanIter, LineSpans};
 use rimu_report::{SourceId, Span, Spanned};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum LineToken<'src> {
+pub enum LinesToken<'src> {
     Indent,
     Dedent,
     Line(&'src str),
 }
 
-pub type SpannedLineToken<'src> = Spanned<LineToken<'src>>;
+pub type SpannedLinesToken<'src> = Spanned<LinesToken<'src>>;
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq, PartialOrd, Ord)]
-pub enum LineLexerError<'src> {
-    #[error("mixed leading whitespace")]
-    MixedLeadingWhitespace { whitespace: &'src str },
-
+pub enum LinesLexerError {
     #[error("inconsistent indentation")]
     InconsistentLeadingWhitespace { found: usize, expected: Vec<usize> },
 }
 
-type Result<'src, T> = std::result::Result<T, LineLexerError<'src>>;
+type Result<T> = std::result::Result<T, LinesLexerError>;
 
-struct LineLexer<'src> {
+struct LinesLexer<'src> {
     code: &'src str,
     source_id: SourceId,
     lines: LineSpanIter<'src>,
@@ -45,7 +40,7 @@ enum IndentChange {
     Inconsistent,
 }
 
-impl<'src> LineLexer<'src> {
+impl<'src> LinesLexer<'src> {
     fn new(code: &'src str, source_id: SourceId) -> Self {
         Self {
             code,
@@ -74,7 +69,7 @@ impl<'src> LineLexer<'src> {
         self.indentation() != 0
     }
 
-    fn tokenize(&mut self) -> Result<'src, Vec<SpannedLineToken<'src>>> {
+    fn tokenize(&mut self) -> Result<Vec<SpannedLinesToken<'src>>> {
         let mut tokens = vec![];
 
         while let Some(line) = self.next() {
@@ -129,7 +124,7 @@ impl<'src> LineLexer<'src> {
     fn maybe_indent(
         &mut self,
         space: Spanned<&'src str>,
-    ) -> Result<'src, Option<SpannedLineToken<'src>>> {
+    ) -> Result<Option<SpannedLinesToken<'src>>> {
         let (space, span) = space.take();
         let next_indent = space.len();
         match self.get_indent_change(next_indent) {
@@ -139,33 +134,33 @@ impl<'src> LineLexer<'src> {
                 let prev_indent = self.indentation();
                 let indent_diff = next_indent - prev_indent;
                 self.indentation.push(next_indent);
-                let indent_token = LineToken::Indent;
+                let indent_token = LinesToken::Indent;
                 let indent_span = self.span(span.end() - indent_diff, span.end());
                 let indent = Spanned::new(indent_token, indent_span);
                 Ok(Some(indent))
             }
-            IndentChange::Inconsistent => Err(LineLexerError::InconsistentLeadingWhitespace {
+            IndentChange::Inconsistent => Err(LinesLexerError::InconsistentLeadingWhitespace {
                 found: next_indent,
                 expected: self.indentation.clone(),
             }),
         }
     }
 
-    fn line(&self, rest: Spanned<&'src str>) -> SpannedLineToken<'src> {
+    fn line(&self, rest: Spanned<&'src str>) -> SpannedLinesToken<'src> {
         let (rest, span) = rest.take();
-        Spanned::new(LineToken::Line(rest), span)
+        Spanned::new(LinesToken::Line(rest), span)
     }
 
-    fn dedent(&mut self, span_start: usize) -> SpannedLineToken<'src> {
+    fn dedent(&mut self, span_start: usize) -> SpannedLinesToken<'src> {
         self.indentation.pop();
         let dedent_span = self.span(span_start, span_start);
-        let dedent_token = LineToken::Dedent;
+        let dedent_token = LinesToken::Dedent;
         Spanned::new(dedent_token, dedent_span)
     }
 }
 
-pub fn tokenize_lines(code: &str, source_id: SourceId) -> Result<Vec<SpannedLineToken>> {
-    LineLexer::new(code, source_id).tokenize()
+pub fn tokenize_lines(code: &str, source_id: SourceId) -> Result<Vec<SpannedLinesToken>> {
+    LinesLexer::new(code, source_id).tokenize()
 }
 
 #[cfg(test)]
@@ -173,13 +168,13 @@ mod tests {
     use pretty_assertions::assert_eq;
     use rimu_report::{SourceId, Span};
 
-    use super::{tokenize_lines, LineLexerError, LineToken, Spanned, SpannedLineToken};
+    use super::{tokenize_lines, LinesLexerError, LinesToken, Spanned, SpannedLinesToken};
 
     fn span(range: std::ops::Range<usize>) -> Span {
         Span::new(SourceId::empty(), range.start, range.end)
     }
 
-    fn test(code: &str) -> Result<Vec<SpannedLineToken>, LineLexerError> {
+    fn test(code: &str) -> Result<Vec<SpannedLinesToken>, LinesLexerError> {
         tokenize_lines(code, SourceId::empty())
     }
 
@@ -205,16 +200,16 @@ g: h
         );
 
         let expected = Ok(vec![
-            Spanned::new(LineToken::Line(""), span(0..0)),
-            Spanned::new(LineToken::Line("a:"), span(1..3)),
-            Spanned::new(LineToken::Indent, span(4..6)),
-            Spanned::new(LineToken::Line("b:"), span(6..8)),
-            Spanned::new(LineToken::Indent, span(11..13)),
-            Spanned::new(LineToken::Line("c: d"), span(13..17)),
-            Spanned::new(LineToken::Dedent, span(20..20)),
-            Spanned::new(LineToken::Line("e: f"), span(20..24)),
-            Spanned::new(LineToken::Dedent, span(25..25)),
-            Spanned::new(LineToken::Line("g: h"), span(25..29)),
+            Spanned::new(LinesToken::Line(""), span(0..0)),
+            Spanned::new(LinesToken::Line("a:"), span(1..3)),
+            Spanned::new(LinesToken::Indent, span(4..6)),
+            Spanned::new(LinesToken::Line("b:"), span(6..8)),
+            Spanned::new(LinesToken::Indent, span(11..13)),
+            Spanned::new(LinesToken::Line("c: d"), span(13..17)),
+            Spanned::new(LinesToken::Dedent, span(20..20)),
+            Spanned::new(LinesToken::Line("e: f"), span(20..24)),
+            Spanned::new(LinesToken::Dedent, span(25..25)),
+            Spanned::new(LinesToken::Line("g: h"), span(25..29)),
         ]);
 
         assert_eq!(actual, expected);
