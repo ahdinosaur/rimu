@@ -100,7 +100,7 @@ impl<'src> LineLexer<'src> {
             .skip_while(|&(_, c)| c == ' ' || c == '\t')
             .map(|(i, _)| i)
             .next()
-            .unwrap_or_else(|| line.len());
+            .unwrap_or(line.len());
 
         let space_str = &line[..nonblank_index];
         let space_span = self.span(span.start(), span.start() + nonblank_index);
@@ -136,9 +136,11 @@ impl<'src> LineLexer<'src> {
             IndentChange::Continue => Ok(None),
             IndentChange::Decrease => Ok(Some(self.dedent(span.end()))),
             IndentChange::Increase => {
+                let prev_indent = self.indentation();
+                let indent_diff = next_indent - prev_indent;
                 self.indentation.push(next_indent);
                 let indent_token = LineToken::Indent;
-                let indent_span = self.span(span.end() - next_indent, span.end());
+                let indent_span = self.span(span.end() - indent_diff, span.end());
                 let indent = Spanned::new(indent_token, indent_span);
                 Ok(Some(indent))
             }
@@ -171,7 +173,7 @@ mod tests {
     use pretty_assertions::assert_eq;
     use rimu_report::{SourceId, Span};
 
-    use super::{tokenize_lines, LineLexerError, SpannedLineToken};
+    use super::{tokenize_lines, LineLexerError, LineToken, Spanned, SpannedLineToken};
 
     fn span(range: std::ops::Range<usize>) -> Span {
         Span::new(SourceId::empty(), range.start, range.end)
@@ -202,7 +204,18 @@ g: h
 ",
         );
 
-        let expected = Ok(vec![]);
+        let expected = Ok(vec![
+            Spanned::new(LineToken::Line(""), span(0..0)),
+            Spanned::new(LineToken::Line("a:"), span(1..3)),
+            Spanned::new(LineToken::Indent, span(4..6)),
+            Spanned::new(LineToken::Line("b:"), span(6..8)),
+            Spanned::new(LineToken::Indent, span(11..13)),
+            Spanned::new(LineToken::Line("c: d"), span(13..17)),
+            Spanned::new(LineToken::Dedent, span(20..20)),
+            Spanned::new(LineToken::Line("e: f"), span(20..24)),
+            Spanned::new(LineToken::Dedent, span(25..25)),
+            Spanned::new(LineToken::Line("g: h"), span(25..29)),
+        ]);
 
         assert_eq!(actual, expected);
     }
