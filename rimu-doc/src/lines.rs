@@ -2,15 +2,15 @@
 // - https://github.com/casey/just/blob/4b5dd245fa040377312eb65c1312a980c0634a91/src/lexer.rs#L11
 // - https://github.com/DennisPrediger/SLAC/blob/main/src/scanner.rs
 
-use std::str::Chars;
+use std::{str::Chars, thread::current};
 
+use line_span::{LineSpan, LineSpanIter, LineSpans};
 use rimu_report::{SourceId, Span, Spanned};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LineToken<'src> {
     Indent,
     Dedent,
-    Whitespace,
     Line(&'src str),
 }
 
@@ -21,11 +21,8 @@ pub enum LineLexerError<'src> {
     #[error("mixed leading whitespace")]
     MixedLeadingWhitespace { whitespace: &'src str },
 
-    #[error("inconsistent leading whitespace")]
-    InconsistentLeadingWhitespace {
-        expected: &'src str,
-        found: &'src str,
-    },
+    #[error("inconsistent indentation")]
+    InconsistentLeadingWhitespace { found: usize, expected: Vec<usize> },
 }
 
 type Result<'src, T> = std::result::Result<T, LineLexerError<'src>>;
@@ -33,26 +30,19 @@ type Result<'src, T> = std::result::Result<T, LineLexerError<'src>>;
 struct LineLexer<'src> {
     code: &'src str,
     source_id: SourceId,
-    chars: Chars<'src>,
-    tokens: Vec<SpannedLineToken<'src>>,
-    start: usize,
-    current: usize,
-    indentation: Vec<&'src str>,
+    lines: LineSpanIter<'src>,
+    indentation: Vec<usize>,
 }
 
-enum Indentation<'src> {
-    // Line only contains whitespace
-    Blank,
+enum IndentChange {
     // Indentation continues
     Continue,
     // Indentation decreases
     Decrease,
-    // Indentation isn't consistent
-    Inconsistent,
     // Indentation increases
     Increase,
-    // Indentation mixes spaces and tabs
-    Mixed { whitespace: &'src str },
+    // Indentation isn't consistent
+    Inconsistent,
 }
 
 impl<'src> LineLexer<'src> {
@@ -60,221 +50,120 @@ impl<'src> LineLexer<'src> {
         Self {
             code,
             source_id,
-            chars: code.chars(),
-            tokens: vec![],
-            start: 0,
-            current: 0,
-            indentation: vec![""],
+            lines: code.line_spans(),
+            indentation: vec![0],
         }
     }
-    fn advance(&mut self) {
-        self.current += 1;
+
+    fn next(&mut self) -> Option<Spanned<&'src str>> {
+        self.lines.next().map(|line_span| {
+            let span = self.span(line_span.start(), line_span.end());
+            Spanned::new(line_span.as_str(), span)
+        })
     }
 
-    fn next(&mut self) -> Option<char> {
-        self.chars.nth(self.current)
+    fn span(&self, start: usize, end: usize) -> Span {
+        Span::new(self.source_id.clone(), start, end)
     }
 
-    fn next_is(&mut self, c: char) -> bool {
-        self.next() == Some(c)
-    }
-
-    fn next_is_whitespace(&mut self) -> bool {
-        self.next_is(' ') || self.next_is('\t')
-    }
-
-    fn rest(&self) -> &'src str {
-        &self.code[self.start..]
-    }
-
-    fn rest_starts_with(&self, prefix: &str) -> bool {
-        self.rest().starts_with(prefix)
-    }
-
-    fn lexeme(&self) -> &'src str {
-        &self.code[self.start..self.current]
-    }
-
-    fn token(&mut self, token: LineToken<'src>) {
-        let span = Span::new(self.source_id.clone(), self.start, self.current);
-        self.tokens.push(Spanned::new(token, span));
-
-        self.start = self.current;
-    }
-
-    fn at_eol(&mut self) -> bool {
-        self.next_is('\n') || self.rest_starts_with("\r\n")
-    }
-
-    fn at_eof(&self) -> bool {
-        self.rest().is_empty()
-    }
-
-    fn at_eol_or_eof(&mut self) -> bool {
-        self.at_eol() || self.at_eof()
-    }
-
-    fn indentation(&self) -> &'src str {
-        self.indentation.last().unwrap()
+    fn indentation(&self) -> usize {
+        *self.indentation.last().unwrap()
     }
 
     fn indented(&self) -> bool {
-        !self.indentation().is_empty()
+        self.indentation() != 0
     }
 
-    fn tokenize(&mut self) -> Result<'src, &Vec<SpannedLineToken<'src>>> {
-        while !self.at_eof() {
-            self.lex_indent()?;
-            self.lex_line();
+    fn tokenize(&mut self) -> Result<'src, Vec<SpannedLineToken<'src>>> {
+        let mut tokens = vec![];
+
+        while let Some(line) = self.next() {
+            let (space, rest) = self.get_space(line);
+            if let Some(indent) = self.maybe_indent(space)? {
+                tokens.push(indent);
+            }
+            tokens.push(self.line(rest));
         }
 
         while self.indented() {
-            self.lex_dedent();
+            tokens.push(self.dedent(self.code.len()));
         }
 
-        Ok(&self.tokens)
+        Ok(tokens)
     }
 
-    fn lex_indent(&mut self) -> Result<'src, ()> {
-        use Indentation::*;
+    fn get_space(&self, line: Spanned<&'src str>) -> (Spanned<&'src str>, Spanned<&'src str>) {
+        let (line, span) = line.take();
 
-        let nonblank_index = self
-            .rest()
+        let nonblank_index = line
             .char_indices()
             .skip_while(|&(_, c)| c == ' ' || c == '\t')
             .map(|(i, _)| i)
             .next()
-            .unwrap_or_else(|| self.rest().len());
+            .unwrap_or_else(|| line.len());
 
-        let rest = &self.rest()[nonblank_index..];
+        let space_str = &line[..nonblank_index];
+        let space_span = self.span(span.start(), span.start() + nonblank_index);
+        let space = Spanned::new(space_str, space_span);
 
-        let whitespace = &self.rest()[..nonblank_index];
+        let rest_str = &line[nonblank_index..];
+        let rest_span = self.span(span.start() + nonblank_index, span.end());
+        let rest = Spanned::new(rest_str, rest_span);
 
-        let body_whitespace = &whitespace[..whitespace
-            .char_indices()
-            .take(self.indentation().chars().count())
-            .map(|(i, _c)| i)
-            .next()
-            .unwrap_or(0)];
+        (space, rest)
+    }
 
-        let spaces = whitespace.chars().any(|c| c == ' ');
-        let tabs = whitespace.chars().any(|c| c == '\t');
-
-        let body_spaces = body_whitespace.chars().any(|c| c == ' ');
-        let body_tabs = body_whitespace.chars().any(|c| c == '\t');
-
-        #[allow(clippy::if_same_then_else)]
-        let indentation = if rest.starts_with('\n') || rest.starts_with("\r\n") || rest.is_empty() {
-            Blank
-        } else if whitespace == self.indentation() {
-            Continue
-        } else if self.indentation.contains(&whitespace) {
-            Decrease
-        } else if body_spaces && body_tabs {
-            Mixed {
-                whitespace: body_whitespace,
-            }
-        } else if spaces && tabs {
-            Mixed { whitespace }
-        } else if whitespace.len() < self.indentation().len() {
-            Inconsistent
-        } else if body_whitespace.len() >= self.indentation().len()
-            && !body_whitespace.starts_with(self.indentation())
-        {
-            Inconsistent
-        } else if whitespace.len() >= self.indentation().len()
-            && !whitespace.starts_with(self.indentation())
-        {
-            Inconsistent
+    fn get_indent_change(&self, next_indentation: usize) -> IndentChange {
+        let current_indentation = self.indentation();
+        if next_indentation == current_indentation {
+            IndentChange::Continue
+        } else if next_indentation > current_indentation {
+            IndentChange::Increase
+        } else if self.indentation.contains(&next_indentation) {
+            IndentChange::Decrease
         } else {
-            Increase
-        };
-
-        match indentation {
-            Blank => {
-                if !whitespace.is_empty() {
-                    while self.next_is_whitespace() {
-                        self.advance();
-                    }
-
-                    self.token(LineToken::Whitespace);
-                };
-
-                Ok(())
-            }
-            Continue => {
-                if !self.indentation().is_empty() {
-                    for _ in self.indentation().chars() {
-                        self.advance();
-                    }
-
-                    self.token(LineToken::Whitespace);
-                }
-
-                Ok(())
-            }
-            Decrease => {
-                while self.indentation() != whitespace {
-                    self.lex_dedent();
-                }
-
-                if !whitespace.is_empty() {
-                    while self.next_is_whitespace() {
-                        self.advance();
-                    }
-
-                    self.token(LineToken::Whitespace);
-                }
-
-                Ok(())
-            }
-            Mixed { whitespace } => {
-                for _ in whitespace.chars() {
-                    self.advance();
-                }
-
-                Err(LineLexerError::MixedLeadingWhitespace { whitespace })
-            }
-            Inconsistent => {
-                for _ in whitespace.chars() {
-                    self.advance();
-                }
-
-                Err(LineLexerError::InconsistentLeadingWhitespace {
-                    expected: self.indentation(),
-                    found: whitespace,
-                })
-            }
-            Increase => {
-                while self.next_is_whitespace() {
-                    self.advance();
-                }
-
-                let indentation = self.lexeme();
-                self.indentation.push(indentation);
-                self.token(LineToken::Indent);
-
-                Ok(())
-            }
+            IndentChange::Inconsistent
         }
     }
 
-    fn lex_line(&mut self) {
-        while !self.at_eol_or_eof() {
-            self.advance()
+    fn maybe_indent(
+        &mut self,
+        space: Spanned<&'src str>,
+    ) -> Result<'src, Option<SpannedLineToken<'src>>> {
+        let (space, span) = space.take();
+        let next_indent = space.len();
+        match self.get_indent_change(next_indent) {
+            IndentChange::Continue => Ok(None),
+            IndentChange::Decrease => Ok(Some(self.dedent(span.end()))),
+            IndentChange::Increase => {
+                self.indentation.push(next_indent);
+                let indent_token = LineToken::Indent;
+                let indent_span = self.span(span.end() - next_indent, span.end());
+                let indent = Spanned::new(indent_token, indent_span);
+                Ok(Some(indent))
+            }
+            IndentChange::Inconsistent => Err(LineLexerError::InconsistentLeadingWhitespace {
+                found: next_indent,
+                expected: self.indentation.clone(),
+            }),
         }
-        let line = self.lexeme();
-        self.token(LineToken::Line(line));
     }
 
-    fn lex_dedent(&mut self) {
-        self.token(LineToken::Dedent);
+    fn line(&self, rest: Spanned<&'src str>) -> SpannedLineToken<'src> {
+        let (rest, span) = rest.take();
+        Spanned::new(LineToken::Line(rest), span)
+    }
+
+    fn dedent(&mut self, span_start: usize) -> SpannedLineToken<'src> {
         self.indentation.pop();
+        let dedent_span = self.span(span_start, span_start);
+        let dedent_token = LineToken::Dedent;
+        Spanned::new(dedent_token, dedent_span)
     }
 }
 
 pub fn tokenize_lines(code: &str, source_id: SourceId) -> Result<Vec<SpannedLineToken>> {
-    LineLexer::new(code, source_id).tokenize().cloned()
+    LineLexer::new(code, source_id).tokenize()
 }
 
 #[cfg(test)]
@@ -307,9 +196,9 @@ mod tests {
             "
 a:
   b:
-    c:
-  d:
-e: f
+    c: d
+  e: f
+g: h
 ",
         );
 
