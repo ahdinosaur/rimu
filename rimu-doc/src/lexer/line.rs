@@ -96,16 +96,39 @@ pub fn lexer_parser() -> impl Lexer<Vec<SpannedLineToken>> {
         .then_ignore(colon)
         .then_ignore(space)
         .then(value)
+        .then_ignore(space)
         .map(|(key, value)| vec![key, value])
         .boxed();
     let list_item = li
+        .clone()
         .then_ignore(space)
         .then(value)
+        .then_ignore(space)
         .map(|(li, value)| vec![li, value])
         .boxed();
+    let list_item_key = li
+        .clone()
+        .then_ignore(space)
+        .then(key.clone())
+        .then_ignore(colon)
+        .then_ignore(space)
+        .map(|(li, key)| vec![li, key])
+        .boxed();
+    let list_item_key_value = li
+        .clone()
+        .then_ignore(space)
+        .then(key.clone())
+        .then_ignore(colon)
+        .then_ignore(space)
+        .then(value)
+        .then_ignore(space)
+        .map(|((li, key), value)| vec![li, key, value])
+        .boxed();
 
-    let token = object_key
-        .or(object_key_value)
+    let token = object_key_value
+        .or(object_key)
+        .or(list_item_key_value)
+        .or(list_item_key)
         .or(list_item)
         .boxed()
         .recover_with(skip_then_retry_until([]));
@@ -145,6 +168,33 @@ mod tests {
     #[test]
     fn key_value() {
         let actual = test("key: value");
+
+        let expected = Ok(vec![]);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn key_identifier() {
+        let actual = test("key:");
+
+        let expected = Ok(vec![]);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn key_quoted() {
+        let actual = test("\"key\":");
+
+        let expected = Ok(vec![]);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn list_item() {
+        let actual = test("- list item");
 
         let expected = Ok(vec![]);
 
