@@ -13,4 +13,5 @@ rimu-report = { path = "../rimu-report" }
 thiserror = "1.0.44"
 
 [dev-dependencies]
+map-macro = "0.2.6"
 pretty_assertions = "1.4.0"

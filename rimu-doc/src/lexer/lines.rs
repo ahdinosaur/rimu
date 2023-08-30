@@ -10,6 +10,7 @@ pub enum LinesToken<'src> {
     Indent,
     Dedent,
     Line(&'src str),
+    LineEnding,
 }
 
 pub type SpannedLinesToken<'src> = Spanned<LinesToken<'src>>;
@@ -50,10 +51,12 @@ impl<'src> LinesLexer<'src> {
         }
     }
 
-    fn next(&mut self) -> Option<Spanned<&'src str>> {
+    fn next(&mut self) -> Option<(Spanned<&'src str>, Span)> {
         self.lines.next().map(|line_span| {
             let span = self.span(line_span.start(), line_span.end());
-            Spanned::new(line_span.as_str(), span)
+            let line = Spanned::new(line_span.as_str(), span);
+            let ending_span = self.span(line_span.end(), line_span.ending());
+            (line, ending_span)
         })
     }
 
@@ -72,12 +75,13 @@ impl<'src> LinesLexer<'src> {
     fn tokenize(&mut self) -> Result<Vec<SpannedLinesToken<'src>>> {
         let mut tokens = vec![];
 
-        while let Some(line) = self.next() {
+        while let Some((line, ending_span)) = self.next() {
             let (space, rest) = self.get_space(line);
             if let Some(indent) = self.maybe_indent(space)? {
                 tokens.push(indent);
             }
             tokens.push(self.line(rest));
+            tokens.push(Spanned::new(LinesToken::LineEnding, ending_span))
         }
 
         while self.indented() {
@@ -201,15 +205,21 @@ g: h
 
         let expected = Ok(vec![
             Spanned::new(LinesToken::Line(""), span(0..0)),
+            Spanned::new(LinesToken::LineEnding, span(0..1)),
             Spanned::new(LinesToken::Line("a:"), span(1..3)),
+            Spanned::new(LinesToken::LineEnding, span(3..4)),
             Spanned::new(LinesToken::Indent, span(4..6)),
             Spanned::new(LinesToken::Line("b:"), span(6..8)),
+            Spanned::new(LinesToken::LineEnding, span(8..9)),
             Spanned::new(LinesToken::Indent, span(11..13)),
             Spanned::new(LinesToken::Line("c: d"), span(13..17)),
+            Spanned::new(LinesToken::LineEnding, span(17..18)),
             Spanned::new(LinesToken::Dedent, span(20..20)),
             Spanned::new(LinesToken::Line("e: f"), span(20..24)),
+            Spanned::new(LinesToken::LineEnding, span(24..25)),
             Spanned::new(LinesToken::Dedent, span(25..25)),
             Spanned::new(LinesToken::Line("g: h"), span(25..29)),
+            Spanned::new(LinesToken::LineEnding, span(29..30)),
         ]);
 
         assert_eq!(actual, expected);

@@ -22,17 +22,5 @@
 // - list
 // - expression: string
 
+mod compiler;
 mod lexer;
-
-use std::collections::BTreeMap;
-
-use rimu_report::Spanned;
-
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Doc {
-    Object(BTreeMap<String, Box<SpannedDoc>>),
-    List(Box<SpannedDoc>),
-    Expression(String),
-}
-
-pub type SpannedDoc = Spanned<Doc>;
