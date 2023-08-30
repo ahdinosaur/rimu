@@ -10,7 +10,7 @@ pub enum LinesToken<'src> {
     Indent,
     Dedent,
     Line(&'src str),
-    LineEnding,
+    EndOfLine,
 }
 
 pub type SpannedLinesToken<'src> = Spanned<LinesToken<'src>>;
@@ -76,12 +76,14 @@ impl<'src> LinesLexer<'src> {
         let mut tokens = vec![];
 
         while let Some((line, ending_span)) = self.next() {
-            let (space, rest) = self.get_space(line);
+            let Some((space, rest)) = self.get_space(line) else {
+                continue;
+            };
             if let Some(indent) = self.maybe_indent(space)? {
                 tokens.push(indent);
             }
             tokens.push(self.line(rest));
-            tokens.push(Spanned::new(LinesToken::LineEnding, ending_span))
+            tokens.push(Spanned::new(LinesToken::EndOfLine, ending_span))
         }
 
         while self.indented() {
@@ -91,15 +93,19 @@ impl<'src> LinesLexer<'src> {
         Ok(tokens)
     }
 
-    fn get_space(&self, line: Spanned<&'src str>) -> (Spanned<&'src str>, Spanned<&'src str>) {
+    fn get_space(
+        &self,
+        line: Spanned<&'src str>,
+    ) -> Option<(Spanned<&'src str>, Spanned<&'src str>)> {
         let (line, span) = line.take();
 
-        let nonblank_index = line
+        let Some(nonblank_index) = line
             .char_indices()
             .skip_while(|&(_, c)| c == ' ' || c == '\t')
             .map(|(i, _)| i)
-            .next()
-            .unwrap_or(line.len());
+            .next() else {
+            return None;
+        };
 
         let space_str = &line[..nonblank_index];
         let space_span = self.span(span.start(), span.start() + nonblank_index);
@@ -109,7 +115,7 @@ impl<'src> LinesLexer<'src> {
         let rest_span = self.span(span.start() + nonblank_index, span.end());
         let rest = Spanned::new(rest_str, rest_span);
 
-        (space, rest)
+        Some((space, rest))
     }
 
     fn get_indent_change(&self, next_indentation: usize) -> IndentChange {
@@ -204,22 +210,20 @@ g: h
         );
 
         let expected = Ok(vec![
-            Spanned::new(LinesToken::Line(""), span(0..0)),
-            Spanned::new(LinesToken::LineEnding, span(0..1)),
             Spanned::new(LinesToken::Line("a:"), span(1..3)),
-            Spanned::new(LinesToken::LineEnding, span(3..4)),
+            Spanned::new(LinesToken::EndOfLine, span(3..4)),
             Spanned::new(LinesToken::Indent, span(4..6)),
             Spanned::new(LinesToken::Line("b:"), span(6..8)),
-            Spanned::new(LinesToken::LineEnding, span(8..9)),
+            Spanned::new(LinesToken::EndOfLine, span(8..9)),
             Spanned::new(LinesToken::Indent, span(11..13)),
             Spanned::new(LinesToken::Line("c: d"), span(13..17)),
-            Spanned::new(LinesToken::LineEnding, span(17..18)),
+            Spanned::new(LinesToken::EndOfLine, span(17..18)),
             Spanned::new(LinesToken::Dedent, span(20..20)),
             Spanned::new(LinesToken::Line("e: f"), span(20..24)),
-            Spanned::new(LinesToken::LineEnding, span(24..25)),
+            Spanned::new(LinesToken::EndOfLine, span(24..25)),
             Spanned::new(LinesToken::Dedent, span(25..25)),
             Spanned::new(LinesToken::Line("g: h"), span(25..29)),
-            Spanned::new(LinesToken::LineEnding, span(29..30)),
+            Spanned::new(LinesToken::EndOfLine, span(29..30)),
         ]);
 
         assert_eq!(actual, expected);

@@ -13,10 +13,11 @@ mod lines;
 pub enum Token {
     Indent,
     Dedent,
-    LineEnding,
     Key(String),
     ListItem,
     Value(String),
+    EndOfLine,
+    EndOfInput,
 }
 
 pub type SpannedToken = Spanned<Token>;
@@ -35,13 +36,17 @@ pub fn tokenize(code: &str, source: SourceId) -> (Option<Vec<SpannedToken>>, Vec
 
     let mut tokens = vec![];
     let mut errors = vec![];
+    let mut last_span: usize = 0;
 
     for lines_token in lines_tokens {
         let (lines_token, span) = lines_token.take();
+
+        last_span = span.clone().end();
+
         match lines_token {
             LinesToken::Indent => tokens.push(Spanned::new(Token::Indent, span)),
             LinesToken::Dedent => tokens.push(Spanned::new(Token::Dedent, span)),
-            LinesToken::LineEnding => tokens.push(Spanned::new(Token::LineEnding, span)),
+            LinesToken::EndOfLine => tokens.push(Spanned::new(Token::EndOfLine, span)),
             LinesToken::Line(line) => {
                 let eoi = Span::new(source.clone(), span.end(), span.end());
                 let (line_tokens, line_lexer_errors) =
@@ -71,6 +76,11 @@ pub fn tokenize(code: &str, source: SourceId) -> (Option<Vec<SpannedToken>>, Vec
             }
         };
     }
+
+    tokens.push(Spanned::new(
+        Token::EndOfInput,
+        Span::new(source.clone(), last_span, last_span),
+    ));
 
     (Some(tokens), errors)
 }
@@ -112,28 +122,28 @@ a:
         );
 
         let expected = Ok(vec![
-            Spanned::new(Token::LineEnding, span(0..1)),
             Spanned::new(Token::Key("a".into()), span(1..2)),
-            Spanned::new(Token::LineEnding, span(3..4)),
+            Spanned::new(Token::EndOfLine, span(3..4)),
             Spanned::new(Token::Indent, span(4..6)),
             Spanned::new(Token::Key("b".into()), span(6..7)),
-            Spanned::new(Token::LineEnding, span(8..9)),
+            Spanned::new(Token::EndOfLine, span(8..9)),
             Spanned::new(Token::Indent, span(11..13)),
             Spanned::new(Token::ListItem, span(13..14)),
             Spanned::new(Token::Value("c".into()), span(15..16)),
-            Spanned::new(Token::LineEnding, span(16..17)),
+            Spanned::new(Token::EndOfLine, span(16..17)),
             Spanned::new(Token::ListItem, span(21..22)),
             Spanned::new(Token::Value("d".into()), span(23..24)),
-            Spanned::new(Token::LineEnding, span(24..25)),
+            Spanned::new(Token::EndOfLine, span(24..25)),
             Spanned::new(Token::ListItem, span(29..30)),
             Spanned::new(Token::Key("e".into()), span(31..32)),
             Spanned::new(Token::Value("f".into()), span(34..35)),
-            Spanned::new(Token::LineEnding, span(35..36)),
+            Spanned::new(Token::EndOfLine, span(35..36)),
             Spanned::new(Token::Dedent, span(38..38)),
             Spanned::new(Token::Key("g".into()), span(38..39)),
             Spanned::new(Token::Value("h".into()), span(41..42)),
-            Spanned::new(Token::LineEnding, span(42..43)),
+            Spanned::new(Token::EndOfLine, span(42..43)),
             Spanned::new(Token::Dedent, span(43..43)),
+            Spanned::new(Token::EndOfInput, span(43..43)),
         ]);
 
         assert_eq!(actual, expected);
