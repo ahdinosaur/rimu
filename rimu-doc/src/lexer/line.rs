@@ -50,6 +50,7 @@ pub fn lexer_parser() -> impl Lexer<Vec<SpannedLineToken>> {
 
     let value = any()
         .repeated()
+        .at_least(1)
         .collect::<String>()
         .map(LineToken::Value)
         .map_with_span(Spanned::new)
@@ -169,7 +170,10 @@ mod tests {
     fn key_value() {
         let actual = test("key: value");
 
-        let expected = Ok(vec![]);
+        let expected = Ok(vec![
+            Spanned::new(LineToken::Key("key".into()), span(0..3)),
+            Spanned::new(LineToken::Value("value".into()), span(5..10)),
+        ]);
 
         assert_eq!(actual, expected);
     }
@@ -178,7 +182,7 @@ mod tests {
     fn key_identifier() {
         let actual = test("key:");
 
-        let expected = Ok(vec![]);
+        let expected = Ok(vec![Spanned::new(LineToken::Key("key".into()), span(0..3))]);
 
         assert_eq!(actual, expected);
     }
@@ -187,7 +191,7 @@ mod tests {
     fn key_quoted() {
         let actual = test("\"key\":");
 
-        let expected = Ok(vec![]);
+        let expected = Ok(vec![Spanned::new(LineToken::Key("key".into()), span(0..5))]);
 
         assert_eq!(actual, expected);
     }
@@ -196,7 +200,35 @@ mod tests {
     fn list_item() {
         let actual = test("- list item");
 
-        let expected = Ok(vec![]);
+        let expected = Ok(vec![
+            Spanned::new(LineToken::ListItem, span(0..1)),
+            Spanned::new(LineToken::Value("list item".into()), span(2..11)),
+        ]);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn list_item_key_value() {
+        let actual = test("- key: value");
+
+        let expected = Ok(vec![
+            Spanned::new(LineToken::ListItem, span(0..1)),
+            Spanned::new(LineToken::Key("key".into()), span(2..5)),
+            Spanned::new(LineToken::Value("value".into()), span(7..12)),
+        ]);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn list_item_key() {
+        let actual = test("- key:");
+
+        let expected = Ok(vec![
+            Spanned::new(LineToken::ListItem, span(0..1)),
+            Spanned::new(LineToken::Key("key".into()), span(2..5)),
+        ]);
 
         assert_eq!(actual, expected);
     }
