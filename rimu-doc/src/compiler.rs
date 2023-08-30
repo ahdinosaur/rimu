@@ -33,7 +33,31 @@ pub fn compile(tokens: Vec<Token>, source: SourceId) -> Result<SpannedDoc, Vec<C
 }
 
 pub fn compiler_parser() -> impl Compiler<SpannedDoc> {
-    recursive(|expr| expr)
+    recursive(|doc| {
+        let expr = select! { Token::Value(value) => Doc::Expression(value) }
+            .then_ignore(just(Token::LineEnding));
+
+        let list_item = just(Token::ListItem).ignore_then(doc.clone());
+        let list = list_item.repeated().at_least(1).map(Doc::List);
+
+        let key = select! { Token::Key(key) => key };
+        let value_simple = expr.clone().map_with_span(Spanned::new);
+        let value_complex = just(Token::LineEnding)
+            .then(just(Token::Indent))
+            .then(doc.clone())
+            .map(|(_, d)| d);
+        let value = value_simple.or(value_complex);
+        let entry = key.then(value);
+        let entries = entry.repeated().at_least(1);
+        let object = entries
+            .then_ignore(just(Token::Dedent))
+            .map(|entries| Doc::Object(BTreeMap::from_iter(entries.into_iter())));
+
+        // TODO remove extraneous line endings (max of 1 in a row)
+
+        expr.or(list).or(object).map_with_span(Spanned::new)
+    })
+    .then_ignore(end())
 }
 
 #[cfg(test)]
@@ -63,16 +87,26 @@ mod tests {
     fn something() {
         let actual = test(vec![
             Token::Key("a".into()),
+            Token::LineEnding,
             Token::Indent,
             Token::Key("b".into()),
-            /*
-            a:
-              b:
-                - c
-                - d
-                - e: f
-              g: h
-            */
+            Token::LineEnding,
+            Token::Indent,
+            Token::ListItem,
+            Token::Value("c".into()),
+            Token::LineEnding,
+            Token::ListItem,
+            Token::Value("d".into()),
+            Token::LineEnding,
+            Token::ListItem,
+            Token::Key("e".into()),
+            Token::Value("f".into()),
+            Token::LineEnding,
+            Token::Dedent,
+            Token::Key("g".into()),
+            Token::Value("h".into()),
+            Token::LineEnding,
+            Token::Dedent,
         ]);
 
         let expected = Ok(Spanned::new(
