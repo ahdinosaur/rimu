@@ -12,20 +12,30 @@ mikey:
   website: "https://mikey.nz"
 ```
 
+#### Keys
+
+Keys must either be:
+
+##### Unquoted Key
+
+Unquoted keys are [identifiers](./expressions#Identifiers) and must conform to regex: `^[a-zA-Z_][a-zA-Z0-9_]*$`.
+
+##### Quoted Key
+
+Quoted keys can be any valid Unicode.
+
+```yaml
+"🙆": "okay!"
+```
+
 ### Lists
 
 ```yaml
 similar_projects:
-- JSON-e
-- Nickel
-- Jsonnet
+  - JSON-e
+  - Nickel
+  - Jsonnet
 ```
-
-### Keys
-
-Keys must either be
-
-### Lists
 
 ## Scalars
 

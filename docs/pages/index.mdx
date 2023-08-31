@@ -21,26 +21,60 @@ Unlike other template languages, Rimu operates on data structures, not text.
 
 ## Features
 
-- Structured: The good parts of Yaml
-- Functional: The good parts of Lisp
-- Lightweight: Able to embedded as WASM into a web page
-- Friendly error messages: Lets you know exactly what went wrong
+- Structured: The good parts of [Yaml](https://en.wikipedia.org/wiki/YAML)
+- Functional: The good parts of [Lisp](https://en.wikipedia.org/wiki/Lisp_(programming_language))
+- Friendly: The good parts of [Logo](https://en.wikipedia.org/wiki/Logo_(programming_language))
+- Lightweight embed: Able to be embedded into a web or native app
+- Helpful to debug: Error messages let you know exactly what went wrong
 - Safe with untrusted input: No arbitrary code execution or unbounded iterations
 
 ## Use cases
 
 Rimu should be suitable for any situation where you want functional data or expressive configurations.
 
-- Programmatic user data: when you want to give users a friendly and expressive sandbox for making programmatic things, almost like [Scratch](https://scratch.mit.edu/).
-- Complex configurations: when your infrastructure-as-code ([Kubernetes](https://kubernetes.io/), [Terraform](https://www.terraform.io/), [NixOps](https://github.com/NixOS/nixops)), declarative package managers ([Nix](https://nixos.org/)), or build systems ([Bazel](https://bazel.build/)) are complex enough to need functional config generation.
+- Programmatic users: when you want to give users a friendly and expressive sandbox for making programmatic things, almost like [Scratch](https://scratch.mit.edu/) or [Logo](https://en.wikipedia.org/wiki/Logo_(programming_language)).
+- Programmatic configuration: when your infrastructure-as-code ([Kubernetes](https://kubernetes.io/), [Terraform](https://www.terraform.io/), [NixOps](https://github.com/NixOS/nixops)), declarative package managers ([Nix](https://nixos.org/)), or build systems ([Bazel](https://bazel.build/)) are complex enough to need functional config generation.
 
-The "programmatic user data" case is the motivating use case for the [author](https://mikey.nz), so this may inform future developments.
+The "programmatic user data" case is the motivating use case for the author ([Mikey](https://mikey.nz) at [Village Kit](https://villagekit.com)), so this may inform future developments. If Rimu is not suitable, see [related projects](./related)
 
-## Example
+## Examples
 
-Let's say we wanted to make a mini [Salt Stack](https://docs.saltproject.io/en/getstarted/), similar to [Comtrya](https://github.com/comtrya/comtrya).
+###  Programmatic users
 
-Here's a _contrived_ example,
+Have you ever heard of turtle geometry?
+
+[![(1983) Talking Turtle (for PBS)](https://tube.arthack.nz/static/thumbnails/4aa0b733-971c-417e-8613-da86fb268e83.jpg)](https://tube.arthack.nz/videos/watch/d976a246-dd20-4441-82fe-d7c687a33a78)
+
+> Watch on [tube.arthack.nz](https://tube.arthack.nz/videos/watch/96ffe315-5d1d-426f-8abe-93d8ad925dee) or [archive.org](https://archive.org/details/NOVATalkingTurtle/NOVA.S10E11.Talking.Turtle.1983.VHSRip.AAC2.0.x264-rattera.mp4)
+
+We could implement a Logo-inspired turtle game using Rimu, where kids could move turtles with code.
+
+If we wanted to [make a star](https://www.turtleacademy.com/programs/40499):
+
+```yaml
+- setwidth: 10
+- setcolor: 4
+
+- right: 18
+- forward: 50
+
+- $map: range(5)
+  each:
+    - right: 144
+    - forward: 50
+    - left: 72
+    - forward: 50
+```
+
+Then the output is a list of commands for the turtle to execute.
+
+Now we might start to think about a better data model, how do we want users to describe their turtle actions?
+
+### Programmatic configuration
+
+Now let's say we wanted to make a mini [Salt Stack](https://docs.saltproject.io/en/getstarted/), similar to [Comtrya](https://github.com/comtrya/comtrya).
+
+Here's a (_contrived_) example,
 
 A user's template (input):
 
