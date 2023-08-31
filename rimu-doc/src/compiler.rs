@@ -20,7 +20,8 @@ pub type CompilerError = Simple<Token, Span>;
 pub trait Compiler<T>: Parser<Token, T, Error = CompilerError> + Sized + Clone {}
 impl<P, T> Compiler<T> for P where P: Parser<Token, T, Error = CompilerError> + Clone {}
 
-pub fn compile(tokens: Vec<Token>, source: SourceId) -> Result<SpannedDoc, Vec<CompilerError>> {
+#[allow(dead_code)]
+fn compile_ez(tokens: Vec<Token>, source: SourceId) -> Result<SpannedDoc, Vec<CompilerError>> {
     let len = tokens.len();
     let eoi = Span::new(source.clone(), len, len);
     compiler_parser().parse(chumsky::Stream::from_iter(
@@ -32,7 +33,17 @@ pub fn compile(tokens: Vec<Token>, source: SourceId) -> Result<SpannedDoc, Vec<C
     ))
 }
 
-pub fn compiler_parser() -> impl Compiler<SpannedDoc> {
+pub(crate) fn compile(
+    tokens: Vec<Spanned<Token>>,
+    eoi: Span,
+) -> (Option<SpannedDoc>, Vec<CompilerError>) {
+    compiler_parser().parse_recovery(chumsky::Stream::from_iter(
+        eoi,
+        tokens.into_iter().map(|token| token.take()),
+    ))
+}
+
+fn compiler_parser() -> impl Compiler<SpannedDoc> {
     recursive(|doc| {
         let eol = just(Token::EndOfLine); // .repeated().at_least(1);
 
@@ -70,14 +81,14 @@ mod tests {
 
     use crate::{compiler::Doc, lexer::Token};
 
-    use super::{compile, CompilerError, SpannedDoc};
+    use super::{compile_ez, CompilerError, SpannedDoc};
 
     fn span(range: Range<usize>) -> Span {
         Span::new(SourceId::empty(), range.start, range.end)
     }
 
     fn test(tokens: Vec<Token>) -> Result<SpannedDoc, Vec<CompilerError>> {
-        compile(tokens, SourceId::empty())
+        compile_ez(tokens, SourceId::empty())
     }
 
     #[test]

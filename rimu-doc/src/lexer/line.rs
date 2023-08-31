@@ -3,7 +3,7 @@ use rimu_report::{SourceId, Span, Spanned};
 use std::fmt;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum LineToken {
+pub(crate) enum LineToken {
     Key(String),
     ListItem,
     Value(String),
@@ -19,14 +19,15 @@ impl fmt::Display for LineToken {
     }
 }
 
-pub type SpannedLineToken = Spanned<LineToken>;
+pub(crate) type SpannedLineToken = Spanned<LineToken>;
 
 pub type LineLexerError = Simple<char, Span>;
 
-pub trait Lexer<T>: Parser<char, T, Error = LineLexerError> + Sized + Clone {}
+trait Lexer<T>: Parser<char, T, Error = LineLexerError> + Sized + Clone {}
 impl<P, T> Lexer<T> for P where P: Parser<char, T, Error = LineLexerError> + Clone {}
 
-pub fn tokenize_line(
+#[allow(dead_code)]
+fn tokenize_line_ez(
     line: &str,
     source: SourceId,
 ) -> Result<Vec<SpannedLineToken>, Vec<LineLexerError>> {
@@ -40,7 +41,17 @@ pub fn tokenize_line(
     ))
 }
 
-pub fn line_lexer_parser() -> impl Lexer<Vec<SpannedLineToken>> {
+pub(crate) fn tokenize_line(
+    tokens: Vec<Spanned<&str>>,
+    eoi: Span,
+) -> (Option<SpannedLineToken>, Vec<LineLexerError>) {
+    line_lexer_parser().parse_recovery(chumsky::Stream::from_iter(
+        eoi,
+        tokens.into_iter().map(|token| token.take()),
+    ))
+}
+
+fn line_lexer_parser() -> impl Lexer<Vec<SpannedLineToken>> {
     let space = text::whitespace();
     let colon = just(":");
     let li = just("-")
@@ -145,14 +156,14 @@ mod tests {
     use pretty_assertions::assert_eq;
     use rimu_report::SourceId;
 
-    use super::{tokenize_line, LineLexerError, LineToken, Span, Spanned, SpannedLineToken};
+    use super::{tokenize_line_ez, LineLexerError, LineToken, Span, Spanned, SpannedLineToken};
 
     fn span(range: Range<usize>) -> Span {
         Span::new(SourceId::empty(), range.start, range.end)
     }
 
     fn test(code: &str) -> Result<Vec<SpannedLineToken>, Vec<LineLexerError>> {
-        tokenize_line(code, SourceId::empty())
+        tokenize_line_ez(code, SourceId::empty())
     }
 
     /*

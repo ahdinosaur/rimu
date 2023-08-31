@@ -6,14 +6,14 @@ use line_span::{LineSpanIter, LineSpans};
 use rimu_report::{SourceId, Span, Spanned};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum LinesToken<'src> {
+pub(crate) enum LinesToken<'src> {
     Indent,
     Dedent,
     Line(&'src str),
     EndOfLine,
 }
 
-pub type SpannedLinesToken<'src> = Spanned<LinesToken<'src>>;
+pub(crate) type SpannedLinesToken<'src> = Spanned<LinesToken<'src>>;
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LinesLexerError {
