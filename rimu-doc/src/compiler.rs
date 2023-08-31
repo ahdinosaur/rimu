@@ -45,7 +45,6 @@ pub fn compiler_parser() -> impl Compiler<SpannedDoc> {
         let key = select! { Token::Key(key) => key };
         let value_simple = expr.clone().map_with_span(Spanned::new);
         let value_complex = eol
-            .clone()
             .then(just(Token::Indent))
             .then(doc.clone())
             .map(|(_, d)| d);
@@ -53,13 +52,12 @@ pub fn compiler_parser() -> impl Compiler<SpannedDoc> {
         let entry = key.then(value);
         let entries = entry.repeated().at_least(1);
         let object = entries
-            .then_ignore(just(Token::Dedent).or(just(Token::EndOfInput)))
+            .then_ignore(just(Token::Dedent).to(()).or(end()))
             .map(|entries| Doc::Object(BTreeMap::from_iter(entries.into_iter())));
 
         expr.or(list).or(object).map_with_span(Spanned::new)
     })
-    // TODO fix list test with this enabled
-    // .then_ignore(end())
+    .then_ignore(end())
 }
 
 #[cfg(test)]
@@ -94,7 +92,6 @@ mod tests {
             Token::ListItem,
             Token::Value("c".into()),
             Token::EndOfLine,
-            Token::EndOfInput,
         ]);
 
         let expected = Ok(Spanned::new(
@@ -121,7 +118,6 @@ mod tests {
             Token::Key("e".into()),
             Token::Value("f".into()),
             Token::EndOfLine,
-            Token::EndOfInput,
         ]);
 
         let expected = Ok(Spanned::new(
@@ -130,7 +126,7 @@ mod tests {
                 "c".into() => Spanned::new(Doc::Expression("d".into()), span(4..6)),
                 "e".into() => Spanned::new(Doc::Expression("f".into()), span(7..9)),
             }),
-            span(0..10),
+            span(0..9),
         ));
 
         assert_eq!(actual, expected);
@@ -160,7 +156,6 @@ mod tests {
             Token::Value("h".into()),
             Token::EndOfLine,
             Token::Dedent,
-            Token::EndOfInput,
         ]);
 
         let expected = Ok(Spanned::new(
@@ -176,7 +171,7 @@ mod tests {
                     "g".into() => Spanned::new(Doc::Expression("h".into()), span(18..20))
                 }), span(3..21)),
             }),
-            span(0..22),
+            span(0..21),
         ));
 
         assert_eq!(actual, expected);

@@ -17,7 +17,6 @@ pub enum Token {
     ListItem,
     Value(String),
     EndOfLine,
-    EndOfInput,
 }
 
 pub type SpannedToken = Spanned<Token>;
@@ -76,11 +75,6 @@ pub fn tokenize(code: &str, source: SourceId) -> (Option<Vec<SpannedToken>>, Vec
             }
         };
     }
-
-    tokens.push(Spanned::new(
-        Token::EndOfInput,
-        Span::new(source.clone(), last_span, last_span),
-    ));
 
     (Some(tokens), errors)
 }
@@ -143,7 +137,6 @@ a:
             Spanned::new(Token::Value("h".into()), span(41..42)),
             Spanned::new(Token::EndOfLine, span(42..43)),
             Spanned::new(Token::Dedent, span(43..43)),
-            Spanned::new(Token::EndOfInput, span(43..43)),
         ]);
 
         assert_eq!(actual, expected);
