@@ -1,4 +1,5 @@
 use chumsky::prelude::*;
+use chumsky::text::Character;
 use rimu_report::{SourceId, Span, Spanned};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -67,7 +68,7 @@ fn line_lexer_parser() -> impl Lexer<Vec<SpannedLineToken>> {
         .collect::<String>()
         .labelled("string");
 
-    let identifier = text::ident().labelled("identifier");
+    let identifier = ident().labelled("identifier");
 
     let key = string
         .or(identifier)
@@ -127,6 +128,16 @@ fn line_lexer_parser() -> impl Lexer<Vec<SpannedLineToken>> {
         .recover_with(skip_then_retry_until([]));
 
     token.then_ignore(end())
+}
+
+pub fn ident<C: Character, E: chumsky::Error<C>>(
+) -> impl Parser<C, C::Collection, Error = E> + Copy + Clone {
+    filter(|c: &C| c.to_char().is_ascii_alphabetic() || c.to_char() == '_' || c.to_char() == '$')
+        .map(Some)
+        .chain::<C, Vec<_>, _>(
+            filter(|c: &C| c.to_char().is_ascii_alphanumeric() || c.to_char() == '_').repeated(),
+        )
+        .collect()
 }
 
 #[cfg(test)]
