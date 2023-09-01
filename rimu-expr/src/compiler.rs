@@ -204,7 +204,7 @@ fn object_parser<'a>(
             Token::Identifier(key) => key,
             Token::String(key) => key
         }
-        .map_with_span(|key, span| Spanned::new(key, span))
+        .map_with_span(Spanned::new)
         .then(just(Token::Colon).ignore_then(expr.clone().or_not()))
         .map(|(key, value)| match value {
             Some(value) => (key, value),
