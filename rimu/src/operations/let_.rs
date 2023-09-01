@@ -1,22 +1,22 @@
 use serde::Deserialize;
 
-use super::Block;
+use super::Operation;
 use crate::{Engine, Environment, RenderError, Template, Value};
 
 #[derive(Clone, Debug, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct LetBlock {
+pub struct LetOperation {
     #[serde(rename = "$let")]
     pub variables: Box<Template>,
     #[serde(rename = "in")]
     pub body: Box<Template>,
 }
 
-impl Block for LetBlock {
-    fn render(&self, engine: &Engine, context: &Environment) -> Result<Value, RenderError> {
-        let variables = engine.render(&self.variables, context)?;
+impl Operation for LetOperation {
+    fn render(&self, engine: &Engine, env: &Environment) -> Result<Value, RenderError> {
+        let variables = engine.render(&self.variables, env)?;
 
-        let context = Environment::from_value(&variables, Some(context))?;
+        let context = Environment::from_value(&variables, Some(env))?;
 
         engine.render(&self.body, &context)
     }

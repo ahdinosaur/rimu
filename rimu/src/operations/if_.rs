@@ -1,11 +1,11 @@
 use serde::Deserialize;
 
-use super::Block;
+use super::Operation;
 use crate::{Engine, Environment, RenderError, Template, Value};
 
 #[derive(Clone, Debug, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct IfBlock {
+pub struct IfOperation {
     #[serde(rename = "$if")]
     pub condition: Box<Template>,
     #[serde(rename = "then")]
@@ -14,25 +14,25 @@ pub struct IfBlock {
     pub alternative: Option<Box<Template>>,
 }
 
-impl Block for IfBlock {
-    fn render(&self, engine: &Engine, context: &Environment) -> Result<Value, RenderError> {
-        let condition = engine.render(&self.condition, context)?;
+impl Operation for IfOperation {
+    fn render(&self, engine: &Engine, env: &Environment) -> Result<Value, RenderError> {
+        let condition = engine.render(&self.condition, env)?;
 
         let value: Value = if let Value::String(condition) = condition {
-            engine.evaluate(&condition, context)?
+            engine.evaluate(&condition, env)?
         } else {
             condition
         };
 
         if Into::<bool>::into(value) {
             if let Some(consequent) = &self.consequent {
-                engine.render(consequent, context)
+                engine.render(consequent, env)
             } else {
                 Ok(Value::Null)
             }
         } else {
             if let Some(alternative) = &self.alternative {
-                engine.render(alternative, context)
+                engine.render(alternative, env)
             } else {
                 Ok(Value::Null)
             }

@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use serde::Deserialize;
 
 use crate::{
-    blocks::{find_block_key, parse_block, unescape_non_block_key, Blocks},
+    operations::{find_operator, parse_operation, unescape_non_operation_key, Operations},
     Number, ParseError, Value,
 };
 
@@ -19,7 +19,7 @@ pub enum Template {
     Number(Number),
     List(List),
     Object(Object),
-    Block(Blocks),
+    Operation(Operations),
 }
 
 impl TryFrom<Value> for Template {
@@ -39,13 +39,13 @@ impl TryFrom<Value> for Template {
                 Ok(Template::List(next_list))
             }
             Value::Object(object) => {
-                if let Some(block_key) = find_block_key(&object)? {
-                    return Ok(Template::Block(parse_block(&block_key, &object)?));
+                if let Some(operator) = find_operator(&object)? {
+                    return Ok(Template::Operation(parse_operation(&operator, &object)?));
                 }
 
                 let mut next_object = BTreeMap::new();
                 for (key, value) in object.into_iter() {
-                    let key = unescape_non_block_key(&key).to_owned();
+                    let key = unescape_non_operation_key(&key).to_owned();
                     next_object.insert(key, value.try_into()?);
                 }
                 Ok(Template::Object(next_object))
@@ -62,7 +62,7 @@ mod tests {
     use std::error::Error;
 
     use crate::{
-        blocks::{Blocks, EvalBlock},
+        operations::{EvalOperation, Operations},
         Template, Value,
     };
 
@@ -78,8 +78,8 @@ three:
 "#;
 
         let expected = Template::Object(btree_map! {
-            "zero".into() => Template::Block(
-                Blocks::Eval(EvalBlock {
+            "zero".into() => Template::Operation(
+                Operations::Eval(EvalOperation {
                     expr: "one + 2".into()
                 })
             ),
