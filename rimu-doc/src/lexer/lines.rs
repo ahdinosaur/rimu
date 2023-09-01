@@ -169,7 +169,7 @@ impl<'src> LinesLexer<'src> {
     }
 }
 
-pub fn tokenize_lines(code: &str, source_id: SourceId) -> Result<Vec<SpannedLinesToken>> {
+pub(crate) fn tokenize_lines(code: &str, source_id: SourceId) -> Result<Vec<SpannedLinesToken>> {
     LinesLexer::new(code, source_id).tokenize()
 }
 

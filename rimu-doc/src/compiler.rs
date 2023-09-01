@@ -2,7 +2,7 @@ use chumsky::prelude::*;
 
 use std::collections::BTreeMap;
 
-use rimu_report::{SourceId, Span, Spanned};
+use rimu_report::{Span, Spanned};
 
 use crate::lexer::Token;
 
@@ -17,21 +17,11 @@ pub type SpannedDoc = Spanned<Doc>;
 
 pub type CompilerError = Simple<Token, Span>;
 
-pub trait Compiler<T>: Parser<Token, T, Error = CompilerError> + Sized + Clone {}
-impl<P, T> Compiler<T> for P where P: Parser<Token, T, Error = CompilerError> + Clone {}
-
-#[allow(dead_code)]
-fn compile_ez(tokens: Vec<Token>, source: SourceId) -> Result<SpannedDoc, Vec<CompilerError>> {
-    let len = tokens.len();
-    let eoi = Span::new(source.clone(), len, len);
-    compiler_parser().parse(chumsky::Stream::from_iter(
-        eoi,
-        tokens
-            .into_iter()
-            .enumerate()
-            .map(|(i, c)| (c, Span::new(source.clone(), i, i + 1))),
-    ))
+pub(crate) trait Compiler<T>:
+    Parser<Token, T, Error = CompilerError> + Sized + Clone
+{
 }
+impl<P, T> Compiler<T> for P where P: Parser<Token, T, Error = CompilerError> + Clone {}
 
 pub(crate) fn compile(
     tokens: Vec<Spanned<Token>>,
@@ -75,20 +65,30 @@ fn compiler_parser() -> impl Compiler<SpannedDoc> {
 mod tests {
     use std::ops::Range;
 
+    use chumsky::Parser;
     use map_macro::btree_map;
     use pretty_assertions::assert_eq;
     use rimu_report::{SourceId, Span, Spanned};
 
     use crate::{compiler::Doc, lexer::Token};
 
-    use super::{compile_ez, CompilerError, SpannedDoc};
+    use super::{compiler_parser, CompilerError, SpannedDoc};
 
     fn span(range: Range<usize>) -> Span {
         Span::new(SourceId::empty(), range.start, range.end)
     }
 
     fn test(tokens: Vec<Token>) -> Result<SpannedDoc, Vec<CompilerError>> {
-        compile_ez(tokens, SourceId::empty())
+        let source = SourceId::empty();
+        let len = tokens.len();
+        let eoi = Span::new(source.clone(), len, len);
+        compiler_parser().parse(chumsky::Stream::from_iter(
+            eoi,
+            tokens
+                .into_iter()
+                .enumerate()
+                .map(|(i, c)| (c, Span::new(source.clone(), i, i + 1))),
+        ))
     }
 
     #[test]

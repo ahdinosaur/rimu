@@ -1,8 +1,7 @@
-use chumsky::Parser;
-use rimu_report::{SourceId, Span, Spanned};
+use rimu_report::{SourceId, Spanned};
 
 use self::{
-    line::{line_lexer_parser, LineLexerError, LineToken},
+    line::{tokenize_line, LineLexerError, LineToken},
     lines::{tokenize_lines, LinesLexerError, LinesToken},
 };
 
@@ -19,7 +18,7 @@ pub enum Token {
     EndOfLine,
 }
 
-pub type SpannedToken = Spanned<Token>;
+pub(crate) type SpannedToken = Spanned<Token>;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum LexerError {
@@ -27,7 +26,10 @@ pub enum LexerError {
     Line(LineLexerError),
 }
 
-pub fn tokenize(code: &str, source: SourceId) -> (Option<Vec<SpannedToken>>, Vec<LexerError>) {
+pub(crate) fn tokenize(
+    code: &str,
+    source: SourceId,
+) -> (Option<Vec<SpannedToken>>, Vec<LexerError>) {
     let lines_tokens = match tokenize_lines(code, source.clone()) {
         Ok(lines_tokens) => lines_tokens,
         Err(lines_lexer_error) => return (None, vec![LexerError::Lines(lines_lexer_error)]),
@@ -35,29 +37,17 @@ pub fn tokenize(code: &str, source: SourceId) -> (Option<Vec<SpannedToken>>, Vec
 
     let mut tokens = vec![];
     let mut errors = vec![];
-    let mut last_span: usize = 0;
 
     for lines_token in lines_tokens {
         let (lines_token, span) = lines_token.take();
-
-        last_span = span.clone().end();
 
         match lines_token {
             LinesToken::Indent => tokens.push(Spanned::new(Token::Indent, span)),
             LinesToken::Dedent => tokens.push(Spanned::new(Token::Dedent, span)),
             LinesToken::EndOfLine => tokens.push(Spanned::new(Token::EndOfLine, span)),
             LinesToken::Line(line) => {
-                let eoi = Span::new(source.clone(), span.end(), span.end());
-                let (line_tokens, line_lexer_errors) =
-                    line_lexer_parser().parse_recovery(chumsky::Stream::from_iter(
-                        eoi,
-                        line.chars().enumerate().map(|(i, c)| {
-                            (
-                                c,
-                                Span::new(source.clone(), span.start() + i, span.start() + i + 1),
-                            )
-                        }),
-                    ));
+                let spanned_line = Spanned::new(line, span);
+                let (line_tokens, line_lexer_errors) = tokenize_line(spanned_line, source.clone());
                 if let Some(line_tokens) = line_tokens {
                     for line_token in line_tokens {
                         let (line_token, span) = line_token.take();
@@ -85,9 +75,9 @@ mod tests {
     use std::ops::Range;
 
     use pretty_assertions::assert_eq;
-    use rimu_report::SourceId;
+    use rimu_report::{SourceId, Span, Spanned};
 
-    use super::{tokenize, LexerError, Span, Spanned, SpannedToken, Token};
+    use super::{tokenize, LexerError, SpannedToken, Token};
 
     fn span(range: Range<usize>) -> Span {
         Span::new(SourceId::empty(), range.start, range.end)

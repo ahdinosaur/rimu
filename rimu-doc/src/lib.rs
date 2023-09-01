@@ -22,7 +22,7 @@
 // - list
 // - expression: string
 
-use compiler::{compile_spanned, CompilerError, SpannedDoc};
+use compiler::{compile, CompilerError, SpannedDoc};
 use lexer::{tokenize, LexerError};
 use rimu_report::{SourceId, Span};
 
@@ -47,7 +47,7 @@ pub fn parse(code: &str, source: SourceId) -> (Option<SpannedDoc>, Vec<Error>) {
         return (None, errors);
     };
 
-    let (output, compile_errors) = compile_spanned(tokens, eoi);
+    let (output, compile_errors) = compile(tokens, eoi);
     errors.append(&mut compile_errors.into_iter().map(Error::Compiler).collect());
 
     (output, errors)

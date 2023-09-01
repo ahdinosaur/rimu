@@ -1,22 +1,11 @@
 use chumsky::prelude::*;
 use rimu_report::{SourceId, Span, Spanned};
-use std::fmt;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) enum LineToken {
     Key(String),
     ListItem,
     Value(String),
-}
-
-impl fmt::Display for LineToken {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            LineToken::Key(_) => todo!(),
-            LineToken::ListItem => todo!(),
-            LineToken::Value(_) => todo!(),
-        }
-    }
 }
 
 pub(crate) type SpannedLineToken = Spanned<LineToken>;
@@ -26,28 +15,20 @@ pub type LineLexerError = Simple<char, Span>;
 trait Lexer<T>: Parser<char, T, Error = LineLexerError> + Sized + Clone {}
 impl<P, T> Lexer<T> for P where P: Parser<char, T, Error = LineLexerError> + Clone {}
 
-#[allow(dead_code)]
-fn tokenize_line_ez(
-    line: &str,
-    source: SourceId,
-) -> Result<Vec<SpannedLineToken>, Vec<LineLexerError>> {
-    let len = line.chars().count();
-    let eoi = Span::new(source.clone(), len, len);
-    line_lexer_parser().parse(chumsky::Stream::from_iter(
-        eoi,
-        line.chars()
-            .enumerate()
-            .map(|(i, c)| (c, Span::new(source.clone(), i, i + 1))),
-    ))
-}
-
 pub(crate) fn tokenize_line(
-    tokens: Vec<Spanned<&str>>,
-    eoi: Span,
-) -> (Option<SpannedLineToken>, Vec<LineLexerError>) {
+    spanned_line: Spanned<&str>,
+    source: SourceId,
+) -> (Option<Vec<SpannedLineToken>>, Vec<LineLexerError>) {
+    let (line, span) = spanned_line.take();
+    let eoi = Span::new(source.clone(), span.end(), span.end());
     line_lexer_parser().parse_recovery(chumsky::Stream::from_iter(
         eoi,
-        tokens.into_iter().map(|token| token.take()),
+        line.chars().enumerate().map(|(i, c)| {
+            (
+                c,
+                Span::new(source.clone(), span.start() + i, span.start() + i + 1),
+            )
+        }),
     ))
 }
 
@@ -153,17 +134,26 @@ mod tests {
 
     use std::ops::Range;
 
+    use chumsky::Parser;
     use pretty_assertions::assert_eq;
     use rimu_report::SourceId;
 
-    use super::{tokenize_line_ez, LineLexerError, LineToken, Span, Spanned, SpannedLineToken};
+    use super::{line_lexer_parser, LineLexerError, LineToken, Span, Spanned, SpannedLineToken};
 
     fn span(range: Range<usize>) -> Span {
         Span::new(SourceId::empty(), range.start, range.end)
     }
 
-    fn test(code: &str) -> Result<Vec<SpannedLineToken>, Vec<LineLexerError>> {
-        tokenize_line_ez(code, SourceId::empty())
+    fn test(line: &str) -> Result<Vec<SpannedLineToken>, Vec<LineLexerError>> {
+        let source = SourceId::empty();
+        let len = line.chars().count();
+        let eoi = Span::new(source.clone(), len, len);
+        line_lexer_parser().parse(chumsky::Stream::from_iter(
+            eoi,
+            line.chars()
+                .enumerate()
+                .map(|(i, c)| (c, Span::new(source.clone(), i, i + 1))),
+        ))
     }
 
     /*
