@@ -22,7 +22,7 @@
 // - list
 // - expression: string
 
-use compiler::{compile, CompilerError, SpannedDoc};
+use compiler::{compile, CompilerError, SpannedBlock};
 use lexer::{tokenize, LexerError};
 use rimu_report::{SourceId, Span};
 
@@ -34,7 +34,7 @@ pub enum Error {
     Compiler(CompilerError),
 }
 
-pub fn parse(code: &str, source: SourceId) -> (Option<SpannedDoc>, Vec<Error>) {
+pub fn parse(code: &str, source: SourceId) -> (Option<SpannedBlock>, Vec<Error>) {
     let mut errors = Vec::new();
 
     let len = code.chars().count();

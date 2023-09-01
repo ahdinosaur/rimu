@@ -7,13 +7,13 @@ use rimu_report::{Span, Spanned};
 use crate::lexer::Token;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Doc {
-    Object(BTreeMap<String, SpannedDoc>),
-    List(Vec<SpannedDoc>),
+pub enum Block {
+    Object(BTreeMap<String, SpannedBlock>),
+    List(Vec<SpannedBlock>),
     Expression(String),
 }
 
-pub type SpannedDoc = Spanned<Doc>;
+pub type SpannedBlock = Spanned<Block>;
 
 pub type CompilerError = Simple<Token, Span>;
 
@@ -26,22 +26,22 @@ impl<P, T> Compiler<T> for P where P: Parser<Token, T, Error = CompilerError> + 
 pub(crate) fn compile(
     tokens: Vec<Spanned<Token>>,
     eoi: Span,
-) -> (Option<SpannedDoc>, Vec<CompilerError>) {
+) -> (Option<SpannedBlock>, Vec<CompilerError>) {
     compiler_parser().parse_recovery(chumsky::Stream::from_iter(
         eoi,
         tokens.into_iter().map(|token| token.take()),
     ))
 }
 
-fn compiler_parser() -> impl Compiler<SpannedDoc> {
+fn compiler_parser() -> impl Compiler<SpannedBlock> {
     recursive(|doc| {
         let eol = just(Token::EndOfLine); // .repeated().at_least(1);
 
         let expr =
-            select! { Token::Value(value) => Doc::Expression(value) }.then_ignore(eol.clone());
+            select! { Token::Value(value) => Block::Expression(value) }.then_ignore(eol.clone());
 
         let list_item = just(Token::ListItem).ignore_then(doc.clone());
-        let list = list_item.repeated().at_least(1).map(Doc::List);
+        let list = list_item.repeated().at_least(1).map(Block::List);
 
         let key = select! { Token::Key(key) => key };
         let value_simple = expr.clone().map_with_span(Spanned::new);
@@ -54,7 +54,7 @@ fn compiler_parser() -> impl Compiler<SpannedDoc> {
         let entries = entry.repeated().at_least(1);
         let object = entries
             .then_ignore(just(Token::Dedent).to(()).or(end()))
-            .map(|entries| Doc::Object(BTreeMap::from_iter(entries.into_iter())));
+            .map(|entries| Block::Object(BTreeMap::from_iter(entries.into_iter())));
 
         expr.or(list).or(object).map_with_span(Spanned::new)
     })
@@ -70,15 +70,15 @@ mod tests {
     use pretty_assertions::assert_eq;
     use rimu_report::{SourceId, Span, Spanned};
 
-    use crate::{compiler::Doc, lexer::Token};
+    use crate::{compiler::Block, lexer::Token};
 
-    use super::{compiler_parser, CompilerError, SpannedDoc};
+    use super::{compiler_parser, CompilerError, SpannedBlock};
 
     fn span(range: Range<usize>) -> Span {
         Span::new(SourceId::empty(), range.start, range.end)
     }
 
-    fn test(tokens: Vec<Token>) -> Result<SpannedDoc, Vec<CompilerError>> {
+    fn test(tokens: Vec<Token>) -> Result<SpannedBlock, Vec<CompilerError>> {
         let source = SourceId::empty();
         let len = tokens.len();
         let eoi = Span::new(source.clone(), len, len);
@@ -106,10 +106,10 @@ mod tests {
         ]);
 
         let expected = Ok(Spanned::new(
-            Doc::List(vec![
-                Spanned::new(Doc::Expression("a".into()), span(1..3)),
-                Spanned::new(Doc::Expression("b".into()), span(4..6)),
-                Spanned::new(Doc::Expression("c".into()), span(7..9)),
+            Block::List(vec![
+                Spanned::new(Block::Expression("a".into()), span(1..3)),
+                Spanned::new(Block::Expression("b".into()), span(4..6)),
+                Spanned::new(Block::Expression("c".into()), span(7..9)),
             ]),
             span(0..9),
         ));
@@ -132,10 +132,10 @@ mod tests {
         ]);
 
         let expected = Ok(Spanned::new(
-            Doc::Object(btree_map! {
-                "a".into() => Spanned::new(Doc::Expression("b".into()), span(1..3)),
-                "c".into() => Spanned::new(Doc::Expression("d".into()), span(4..6)),
-                "e".into() => Spanned::new(Doc::Expression("f".into()), span(7..9)),
+            Block::Object(btree_map! {
+                "a".into() => Spanned::new(Block::Expression("b".into()), span(1..3)),
+                "c".into() => Spanned::new(Block::Expression("d".into()), span(4..6)),
+                "e".into() => Spanned::new(Block::Expression("f".into()), span(7..9)),
             }),
             span(0..9),
         ));
@@ -170,16 +170,16 @@ mod tests {
         ]);
 
         let expected = Ok(Spanned::new(
-            Doc::Object(btree_map! {
-                "a".into() => Spanned::new(Doc::Object(btree_map! {
-                    "b".into() => Spanned::new(Doc::List(vec![
-                        Spanned::new(Doc::Expression("c".into()), span(7..9)),
-                        Spanned::new(Doc::Expression("d".into()), span(10..12)),
-                        Spanned::new(Doc::Object(btree_map! {
-                            "e".into() => Spanned::new(Doc::Expression("f".into()), span(14..16)),
+            Block::Object(btree_map! {
+                "a".into() => Spanned::new(Block::Object(btree_map! {
+                    "b".into() => Spanned::new(Block::List(vec![
+                        Spanned::new(Block::Expression("c".into()), span(7..9)),
+                        Spanned::new(Block::Expression("d".into()), span(10..12)),
+                        Spanned::new(Block::Object(btree_map! {
+                            "e".into() => Spanned::new(Block::Expression("f".into()), span(14..16)),
                         }), span(13..17))
                     ]), span(6..17)),
-                    "g".into() => Spanned::new(Doc::Expression("h".into()), span(18..20))
+                    "g".into() => Spanned::new(Block::Expression("h".into()), span(18..20))
                 }), span(3..21)),
             }),
             span(0..21),

@@ -3,7 +3,7 @@ members = [
     "rimu",
     "rimu-report",
     "rimu-expr",
-    "rimu-doc",
+    "rimu-block",
     "rimu-value",
     "rimu-env",
     "rimu-eval",
