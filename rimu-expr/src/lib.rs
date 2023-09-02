@@ -6,7 +6,6 @@ mod error;
 mod expression;
 mod lexer;
 mod operator;
-mod token;
 
 use chumsky::Parser;
 use rimu_report::{SourceId, Span, Spanned};
@@ -16,7 +15,7 @@ pub use self::error::Error;
 pub use self::expression::{Expression, SpannedExpression};
 pub use self::lexer::{lexer_parser, tokenize, LexerError};
 pub use self::operator::{BinaryOperator, UnaryOperator};
-pub use self::token::{SpannedToken, Token};
+pub use rimu_token::{SpannedToken, Token};
 
 pub fn parse(code: &str, source: SourceId) -> (Option<SpannedExpression>, Vec<Error>) {
     let lexer = lexer_parser();

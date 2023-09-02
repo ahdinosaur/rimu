@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+use rimu_expr::Expression;
 use rimu_report::Spanned;
 
 use crate::operation::Operation;
@@ -8,7 +9,7 @@ use crate::operation::Operation;
 pub enum Block {
     Object(BTreeMap<Spanned<String>, SpannedBlock>),
     List(Vec<SpannedBlock>),
-    Expression(String),
+    Expression(Expression),
     Operation(Box<Operation>),
 }
 

@@ -114,7 +114,7 @@ pub fn compiler_parser() -> impl Compiler<SpannedExpression> {
 
         or
     })
-    .then_ignore(end())
+    // .then_ignore(just(Token::EndOfLine).to(()).or(end()))
 }
 
 fn atom_parser<'a>(

@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 rust_decimal = "1.31.0"
 rimu-report = { path = "../rimu-report" }
+rimu-token = { path = "../rimu-token" }
 chumsky = "0.9.2"
 thiserror = "1.0.44"
 ariadne = "0.3.0"

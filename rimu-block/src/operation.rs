@@ -25,17 +25,19 @@ pub enum Operation {
     },
 }
 
-pub(crate) fn find_operator<Value>(object: BTreeMap<Spanned<String>, Value>) -> String {
+pub(crate) fn find_operator<Value>(object: BTreeMap<Spanned<String>, Value>) -> Option<String> {
     for key in object.keys() {
-        let (key, span) = key.take();
+        let key = key.inner();
         let mut chars = key.chars();
         let is_op = chars.next() == Some('$') && chars.next() != Some('$');
         if is_op {
-            return key.clone();
+            return Some(key.clone());
         }
     }
-    false
+    None
 }
+
+/*
 pub(crate) fn parse_operation(
     operator: String,
     object: Spanned<BTreeMap<Spanned<String>, Spanned<Block>>>,
@@ -51,6 +53,7 @@ pub(crate) fn parse_operation(
         }
     }
 }
+*/
 
 pub(crate) fn unescape_non_operation_key(key: &str) -> &str {
     if key.starts_with("$$") {

@@ -24,7 +24,7 @@
 
 use rimu_report::{SourceId, Span};
 
-use crate::block::{Block, SpannedBlock};
+use crate::block::SpannedBlock;
 use crate::compiler::{compile, CompilerError};
 use crate::lexer::{tokenize, LexerError};
 
