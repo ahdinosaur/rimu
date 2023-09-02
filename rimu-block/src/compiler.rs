@@ -6,7 +6,10 @@ use rimu_expr::{compiler_parser as expr_compiler_parser, CompilerError as ExprCo
 use rimu_report::{Span, Spanned};
 use rimu_token::{SpannedToken, Token};
 
-use crate::block::{Block, SpannedBlock};
+use crate::{
+    block::{Block, SpannedBlock},
+    operation::{find_operator, parse_operation, unescape_non_operation_key},
+};
 
 pub type CompilerError = Simple<Token, Span>;
 
@@ -57,13 +60,21 @@ fn compiler_parser() -> impl Compiler<SpannedBlock> {
         let entries = entry.repeated().at_least(1);
         let object = entries
             .then_ignore(just(Token::Dedent).to(()).or(end()))
-            .map(|entries| {
-                /*
-                let unspanned_keys = vec![];
-                let spanned_keys = vec![];
-                let obj = Block::Object(BTreeMap::from_iter(entries.into_iter()))
-                */
-                Block::Object(BTreeMap::from_iter(entries.into_iter()))
+            .map(|entries| BTreeMap::from_iter(entries.into_iter()))
+            .try_map(|object, span| {
+                if let Some(operator) = find_operator(&object) {
+                    return Ok(Block::Operation(Box::new(parse_operation(
+                        operator, object, span,
+                    )?)));
+                }
+
+                let mut next_object = BTreeMap::new();
+                for (key, value) in object.into_iter() {
+                    let (key, key_span) = key.take();
+                    let key = unescape_non_operation_key(&key).to_owned();
+                    next_object.insert(Spanned::new(key, key_span), value);
+                }
+                Ok(Block::Object(next_object))
             })
             .boxed();
 
