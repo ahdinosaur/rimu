@@ -94,7 +94,7 @@ mod tests {
     use rimu_report::{SourceId, Span, Spanned};
     use rimu_token::Token;
 
-    use crate::compiler::Block;
+    use crate::{compiler::Block, operation::Operation};
 
     use super::{compiler_parser, CompilerError, SpannedBlock};
 
@@ -239,6 +239,44 @@ mod tests {
                 }), span(4..25)),
             }),
             span(0..25),
+        ));
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn operation_if() {
+        let actual = test(vec![
+            Token::Identifier("$if".into()),
+            Token::Colon,
+            Token::Identifier("ready".into()),
+            Token::EndOfLine,
+            Token::Identifier("then".into()),
+            Token::Colon,
+            Token::Identifier("go".into()),
+            Token::EndOfLine,
+            Token::Identifier("else".into()),
+            Token::Colon,
+            Token::Identifier("stay".into()),
+            Token::EndOfLine,
+        ]);
+
+        let expected = Ok(Spanned::new(
+            Block::Operation(Box::new(Operation::If {
+                condition: Spanned::new(
+                    Block::Expression(Expression::Identifier("ready".into())),
+                    span(2..3),
+                ),
+                consequent: Some(Spanned::new(
+                    Block::Expression(Expression::Identifier("go".into())),
+                    span(6..7),
+                )),
+                alternative: Some(Spanned::new(
+                    Block::Expression(Expression::Identifier("stay".into())),
+                    span(10..11),
+                )),
+            })),
+            span(0..12),
         ));
 
         assert_eq!(actual, expected);
