@@ -54,6 +54,10 @@ pub fn parse(code: &str, source: SourceId) -> (Option<SpannedBlock>, Vec<Error>)
         return (None, errors);
     };
 
+    for token in &tokens {
+        println!("token: {:?}", token.inner());
+    }
+
     let (output, compile_errors) = compile(tokens, eoi);
     errors.append(&mut compile_errors.into_iter().map(Error::Compiler).collect());
 

@@ -41,9 +41,6 @@ fn compiler_parser() -> impl Compiler<SpannedBlock> {
             })
             .then_ignore(eol.clone());
 
-        let list_item = just(Token::Minus).ignore_then(block.clone());
-        let list = list_item.repeated().at_least(1).map(Block::List).boxed();
-
         let key = select! {
             Token::String(key) => key,
             Token::Identifier(key) => key
@@ -57,29 +54,56 @@ fn compiler_parser() -> impl Compiler<SpannedBlock> {
             .map(|(_, d)| d);
         let value = value_simple.or(value_complex);
         let entry = key.then(value);
-        let entries = entry.repeated().at_least(1);
+        let entries = entry.clone().repeated().at_least(1);
         let object = entries
+            .clone()
             .then_ignore(just(Token::Dedent).to(()).or(end()))
-            .try_map(|entries, span| {
-                if let Some(operator) = find_operator(&entries) {
-                    return Ok(Block::Operation(Box::new(parse_operation(
-                        operator, entries, span,
-                    )?)));
-                }
-
-                let mut next_entries = Vec::new();
-                for (key, value) in entries.into_iter() {
-                    let (key, key_span) = key.take();
-                    let key = unescape_non_operation_key(&key).to_owned();
-                    next_entries.push((Spanned::new(key, key_span), value));
-                }
-                Ok(Block::Object(next_entries))
-            })
+            .try_map(parse_object_entries)
             .boxed();
+
+        let list_item_object_multi = just(Token::Minus)
+            .ignore_then(entry.clone())
+            .then_ignore(just(Token::Indent))
+            .then(entries.clone())
+            .then_ignore(just(Token::Dedent))
+            .map(|(entry, mut entries)| {
+                let mut ret = Vec::with_capacity(entries.len() + 1);
+                ret.push(entry);
+                ret.append(&mut entries);
+                ret
+            })
+            .try_map(parse_object_entries)
+            .map_with_span(Spanned::new)
+            .boxed();
+        let list_item_simple = just(Token::Minus).ignore_then(block.clone()).boxed();
+        let list_item = list_item_object_multi.or(list_item_simple);
+        let list = list_item.repeated().at_least(1).map(Block::List).boxed();
+
+        // NOTE: is the problem a precedence issue?
+        // when there is a dedent, who captures this, the list or object?
 
         list.or(object).map_with_span(Spanned::new).or(expr).boxed()
     })
     .then_ignore(end())
+}
+
+fn parse_object_entries(
+    entries: Vec<(Spanned<String>, SpannedBlock)>,
+    span: Span,
+) -> Result<Block, CompilerError> {
+    if let Some(operator) = find_operator(&entries) {
+        return Ok(Block::Operation(Box::new(parse_operation(
+            operator, entries, span,
+        )?)));
+    }
+
+    let mut next_entries = Vec::new();
+    for (key, value) in entries.into_iter() {
+        let (key, key_span) = key.take();
+        let key = unescape_non_operation_key(&key).to_owned();
+        next_entries.push((Spanned::new(key, key_span), value));
+    }
+    Ok(Block::Object(next_entries))
 }
 
 #[cfg(test)]
@@ -87,7 +111,6 @@ mod tests {
     use std::ops::Range;
 
     use chumsky::Parser;
-    use map_macro::btree_map;
     use pretty_assertions::assert_eq;
     use rimu_expr::Expression;
     use rimu_report::{SourceId, Span, Spanned};
@@ -197,7 +220,7 @@ mod tests {
     }
 
     #[test]
-    fn something() {
+    fn misc() {
         let actual = test(vec![
             Token::Identifier("a".into()),
             Token::Colon,
@@ -272,6 +295,54 @@ mod tests {
             )]),
             span(0..25),
         ));
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn multi_entry_object_in_list_in_object() {
+        //
+        // a:
+        //   - b: c
+        //     d: e
+        //   - f: g
+        //     h: i
+        // j: k
+        //
+        let actual = test(vec![
+            Token::Identifier("a".into()),
+            Token::Colon,
+            Token::EndOfLine,
+            Token::Indent,
+            Token::Minus,
+            Token::Identifier("b".into()),
+            Token::Colon,
+            Token::Identifier("c".into()),
+            Token::EndOfLine,
+            Token::Indent,
+            Token::Identifier("d".into()),
+            Token::Colon,
+            Token::Identifier("e".into()),
+            Token::EndOfLine,
+            Token::Dedent,
+            Token::Minus,
+            Token::Identifier("f".into()),
+            Token::Colon,
+            Token::Identifier("g".into()),
+            Token::EndOfLine,
+            Token::Identifier("h".into()),
+            Token::Colon,
+            Token::Identifier("i".into()),
+            Token::EndOfLine,
+            Token::Dedent,
+            Token::Dedent,
+            Token::Identifier("j".into()),
+            Token::Colon,
+            Token::Identifier("k".into()),
+            Token::EndOfLine,
+        ]);
+
+        let expected = Ok(Spanned::new(Block::Object(vec![]), span(0..1)));
 
         assert_eq!(actual, expected);
     }
