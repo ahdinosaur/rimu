@@ -57,6 +57,7 @@ pub fn lexer_parser() -> impl Lexer<Vec<SpannedToken>> {
         )
         .labelled("escape");
 
+    // TODO parse string interpolations
     let string = just('"')
         .ignore_then(filter(|c| *c != '\\' && *c != '"').or(escape).repeated())
         .then_ignore(just('"'))

@@ -31,58 +31,63 @@ impl<'a> Evaluator<'a> {
 
     fn expression(&self, expr: &SpannedExpression) -> Result<(Value, Span), EvalError> {
         let span = expr.span();
+        let span_ret = span.clone();
+
         let value = match expr.inner() {
             Expression::Null => Value::Null,
 
             Expression::Boolean(boolean) => Value::Boolean(*boolean),
 
-            Expression::String(string) => Value::String(string.clone()),
+            Expression::String(string) => self.string(span, string)?,
 
             Expression::Number(decimal) => Value::Number(Into::<Number>::into(*decimal)),
 
-            Expression::List(ref items) => self.list(span.clone(), items)?,
+            Expression::List(ref items) => self.list(span, items)?,
 
-            Expression::Object(ref entries) => self.object(span.clone(), entries)?,
+            Expression::Object(ref entries) => self.object(span, entries)?,
 
-            Expression::Identifier(var) => self.variable(span.clone(), var)?,
+            Expression::Identifier(var) => self.variable(span, var)?,
 
             Expression::Unary {
                 ref right,
                 ref operator,
-            } => self.unary(span.clone(), right, operator)?,
+            } => self.unary(span, right, operator)?,
 
             Expression::Binary {
                 ref left,
                 ref right,
                 ref operator,
-            } => self.binary(span.clone(), left, operator, right)?,
+            } => self.binary(span, left, operator, right)?,
 
             Expression::Call {
                 ref function,
                 ref args,
-            } => self.call(span.clone(), function, args)?,
+            } => self.call(span, function, args)?,
 
-            Expression::GetIndex { container, index } => {
-                self.get_index(span.clone(), container, index)?
-            }
+            Expression::GetIndex { container, index } => self.get_index(span, container, index)?,
 
-            Expression::GetKey { container, key } => self.get_key(span.clone(), container, key)?,
+            Expression::GetKey { container, key } => self.get_key(span, container, key)?,
 
             Expression::GetSlice {
                 container,
                 ref start,
                 ref end,
             } => self.get_slice(
-                span.clone(),
+                span,
                 container,
                 start.as_ref().map(|s| s.deref()),
                 end.as_ref().map(|e| e.deref()),
             )?,
 
-            Expression::Error => Err(EvalError::ErrorExpression { span: span.clone() })?,
+            Expression::Error => Err(EvalError::ErrorExpression { span })?,
         };
 
-        Ok((value, span))
+        Ok((value, span_ret))
+    }
+
+    fn string(&self, _span: Span, string: &str) -> Result<Value, EvalError> {
+        // TODO handle string interpolations
+        Ok(Value::String(string.to_string()))
     }
 
     fn unary(

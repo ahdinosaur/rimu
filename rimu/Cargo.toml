@@ -12,22 +12,13 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-lazy_static = "1.4.0"
-regex = "1.9.1"
 rimu-report = { path = "../rimu-report" }
+rimu-expr = { path = "../rimu-expr" }
+rimu-block = { path = "../rimu-block" }
 rimu-value = { path = "../rimu-value" }
 rimu-env = { path = "../rimu-env" }
 rimu-eval = { path = "../rimu-eval" }
-rimu-expr = { path = "../rimu-expr" }
-rust_decimal = "1.31.0"
-rust_decimal_macros = "1.31.0"
-serde = { version = "1.0.174", features = ["derive"] }
-thiserror = "1.0.44"
-normalize-path = "0.2.1"
 
 [dev-dependencies]
 pretty_assertions = "1.4.0"
-map-macro = "0.2.6"
-serde_json = "1.0.103"
 serde_yaml = "0.9.25"
-toml = "0.7.6"
