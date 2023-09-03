@@ -25,8 +25,8 @@ pub enum Operation {
     },
 }
 
-pub(crate) fn find_operator<Value>(object: &BTreeMap<Spanned<String>, Value>) -> Option<String> {
-    for key in object.keys() {
+pub(crate) fn find_operator<Value>(entries: &[(Spanned<String>, Value)]) -> Option<String> {
+    for (key, _) in entries.iter() {
         let key = key.inner();
         let mut chars = key.chars();
         let is_op = chars.next() == Some('$') && chars.next() != Some('$');
@@ -39,11 +39,11 @@ pub(crate) fn find_operator<Value>(object: &BTreeMap<Spanned<String>, Value>) ->
 
 pub(crate) fn parse_operation(
     operator: String,
-    object: BTreeMap<Spanned<String>, Spanned<Block>>,
+    entries: Vec<(Spanned<String>, Spanned<Block>)>,
     span: Span,
 ) -> Result<Operation, CompilerError> {
     let object = BTreeMap::from_iter(
-        object
+        entries
             .into_iter()
             .map(|(key, value)| (key.into_inner(), value)),
     );

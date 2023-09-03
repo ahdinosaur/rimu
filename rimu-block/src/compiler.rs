@@ -60,21 +60,20 @@ fn compiler_parser() -> impl Compiler<SpannedBlock> {
         let entries = entry.repeated().at_least(1);
         let object = entries
             .then_ignore(just(Token::Dedent).to(()).or(end()))
-            .map(|entries| BTreeMap::from_iter(entries.into_iter()))
-            .try_map(|object, span| {
-                if let Some(operator) = find_operator(&object) {
+            .try_map(|entries, span| {
+                if let Some(operator) = find_operator(&entries) {
                     return Ok(Block::Operation(Box::new(parse_operation(
-                        operator, object, span,
+                        operator, entries, span,
                     )?)));
                 }
 
-                let mut next_object = BTreeMap::new();
-                for (key, value) in object.into_iter() {
+                let mut next_entries = Vec::new();
+                for (key, value) in entries.into_iter() {
                     let (key, key_span) = key.take();
                     let key = unescape_non_operation_key(&key).to_owned();
-                    next_object.insert(Spanned::new(key, key_span), value);
+                    next_entries.push((Spanned::new(key, key_span), value));
                 }
-                Ok(Block::Object(next_object))
+                Ok(Block::Object(next_entries))
             })
             .boxed();
 
@@ -168,17 +167,29 @@ mod tests {
         ]);
 
         let expected = Ok(Spanned::new(
-            Block::Object(btree_map! {
-                Spanned::new("a".into(), span(0..1)) => {
-                    Spanned::new(Block::Expression(Expression::Identifier("b".into())), span(2..3))
-                },
-                Spanned::new("c".into(), span(4..5)) => {
-                    Spanned::new(Block::Expression(Expression::Identifier("d".into())), span(6..7))
-                },
-                Spanned::new("e".into(), span(8..9)) => {
-                    Spanned::new(Block::Expression(Expression::Identifier("f".into())), span(10..11))
-                },
-            }),
+            Block::Object(vec![
+                (
+                    Spanned::new("a".into(), span(0..1)),
+                    Spanned::new(
+                        Block::Expression(Expression::Identifier("b".into())),
+                        span(2..3),
+                    ),
+                ),
+                (
+                    Spanned::new("c".into(), span(4..5)),
+                    Spanned::new(
+                        Block::Expression(Expression::Identifier("d".into())),
+                        span(6..7),
+                    ),
+                ),
+                (
+                    Spanned::new("e".into(), span(8..9)),
+                    Spanned::new(
+                        Block::Expression(Expression::Identifier("f".into())),
+                        span(10..11),
+                    ),
+                ),
+            ]),
             span(0..12),
         ));
 
@@ -216,28 +227,49 @@ mod tests {
         ]);
 
         let expected = Ok(Spanned::new(
-            Block::Object(btree_map! {
-                Spanned::new("a".into(), span(0..1)) => Spanned::new(Block::Object(btree_map! {
-                    Spanned::new("b".into(), span(4..5)) => Spanned::new(
-                        Block::List(vec![
-                            Spanned::new(Block::Expression(Expression::Identifier("c".into())), span(9..10)),
-                            Spanned::new(Block::Expression(Expression::Identifier("d".into())), span(12..13)),
+            Block::Object(vec![(
+                Spanned::new("a".into(), span(0..1)),
+                Spanned::new(
+                    Block::Object(vec![
+                        (
+                            Spanned::new("b".into(), span(4..5)),
                             Spanned::new(
-                                Block::Object(btree_map! {
-                                    Spanned::new("e".into(), span(15..16)) => {
-                                        Spanned::new(Block::Expression(Expression::Identifier("f".into())), span(17..18))
-                                    },
-                                }),
-                                span(15..20)
-                            )
-                        ]),
-                        span(8..20)
-                    ),
-                    Spanned::new("g".into(), span(20..21)) => {
-                        Spanned::new(Block::Expression(Expression::Identifier("h".into())), span(22..23))
-                    },
-                }), span(4..25)),
-            }),
+                                Block::List(vec![
+                                    Spanned::new(
+                                        Block::Expression(Expression::Identifier("c".into())),
+                                        span(9..10),
+                                    ),
+                                    Spanned::new(
+                                        Block::Expression(Expression::Identifier("d".into())),
+                                        span(12..13),
+                                    ),
+                                    Spanned::new(
+                                        Block::Object(vec![(
+                                            Spanned::new("e".into(), span(15..16)),
+                                            Spanned::new(
+                                                Block::Expression(Expression::Identifier(
+                                                    "f".into(),
+                                                )),
+                                                span(17..18),
+                                            ),
+                                        )]),
+                                        span(15..20),
+                                    ),
+                                ]),
+                                span(8..20),
+                            ),
+                        ),
+                        (
+                            Spanned::new("g".into(), span(20..21)),
+                            Spanned::new(
+                                Block::Expression(Expression::Identifier("h".into())),
+                                span(22..23),
+                            ),
+                        ),
+                    ]),
+                    span(4..25),
+                ),
+            )]),
             span(0..25),
         ));
 

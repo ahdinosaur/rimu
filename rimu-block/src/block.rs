@@ -7,7 +7,7 @@ use crate::operation::Operation;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Block {
-    Object(BTreeMap<Spanned<String>, SpannedBlock>),
+    Object(Vec<(Spanned<String>, SpannedBlock)>),
     List(Vec<SpannedBlock>),
     Expression(Expression),
     Operation(Box<Operation>),

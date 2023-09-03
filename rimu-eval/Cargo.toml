@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 rimu-report = { path = "../rimu-report" }
 rimu-expr = { path = "../rimu-expr" }
+rimu-block = { path = "../rimu-block" }
 rimu-value = { path = "../rimu-value" }
 rimu-env = { path = "../rimu-env" }
 rust_decimal = "1.31.0"

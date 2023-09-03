@@ -100,7 +100,7 @@ pub fn lexer_parser() -> impl Lexer<Vec<SpannedToken>> {
     ))
     .labelled("operator");
 
-    let identifier = text::ident().map(Token::Identifier).labelled("identifier");
+    let identifier = ident().map(Token::Identifier).labelled("identifier");
 
     let token = choice((
         null, boolean, number, string, delimiter, control, operator, identifier,
@@ -112,6 +112,16 @@ pub fn lexer_parser() -> impl Lexer<Vec<SpannedToken>> {
         .padded()
         .repeated()
         .then_ignore(end())
+}
+
+pub fn ident<C: text::Character, E: chumsky::Error<C>>(
+) -> impl Parser<C, C::Collection, Error = E> + Copy + Clone {
+    filter(|c: &C| c.to_char().is_ascii_alphabetic() || c.to_char() == '_' || c.to_char() == '$')
+        .map(Some)
+        .chain::<C, Vec<_>, _>(
+            filter(|c: &C| c.to_char().is_ascii_alphanumeric() || c.to_char() == '_').repeated(),
+        )
+        .collect()
 }
 
 #[cfg(test)]

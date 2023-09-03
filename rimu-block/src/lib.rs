@@ -24,7 +24,6 @@
 
 use rimu_report::{SourceId, Span};
 
-use crate::block::SpannedBlock;
 use crate::compiler::{compile, CompilerError};
 use crate::lexer::{tokenize, LexerError};
 
@@ -33,6 +32,10 @@ mod compiler;
 mod lexer;
 mod operation;
 
+pub use crate::block::{Block, SpannedBlock};
+pub use crate::operation::Operation;
+
+#[derive(Debug)]
 pub enum Error {
     Lexer(LexerError),
     Compiler(CompilerError),
@@ -61,7 +64,6 @@ pub fn parse(code: &str, source: SourceId) -> (Option<SpannedBlock>, Vec<Error>)
 mod tests {
     use std::ops::Range;
 
-    use map_macro::btree_map;
     use pretty_assertions::assert_eq;
     use rimu_report::{SourceId, Span, Spanned};
 
@@ -92,31 +94,55 @@ a:
         );
 
         let expected_expr = Some(Spanned::new(
-            Block::Object(btree_map! {
-                Spanned::new("a".into(), span(1..2)) => Spanned::new(Block::Object(btree_map! {
-                    Spanned::new("b".into(), span(6..7)) => Spanned::new(
-                        Block::List(vec![
-                            Spanned::new(Block::Expression(Expression::Binary {
-                                left: Box::new(Spanned::new(Expression::Identifier("c".into()), span(15..16))),
-                                right: Box::new(Spanned::new(Expression::Identifier("d".into()), span(19..20))),
-                                operator: BinaryOperator::Add
-                            }), span(15..20)),
+            Block::Object(vec![(
+                Spanned::new("a".into(), span(1..2)),
+                Spanned::new(
+                    Block::Object(vec![
+                        (
+                            Spanned::new("b".into(), span(6..7)),
                             Spanned::new(
-                                Block::Object(btree_map! {
-                                    Spanned::new("e".into(), span(27..28)) => {
-                                        Spanned::new(Block::Expression(Expression::Identifier("f".into())), span(30..31))
-                                    },
-                                }),
-                                span(27..34)
-                            )
-                        ]),
-                        span(13..34)
-                    ),
-                    Spanned::new("g".into(), span(34..35)) => {
-                        Spanned::new(Block::Expression(Expression::Identifier("h".into())), span(37..38))
-                    },
-                }), span(6..39)),
-            }),
+                                Block::List(vec![
+                                    Spanned::new(
+                                        Block::Expression(Expression::Binary {
+                                            left: Box::new(Spanned::new(
+                                                Expression::Identifier("c".into()),
+                                                span(15..16),
+                                            )),
+                                            right: Box::new(Spanned::new(
+                                                Expression::Identifier("d".into()),
+                                                span(19..20),
+                                            )),
+                                            operator: BinaryOperator::Add,
+                                        }),
+                                        span(15..20),
+                                    ),
+                                    Spanned::new(
+                                        Block::Object(vec![(
+                                            Spanned::new("e".into(), span(27..28)),
+                                            Spanned::new(
+                                                Block::Expression(Expression::Identifier(
+                                                    "f".into(),
+                                                )),
+                                                span(30..31),
+                                            ),
+                                        )]),
+                                        span(27..34),
+                                    ),
+                                ]),
+                                span(13..34),
+                            ),
+                        ),
+                        (
+                            Spanned::new("g".into(), span(34..35)),
+                            Spanned::new(
+                                Block::Expression(Expression::Identifier("h".into())),
+                                span(37..38),
+                            ),
+                        ),
+                    ]),
+                    span(6..39),
+                ),
+            )]),
             span(1..39),
         ));
 
