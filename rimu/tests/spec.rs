@@ -13,8 +13,6 @@ fn test_spec(spec: Value) -> Result<(), Box<dyn Error>> {
         .get("template")
         .expect("Spec missing 'template'")
         .clone();
-    println!("Template:");
-    println!("{}", template);
     let Value::String(template) = template else {
         panic!("Spec 'template' must be (folded) string");
     };

@@ -1,27 +1,3 @@
-//
-// TODO
-//
-// - Block replaces rimu Template
-// - block Token is same as expr token, plus Indent, Dedent, and EndOfLine
-// - block line lexer uses expr lexer
-// - block parser uses expr parser
-// - handle operations in chumsky with chumsky::try_map and rimu's existing operation parse code.
-// - also be sure to keep TryFrom<Value> for Block, like Template had
-//
-// ----
-//
-// OR...
-//
-// maybe we don't need to embed lexers and parsers. just use in the outer tokenize code.
-//
-//
-// ---
-//
-// then later
-//
-// - rimu-eval evaluates either block or expr
-//
-
 use rimu_report::{SourceId, Span};
 
 use crate::compiler::{compile, CompilerError};
@@ -53,10 +29,6 @@ pub fn parse(code: &str, source: SourceId) -> (Option<SpannedBlock>, Vec<Error>)
     let Some(tokens) = tokens else {
         return (None, errors);
     };
-
-    for token in &tokens {
-        println!("token: {:?}", token.inner());
-    }
 
     let (output, compile_errors) = compile(tokens, eoi);
     errors.append(&mut compile_errors.into_iter().map(Error::Compiler).collect());

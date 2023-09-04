@@ -146,7 +146,6 @@ mod tests {
         let (Some(expr), errors) = parse(code, SourceId::empty()) else {
             panic!()
         };
-        println!("{:?}", errors);
         assert_eq!(errors.len(), 0);
         test_block(expr, env_object)
     }
