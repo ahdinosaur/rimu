@@ -42,6 +42,10 @@ pub enum EvalError {
         start: usize,
         end: usize,
     },
+    #[error("unterminated interpolation: {src}")]
+    UnterminatedInterpolation { span: Span, src: String },
+    #[error("cannot be interpolated into a string: {value}")]
+    InvalidInterpolationValue { span: Span, value: Value },
     #[error("error expression")]
     ErrorExpression { span: Span },
 }
@@ -122,6 +126,20 @@ impl ReportError for EvalError {
             EvalError::RangeStartGreaterThanOrEqualToEnd { span, start, end } => (
                 "Eval: Range start >= end",
                 vec![(span.clone(), format!("{} >= {}", start, end), Color::Cyan)],
+                vec![],
+            ),
+            EvalError::UnterminatedInterpolation { span, src } => (
+                "Eval: Unterminated interpolation",
+                vec![(span.clone(), format!("Source: {}", src), Color::Cyan)],
+                vec![],
+            ),
+            EvalError::InvalidInterpolationValue { span, value } => (
+                "Eval: Cannot be interpolated into a string",
+                vec![(
+                    span.clone(),
+                    format!("Value cannot be interpolated into a string: {}", value),
+                    Color::Cyan,
+                )],
                 vec![],
             ),
             EvalError::ErrorExpression { span } => (

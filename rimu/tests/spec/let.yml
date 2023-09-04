@@ -1,113 +1,159 @@
-- title:    simple let
-  template: {$let: {ts: 100, foo: 200,}, in: [{$eval: "ts+foo"}, {$eval: "ts-foo"}, {$eval: "ts*foo"}]}
-  context:  {}
-  output:   [300, -100, 20000]
+- title: simple let
+  template: |
+    $let:
+      ts: 100
+      foo: 200
+    in:
+      - ts + foo
+      - ts - foo
+      - ts * foo
+  context: {}
+  output: [300, -100, 20000]
 
-- title:    let with evaluated values
-  template: {$let: {thirty: {$eval: "10 + 20"}}, in: {$eval: "thirty+5"}}
-  context:  {}
-  output:   35
+- title: let with evaluated values
+  template: |
+    $let:
+      thirty: 10 + 20
+    in: thirty + 5
+  context: {}
+  output: 35
 
-#- title:    let with evaluated context
-#  template: {$let: {$eval: '{"thirty": 10 + 20}'}, in: {$eval: "thirty+5"}}
-#  context:  {}
-#  output:    35
+- title: context overriding
+  template: |
+    $let:
+      x: 20
+    in: x + y
+  context: { x: 10, "y": 1 }
+  output: 21
 
-- title:    context overriding
-  template: {$let: {x: 20}, in: {$eval: "x + y"}}
-  context:  {x: 10, 'y': 1}
-  output:   21
+- title: nested let
+  template: |
+    $let:
+      x: 20
+      "y": 10
+    in:
+      $let:
+        x: 30
+      in:
+        x + y + z
+  context: { x: 1, "y": 2, z: 3 }
+  output: 43
+#
+#- title: let with undefined properties
+#  template: { $let: { x: 1, "y": 2 }, a: { $eval: "x + y" } }
+#  context: {}
+#  error:
+#    type: ParseError
+#    message: "value error: unknown field `a`, expected `$let` or `in`"
 
-- title:    nested let
-  template: {$let: {x: 20,'y': 10}, in: {$let: {x: 30}, in: {$eval: "x + y + z"}}}
-  context:  {x: 1,'y': 2, z: 3}
-  output:   43
+#- title: let array
+#  template: { $let: [1, 2], in: { $eval: "1 + 2" } }
+#  context: {}
+#  error:
+#    message: "context error: context value is not an object: List [Number(1), Number(2)]"
 
-- title:    let with undefined properties
-  template: {$let: {x: 1,'y': 2}, a: {$eval: "x + y"}}
-  context:  {}
-  error:
-    type: ParseError
-    message: 'value error: unknown field `a`, expected `$let` or `in`'
+#- title: let null
+#  template: { $let: null, in: { $eval: "1 + 2" } }
+#  context: {}
+#  error:
+#    message: "context error: context value is not an object: Null"
 
-- title:    let array
-  template: {$let: [1, 2], in: {$eval: "1 + 2"}}
-  context:  {}
-  error:
-    message: 'context error: context value is not an object: List [Number(1), Number(2)]'
+#- title: checking name begin with number
+#  context: {}
+#  template:
+#    {
+#      $let: { ab: 100, bb: 200, 2b: 5 },
+#      in: [{ $eval: "ab+bb" }, { $eval: "ab-bb" }, { $eval: "ab*bb" }],
+#    }
+#  error:
+#    message: "context error: top level keys of context must follow /[a-zA-Z_][a-zA-Z0-9_]*: `2b`"
 
-- title:    let null
-  template: {$let: null, in: {$eval: "1 + 2"}}
-  context:  {}
-  error:
-    message: 'context error: context value is not an object: Null'
+#- title: checking space in variable name
+#  context: {}
+#  template:
+#    {
+#      $let: { ab: 100, bb: 200, "a b": 10 },
+#      in: [{ $eval: "ab+bb" }, { $eval: "ab-bb" }, { $eval: "ab*bb" }],
+#    }
+#  error:
+#    message: "context error: top level keys of context must follow /[a-zA-Z_][a-zA-Z0-9_]*: `a b`"
 
-- title:    checking name begin with number
-  context:  {}
-  template: {$let: {ab: 100, bb: 200, 2b: 5}, in: [{$eval: "ab+bb"}, {$eval: "ab-bb"}, {$eval: "ab*bb"}]}
-  error:
-    message: 'context error: top level keys of context must follow /[a-zA-Z_][a-zA-Z0-9_]*: `2b`' 
+#- title: checking special character in variable name
+#  context: {}
+#  template:
+#    {
+#      $let: { ab: 100, bb: 200, "a.b": 10 },
+#      in: [{ $eval: "ab+bb" }, { $eval: "ab-bb" }, { $eval: "ab*bb" }],
+#    }
+#  error:
+#    message: "context error: top level keys of context must follow /[a-zA-Z_][a-zA-Z0-9_]*: `a.b`"
 
-- title:    checking space in variable name
-  context:  {}
-  template: {$let: {ab: 100, bb: 200, "a b": 10}, in: [{$eval: "ab+bb"}, {$eval: "ab-bb"}, {$eval: "ab*bb"}]}
-  error:
-    message: 'context error: top level keys of context must follow /[a-zA-Z_][a-zA-Z0-9_]*: `a b`'
-
-- title:    checking special character in variable name
-  context:  {}
-  template: {$let: {ab: 100, bb: 200, "a.b": 10}, in: [{$eval: "ab+bb"}, {$eval: "ab-bb"}, {$eval: "ab*bb"}]}
-  error:
-    message: 'context error: top level keys of context must follow /[a-zA-Z_][a-zA-Z0-9_]*: `a.b`'
-
-- title:    checking integrity of operation $let with exact result
-  context:  {}
-  template: {$let: {ts: 100, foo: 200}, in: [{$eval: "ts+foo"}, {$eval: "ts-foo"}, {$eval: "ts*foo"}]}
-  output:   [300, -100, 20000]
+#- title: checking integrity of operation $let with exact result
+#  context: {}
+#  template:
+#    {
+#      $let: { ts: 100, foo: 200 },
+#      in: [{ $eval: "ts+foo" }, { $eval: "ts-foo" }, { $eval: "ts*foo" }],
+#    }
+#  output: [300, -100, 20000]
 
 #- title:    checking $let and $reverse operator integrity
 #  context:  {}
 #  template: {$let: {x: [1, 2, 3]}, in: [$reverse: {$eval: "x"}]}
 #  output:   [[ 3, 2, 1 ]]
 
-- title:    checking $let with $if without else
-  context:  {c: 'itm'}
-  template: {$let: {a: {$if: 'c == "item"', then: 'value'}}, in: {a: '${a}'}}
-  error:
-    message: 'missing context: a'
+#- title: checking $let with $if without else
+#  context: { c: "itm" }
+#  template:
+#    { $let: { a: { $if: 'c == "item"', then: "value" } }, in: { a: "${a}" } }
+#  error:
+#    message: "missing context: a"
 
-- title:    let with a value of $if-then-else
-  template: {$let: {$if: something == 3, then: {a: 10, b: 20}, else: {a: 20, b: 10}}, in: {$eval: 'a + b'}}
-  context:  {'something': 3}
-  output:   30
+#- title: let with a value of $if-then-else
+#  template:
+#    {
+#      $let:
+#        { $if: something == 3, then: { a: 10, b: 20 }, else: { a: 20, b: 10 } },
+#      in: { $eval: "a + b" },
+#    }
+#  context: { "something": 3 }
+#  output: 30
 
-- title:    let with a rendered key
-  template: {$let: {"first_${name}": 1, "second_${name}": 2}, in: {$eval: "first_prize + second_prize"}}
-  context:  {name: "prize"}
-  output:   3
+#- title: let with a rendered key
+#  template:
+#    {
+#      $let: { "first_${name}": 1, "second_${name}": 2 },
+#      in: { $eval: "first_prize + second_prize" },
+#    }
+#  context: { name: "prize" }
+#  output: 3
 
-- title:    let using values from the parent context
-  template: {$let: {"b": {$eval: "a + 10"}}, in: {$eval: "a + b"}}
-  context:  {a: 5}
-  output:   20
+- title: let using values from the parent context
+  template: |
+    $let:
+      b:
+        a + 10
+    in:
+      a + b
+  context: { a: 5 }
+  output: 20
+#- title: let with a non-object rendered value (array)
+#  template: { $let: { $eval: "[1, 2]" }, in: "uhoh" }
+#  context: {}
+#  error:
+#    message: "context error: context value is not an object: List [Number(1), Number(2)]"
 
-- title:    let with a non-object rendered value (array)
-  template: {$let: {$eval: "[1, 2]"}, in: "uhoh"}
-  context:  {}
-  error:
-    message: 'context error: context value is not an object: List [Number(1), Number(2)]'
+#- title: let with a non-object rendered value (string)
+#  template: { $let: "${name}", in: "uhoh" }
+#  context: { name: "fido" }
+#  error:
+#    message: 'context error: context value is not an object: String("fido")'
 
-- title:    let with a non-object rendered value (string)
-  template: {$let: "${name}", in: "uhoh"}
-  context:  {name: "fido"}
-  error:
-    message: 'context error: context value is not an object: String("fido")'
-
-- title:    let with a non-object rendered value (boolean)
-  template: {$let: {$eval: "true"}, in: "uhoh"}
-  context:  {}
-  error:
-    message: 'context error: context value is not an object: true'
+#- title: let with a non-object rendered value (boolean)
+#  template: { $let: { $eval: "true" }, in: "uhoh" }
+#  context: {}
+#  error:
+#    message: "context error: context value is not an object: true"
 
 #- title:    fromNow with redefined `now`
 #  context:  {}

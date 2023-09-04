@@ -1,13 +1,17 @@
 use rust_decimal::Decimal;
 use std::fmt;
 
-use crate::Spanned;
+use rimu_report::Spanned;
 
 /// A [`Token`] is the smallest logical unit evaluated by the compiler.
 /// It containes either an operator or a literal value.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Token {
     Invalid(char),
+
+    Indent,
+    Dedent,
+    EndOfLine,
 
     Null,
 
@@ -76,6 +80,9 @@ impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Token::Invalid(c) => write!(f, "{:?}", c),
+            Token::Indent => write!(f, "  "),
+            Token::Dedent => write!(f, ""),
+            Token::EndOfLine => writeln!(f),
             Token::Null => write!(f, "null"),
             Token::Boolean(b) => match b {
                 true => write!(f, "true"),
