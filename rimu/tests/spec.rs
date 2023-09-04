@@ -1,5 +1,5 @@
 use pretty_assertions::assert_eq;
-use rimu::{evaluate, from_value, parse, Environment, SourceId, Value, ValueError};
+use rimu::{evaluate, from_value, parse, Environment, SourceId, Value /*ValueError*/};
 use std::error::Error;
 
 #[track_caller]
@@ -47,7 +47,7 @@ fn test_spec(spec: Value) -> Result<(), Box<dyn Error>> {
         let Value::Object(error) = error else {
                 panic!("Spec 'error' should be object");
             };
-        let Value::String(message) = error.get("message").expect("Spec missing 'error.message'") else {
+        let Value::String(_message) = error.get("message").expect("Spec missing 'error.message'") else {
                 panic!("Spec 'error.message' should be string");
             };
         let default_error_type = Value::String("RenderError".into());
@@ -116,6 +116,7 @@ fn identity() -> Result<(), Box<dyn Error>> {
 fn interpolation() -> Result<(), Box<dyn Error>> {
     test_specs(include_str!("./spec/interpolation.yml"))
 }
+*/
 
 #[test]
 fn let_() -> Result<(), Box<dyn Error>> {
@@ -126,4 +127,3 @@ fn let_() -> Result<(), Box<dyn Error>> {
 fn if_() -> Result<(), Box<dyn Error>> {
     test_specs(include_str!("./spec/if.yml"))
 }
-*/

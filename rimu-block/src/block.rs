@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use rimu_expr::Expression;
 use rimu_report::Spanned;
 

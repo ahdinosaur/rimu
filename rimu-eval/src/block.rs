@@ -46,6 +46,9 @@ impl<'a> Evaluator<'a> {
         for (key, value) in entries.iter() {
             let key = key.clone().into_inner();
             let (value, _value_span) = self.block(value)?;
+            if value == Value::Null {
+                continue;
+            };
             object.insert(key, value);
         }
         Ok(Value::Object(object))
@@ -55,6 +58,9 @@ impl<'a> Evaluator<'a> {
         let mut list = List::with_capacity(items.len());
         for item in items.iter() {
             let (item, _item_span) = self.block(item)?;
+            if item == Value::Null {
+                continue;
+            };
             list.push(item);
         }
         Ok(Value::List(list))

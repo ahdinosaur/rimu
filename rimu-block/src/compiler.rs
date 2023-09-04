@@ -1,8 +1,6 @@
 use chumsky::prelude::*;
 
-use std::collections::BTreeMap;
-
-use rimu_expr::{compiler_parser as expr_compiler_parser, CompilerError as ExprCompilerError};
+use rimu_expr::compiler_parser as expr_compiler_parser;
 use rimu_report::{Span, Spanned};
 use rimu_token::{SpannedToken, Token};
 

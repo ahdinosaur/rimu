@@ -1,5 +1,5 @@
 - title: identity
-  template: >
+  template: |
     key:
       - 1
       - 2
