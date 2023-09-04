@@ -1,4 +1,9 @@
-use std::{error::Error, io::Read, process::ExitCode, str::FromStr};
+use std::{
+    error::Error,
+    io::{Read, Write},
+    process::ExitCode,
+    str::FromStr,
+};
 
 use clap::Parser;
 use clio::*;
@@ -27,11 +32,11 @@ impl FromStr for Format {
 #[derive(Debug, Parser)]
 #[clap(version)]
 struct Args {
-    #[clap(long, short, value_parser, default_value = "-")]
+    #[clap(long, short, value_parser)]
     input: Input,
 
     #[arg(long, short, value_parser)]
-    env: Vec<Input>,
+    env: Option<Input>,
 
     #[clap(long, short, value_parser, default_value = "-")]
     output: Output,
@@ -42,24 +47,19 @@ struct Args {
 
 fn main() -> std::result::Result<ExitCode, Box<dyn Error>> {
     let mut args = Args::parse();
-    println!("args: {:?}", args);
 
     let mut input = String::new();
     args.input.read_to_string(&mut input)?;
     let input_source = SourceId::from_path(args.input.path().path());
 
-    let default_env = Environment::new();
-    let mut envs: Vec<Environment> = Vec::new();
-    for mut env_arg in args.env {
+    let env = if let Some(mut env_arg) = args.env {
         let mut env_string = String::new();
         env_arg.read_to_string(&mut env_string)?;
         let env_value: Value = env_string.into();
-
-        let last_env = envs.last().unwrap_or(&default_env);
-        let env = Environment::from_value(&env_value, Some(last_env))?;
-        envs.push(env);
-    }
-    let env = envs.last().unwrap_or(&default_env);
+        Environment::from_value(&env_value, None)?
+    } else {
+        Environment::new()
+    };
 
     let (block, errors) = parse(input.as_str(), input_source.clone());
 
@@ -85,7 +85,13 @@ fn main() -> std::result::Result<ExitCode, Box<dyn Error>> {
         }
     };
 
-    println!("Value: {}", value);
+    let output: String = match args.format {
+        Format::Yaml => serde_yaml::to_string(&value)?,
+        Format::Json => serde_json::to_string(&value)?,
+        Format::Toml => toml::to_string(&value)?,
+    };
+
+    args.output.write_all(output.as_bytes())?;
 
     Ok(ExitCode::SUCCESS)
 }

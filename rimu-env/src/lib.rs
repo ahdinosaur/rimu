@@ -4,6 +4,7 @@ use std::{collections::BTreeMap, iter::empty};
 
 use rimu_value::{value_get_in, Object, Value};
 
+#[derive(Debug, Clone)]
 pub struct Environment<'a> {
     content: Object,
     parent: Option<&'a Environment<'a>>,
