@@ -1,6 +1,5 @@
 [workspace]
 members = [
-    "rimu",
     "rimu-report",
     "rimu-token",
     "rimu-expr",
@@ -9,4 +8,6 @@ members = [
     "rimu-env",
     "rimu-eval",
     "rimu-repl",
+    "rimu",
+    "rimu-cli"
 ]
