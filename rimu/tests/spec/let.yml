@@ -131,7 +131,8 @@
 - title: let using values from the parent context
   template: |
     $let:
-      b: a + 10
+      b:
+        a + 10
     in:
       a + b
   context: { a: 5 }

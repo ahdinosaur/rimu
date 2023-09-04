@@ -233,6 +233,62 @@ mod tests {
     }
 
     #[test]
+    fn object_hanging_value() {
+        //
+        // a:
+        //   b:
+        //     c
+        // d: e
+        //
+        let actual = test(vec![
+            Token::Identifier("a".into()),
+            Token::Colon,
+            Token::EndOfLine,
+            Token::Indent,
+            Token::Identifier("b".into()),
+            Token::Colon,
+            Token::EndOfLine,
+            Token::Indent,
+            Token::Identifier("c".into()),
+            Token::EndOfLine,
+            Token::Dedent,
+            Token::Dedent,
+            Token::Identifier("d".into()),
+            Token::Colon,
+            Token::Identifier("e".into()),
+            Token::EndOfLine,
+        ]);
+
+        let expected = Ok(Spanned::new(
+            Block::Object(vec![
+                (
+                    Spanned::new("a".into(), span(0..1)),
+                    Spanned::new(
+                        Block::Object(vec![(
+                            Spanned::new("b".into(), span(4..5)),
+                            Spanned::new(
+                                Block::Expression(Expression::Identifier("c".into())),
+                                span(8..9),
+                            ),
+                        )]),
+                        span(4..11),
+                    ),
+                ),
+                (
+                    Spanned::new("d".into(), span(12..13)),
+                    Spanned::new(
+                        Block::Expression(Expression::Identifier("e".into())),
+                        span(14..15),
+                    ),
+                ),
+            ]),
+            span(0..16),
+        ));
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
     fn misc() {
         //
         // a:

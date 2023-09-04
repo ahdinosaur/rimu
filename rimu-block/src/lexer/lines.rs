@@ -79,8 +79,8 @@ impl<'src> LinesLexer<'src> {
             let Some((space, rest)) = self.get_space(line) else {
                 continue;
             };
-            if let Some(indent) = self.maybe_indent(space)? {
-                tokens.push(indent);
+            for dent in self.get_dents(space)? {
+                tokens.push(dent);
             }
             tokens.push(self.line(rest));
             tokens.push(Spanned::new(LinesToken::EndOfLine, ending_span))
@@ -131,15 +131,18 @@ impl<'src> LinesLexer<'src> {
         }
     }
 
-    fn maybe_indent(
-        &mut self,
-        space: Spanned<&'src str>,
-    ) -> Result<Option<SpannedLinesToken<'src>>> {
+    fn get_dents(&mut self, space: Spanned<&'src str>) -> Result<Vec<SpannedLinesToken<'src>>> {
         let (space, span) = space.take();
         let next_indent = space.len();
         match self.get_indent_change(next_indent) {
-            IndentChange::Continue => Ok(None),
-            IndentChange::Decrease => Ok(Some(self.dedent(span.end()))),
+            IndentChange::Continue => Ok(vec![]),
+            IndentChange::Decrease => {
+                let mut dedents = Vec::new();
+                while self.indentation() > next_indent {
+                    dedents.push(self.dedent(span.end()));
+                }
+                Ok(dedents)
+            }
             IndentChange::Increase => {
                 let prev_indent = self.indentation();
                 let indent_diff = next_indent - prev_indent;
@@ -147,7 +150,7 @@ impl<'src> LinesLexer<'src> {
                 let indent_token = LinesToken::Indent;
                 let indent_span = self.span(span.end() - indent_diff, span.end());
                 let indent = Spanned::new(indent_token, indent_span);
-                Ok(Some(indent))
+                Ok(vec![indent])
             }
             IndentChange::Inconsistent => Err(LinesLexerError::InconsistentLeadingWhitespace {
                 found: next_indent,
@@ -224,6 +227,37 @@ g: h
             Spanned::new(LinesToken::Dedent, span(25..25)),
             Spanned::new(LinesToken::Line("g: h"), span(25..29)),
             Spanned::new(LinesToken::EndOfLine, span(29..30)),
+        ]);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn object_hanging_value() {
+        //
+        //
+        let actual = test(
+            "
+a:
+  b:
+    c
+d: e
+        ",
+        );
+
+        let expected = Ok(vec![
+            Spanned::new(LinesToken::Line("a:"), span(1..3)),
+            Spanned::new(LinesToken::EndOfLine, span(3..4)),
+            Spanned::new(LinesToken::Indent, span(4..6)),
+            Spanned::new(LinesToken::Line("b:"), span(6..8)),
+            Spanned::new(LinesToken::EndOfLine, span(8..9)),
+            Spanned::new(LinesToken::Indent, span(11..13)),
+            Spanned::new(LinesToken::Line("c"), span(13..14)),
+            Spanned::new(LinesToken::EndOfLine, span(14..15)),
+            Spanned::new(LinesToken::Dedent, span(15..15)),
+            Spanned::new(LinesToken::Dedent, span(15..15)),
+            Spanned::new(LinesToken::Line("d: e"), span(15..19)),
+            Spanned::new(LinesToken::EndOfLine, span(19..20)),
         ]);
 
         assert_eq!(actual, expected);
