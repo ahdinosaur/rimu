@@ -86,7 +86,7 @@ mod tests {
     }
 
     #[test]
-    fn arithmetic() {
+    fn misc() {
         let (actual_expr, errors) = test(
             "
 a:
@@ -130,10 +130,10 @@ a:
                                                 span(30..31),
                                             ),
                                         )]),
-                                        span(27..34),
+                                        span(27..32),
                                     ),
                                 ]),
-                                span(13..34),
+                                span(13..32),
                             ),
                         ),
                         (

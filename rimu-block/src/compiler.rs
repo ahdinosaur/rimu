@@ -49,23 +49,23 @@ fn compiler_parser() -> impl Compiler<SpannedBlock> {
         .then_ignore(just(Token::Colon));
         let value_simple = expr.clone();
         let value_complex = eol
-            .then(just(Token::Indent))
-            .then(block.clone())
-            .map(|(_, d)| d);
+            .ignore_then(just(Token::Indent))
+            .ignore_then(block.clone())
+            .then_ignore(just(Token::Dedent).to(()).or(end()));
         let value = value_simple.or(value_complex);
         let entry = key.then(value);
         let entries = entry.clone().repeated().at_least(1);
         let object = entries
             .clone()
-            .then_ignore(just(Token::Dedent).to(()).or(end()))
             .try_map(parse_object_entries)
+            .map_with_span(Spanned::new)
             .boxed();
 
         let list_item_object_multi = just(Token::Minus)
             .ignore_then(entry.clone())
             .then_ignore(just(Token::Indent))
             .then(entries.clone())
-            .then_ignore(just(Token::Dedent))
+            .then_ignore(just(Token::Dedent).to(()).or(end()))
             .map(|(entry, mut entries)| {
                 let mut ret = Vec::with_capacity(entries.len() + 1);
                 ret.push(entry);
@@ -77,12 +77,17 @@ fn compiler_parser() -> impl Compiler<SpannedBlock> {
             .boxed();
         let list_item_simple = just(Token::Minus).ignore_then(block.clone()).boxed();
         let list_item = list_item_object_multi.or(list_item_simple);
-        let list = list_item.repeated().at_least(1).map(Block::List).boxed();
+        let list = list_item
+            .repeated()
+            .at_least(1)
+            .map(Block::List)
+            .map_with_span(Spanned::new)
+            .boxed();
 
         // NOTE: is the problem a precedence issue?
         // when there is a dedent, who captures this, the list or object?
 
-        list.or(object).map_with_span(Spanned::new).or(expr).boxed()
+        object.or(list).or(expr).boxed()
     })
     .then_ignore(end())
 }
@@ -139,6 +144,11 @@ mod tests {
 
     #[test]
     fn list_simple() {
+        //
+        // - a
+        // - b
+        // - c
+        //
         let actual = test(vec![
             Token::Minus,
             Token::Identifier("a".into()),
@@ -174,6 +184,11 @@ mod tests {
 
     #[test]
     fn object_simple() {
+        //
+        // a: b
+        // c: d
+        // e: f
+        //
         let actual = test(vec![
             Token::Identifier("a".into()),
             Token::Colon,
@@ -221,6 +236,14 @@ mod tests {
 
     #[test]
     fn misc() {
+        //
+        // a:
+        //   b:
+        //     - c
+        //     - d
+        //     - e: f
+        //   g: h
+        //
         let actual = test(vec![
             Token::Identifier("a".into()),
             Token::Colon,
@@ -276,10 +299,10 @@ mod tests {
                                                 span(17..18),
                                             ),
                                         )]),
-                                        span(15..20),
+                                        span(15..19),
                                     ),
                                 ]),
-                                span(8..20),
+                                span(8..19),
                             ),
                         ),
                         (
@@ -290,10 +313,90 @@ mod tests {
                             ),
                         ),
                     ]),
-                    span(4..25),
+                    span(4..24),
                 ),
             )]),
             span(0..25),
+        ));
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn multi_entry_object_in_list() {
+        //
+        // - a: b
+        //   c: d
+        // - e: f
+        //   g: h
+        //
+        let actual = test(vec![
+            Token::Minus,
+            Token::Identifier("a".into()),
+            Token::Colon,
+            Token::Identifier("b".into()),
+            Token::EndOfLine,
+            Token::Indent,
+            Token::Identifier("c".into()),
+            Token::Colon,
+            Token::Identifier("d".into()),
+            Token::EndOfLine,
+            Token::Dedent,
+            Token::Minus,
+            Token::Identifier("e".into()),
+            Token::Colon,
+            Token::Identifier("f".into()),
+            Token::EndOfLine,
+            Token::Indent,
+            Token::Identifier("g".into()),
+            Token::Colon,
+            Token::Identifier("h".into()),
+            Token::EndOfLine,
+            Token::Dedent,
+        ]);
+
+        let expected = Ok(Spanned::new(
+            Block::List(vec![
+                Spanned::new(
+                    Block::Object(vec![
+                        (
+                            Spanned::new("a".into(), span(1..2)),
+                            Spanned::new(
+                                Block::Expression(Expression::Identifier("b".into())),
+                                span(3..4),
+                            ),
+                        ),
+                        (
+                            Spanned::new("c".into(), span(6..7)),
+                            Spanned::new(
+                                Block::Expression(Expression::Identifier("d".into())),
+                                span(8..9),
+                            ),
+                        ),
+                    ]),
+                    span(0..11),
+                ),
+                Spanned::new(
+                    Block::Object(vec![
+                        (
+                            Spanned::new("e".into(), span(12..13)),
+                            Spanned::new(
+                                Block::Expression(Expression::Identifier("f".into())),
+                                span(14..15),
+                            ),
+                        ),
+                        (
+                            Spanned::new("g".into(), span(17..18)),
+                            Spanned::new(
+                                Block::Expression(Expression::Identifier("h".into())),
+                                span(19..20),
+                            ),
+                        ),
+                    ]),
+                    span(11..22),
+                ),
+            ]),
+            span(0..22),
         ));
 
         assert_eq!(actual, expected);
@@ -330,6 +433,7 @@ mod tests {
             Token::Colon,
             Token::Identifier("g".into()),
             Token::EndOfLine,
+            Token::Indent,
             Token::Identifier("h".into()),
             Token::Colon,
             Token::Identifier("i".into()),
@@ -342,10 +446,75 @@ mod tests {
             Token::EndOfLine,
         ]);
 
-        let expected = Ok(Spanned::new(Block::Object(vec![]), span(0..1)));
+        let expected = Ok(Spanned::new(
+            Block::Object(vec![
+                (
+                    Spanned::new("a".into(), span(0..1)),
+                    Spanned::new(
+                        Block::List(vec![
+                            Spanned::new(
+                                Block::Object(vec![
+                                    (
+                                        Spanned::new("b".into(), span(5..6)),
+                                        Spanned::new(
+                                            Block::Expression(Expression::Identifier("c".into())),
+                                            span(7..8),
+                                        ),
+                                    ),
+                                    (
+                                        Spanned::new("d".into(), span(10..11)),
+                                        Spanned::new(
+                                            Block::Expression(Expression::Identifier("e".into())),
+                                            span(12..13),
+                                        ),
+                                    ),
+                                ]),
+                                span(4..15),
+                            ),
+                            Spanned::new(
+                                Block::Object(vec![
+                                    (
+                                        Spanned::new("f".into(), span(16..17)),
+                                        Spanned::new(
+                                            Block::Expression(Expression::Identifier("g".into())),
+                                            span(18..19),
+                                        ),
+                                    ),
+                                    (
+                                        Spanned::new("h".into(), span(21..22)),
+                                        Spanned::new(
+                                            Block::Expression(Expression::Identifier("i".into())),
+                                            span(23..24),
+                                        ),
+                                    ),
+                                ]),
+                                span(15..26),
+                            ),
+                        ]),
+                        span(4..26),
+                    ),
+                ),
+                (
+                    Spanned::new("j".into(), span(27..28)),
+                    Spanned::new(
+                        Block::Expression(Expression::Identifier("k".into())),
+                        span(29..30),
+                    ),
+                ),
+            ]),
+            span(0..31),
+        ));
 
         assert_eq!(actual, expected);
     }
+
+    // a:
+    //   - b:
+    //       d: e
+    //   - f:
+    //       h: i
+    // j: k
+    //
 
     #[test]
     fn operation_if() {

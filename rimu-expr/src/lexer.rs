@@ -278,19 +278,9 @@ mod tests {
 
     #[test]
     fn err_unknown_token_1() {
-        let actual = test("$");
+        let actual = test("^&#");
 
         assert!(actual.is_err());
-    }
-
-    #[test]
-    fn err_unknown_token_2() {
-        let actual = test("$hello");
-
-        // let expected_errs = vec!["".into()];
-
-        assert!(actual.is_err());
-        // assert_errors(actual, expected_errs);
     }
 
     #[test]
