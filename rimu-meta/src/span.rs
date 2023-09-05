@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use std::{
     fmt::{self, Display},
     ops::Range,
@@ -6,7 +7,7 @@ use std::{
 use crate::SourceId;
 
 /// A span of source code.
-#[derive(Clone, PartialOrd, Ord, PartialEq, Eq, Hash, Default)]
+#[derive(Clone, PartialOrd, Ord, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct Span {
     source: SourceId,
 

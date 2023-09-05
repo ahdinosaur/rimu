@@ -1,9 +1,10 @@
+use serde::{Deserialize, Serialize};
 use std::{
     fmt,
     path::{Path, PathBuf},
 };
 
-#[derive(Clone, PartialOrd, Ord, PartialEq, Eq, Hash, Default)]
+#[derive(Clone, PartialOrd, Ord, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 pub struct SourceId(Vec<String>);
 
 impl fmt::Display for SourceId {
