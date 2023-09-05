@@ -5,7 +5,8 @@ members = [
     "rimu-parse",
     "rimu-value",
     "rimu-eval",
-    "rimu-repl",
     "rimu",
-    "rimu-cli"
+    "rimu-repl",
+    "rimu-cli",
+    "rimu-wasm",
 ]
