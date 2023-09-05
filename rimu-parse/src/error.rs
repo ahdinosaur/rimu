@@ -1,12 +1,11 @@
-// with help from
-// - https://github.com/Egggggg/plum/blob/e9153c6cf9586d033a777cdaa28ad2a8cd95bcf3/src/error.rs#L70
+use ariadne::{Color, Config, Label, Report, ReportKind, Source};
+use rimu_meta::{ReportError, SourceId};
 
-use ariadne::{Config, Label, Report, ReportKind, Source};
-use rimu_report::{ReportError, SourceId};
+use crate::compiler::CompilerError;
+use crate::lexer::lines::LinesLexerError;
+use crate::lexer::LexerError;
 
-use crate::{CompilerError, LexerError};
-
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum Error {
     Lexer(LexerError),
     Compiler(CompilerError),
@@ -15,9 +14,32 @@ pub enum Error {
 impl ReportError for Error {
     fn display<'a>(&self, source: &'a str, source_id: SourceId) {
         let (msg, spans, notes) = match self {
-            Error::Lexer(error) => (
+            Error::Lexer(LexerError::Lines(error)) => match error {
+                LinesLexerError::InconsistentLeadingWhitespace {
+                    span,
+                    found,
+                    expected,
+                } => (
+                    "Lexer: Inconsistent leading whitespace",
+                    vec![(
+                        span.clone(),
+                        format!(
+                            "Found {} spaces, expected one of {} spaces.",
+                            found,
+                            expected
+                                .into_iter()
+                                .map(ToString::to_string)
+                                .collect::<Vec<String>>()
+                                .join(",")
+                        ),
+                        Color::Blue,
+                    )],
+                    vec![],
+                ),
+            },
+            Error::Lexer(LexerError::Line(error)) => (
                 "Lexer: Unexpected character",
-                vec![(error.span(), format!("{}", error), ariadne::Color::Blue)],
+                vec![(error.span(), format!("{}", error), Color::Blue)],
                 if let Some(e) = error.label() {
                     vec![format!("Label is `{}`", e)]
                 } else {

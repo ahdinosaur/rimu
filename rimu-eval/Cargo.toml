@@ -6,16 +6,17 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rimu-report = { path = "../rimu-report" }
-rimu-expr = { path = "../rimu-expr" }
-rimu-block = { path = "../rimu-block" }
+rimu-meta = { path = "../rimu-meta" }
+rimu-ast = { path = "../rimu-ast" }
 rimu-value = { path = "../rimu-value" }
-rimu-env = { path = "../rimu-env" }
 rust_decimal = "1.31.0"
 rust_decimal_macros = "1.31.0"
 thiserror = "1.0.44"
 ariadne = "0.3.0"
+lazy_static = "1.4.0"
+regex = "1.9.1"
 
 [dev-dependencies]
+rimu-parse = { path = "../rimu-parse" }
 map-macro = "0.2.6"
 pretty_assertions = "1.4.0"

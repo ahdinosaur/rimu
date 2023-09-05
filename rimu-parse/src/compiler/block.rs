@@ -1,37 +1,29 @@
+use std::collections::BTreeMap;
+
 use chumsky::prelude::*;
 
-use rimu_expr::compiler_parser as expr_compiler_parser;
-use rimu_report::{Span, Spanned};
-use rimu_token::{SpannedToken, Token};
+use rimu_ast::{Block, BlockOperation, SpannedBlock};
+use rimu_meta::{Span, Spanned};
 
-use crate::{
-    block::{Block, SpannedBlock},
-    operation::{find_operator, parse_operation, unescape_non_operation_key},
-};
+use crate::token::{SpannedToken, Token};
 
-pub type CompilerError = Simple<Token, Span>;
+use super::{expression::expression_parser, Compiler, CompilerError};
 
-pub(crate) trait Compiler<T>:
-    Parser<Token, T, Error = CompilerError> + Sized + Clone
-{
-}
-impl<P, T> Compiler<T> for P where P: Parser<Token, T, Error = CompilerError> + Clone {}
-
-pub(crate) fn compile(
+pub(crate) fn compile_block(
     tokens: Vec<SpannedToken>,
     eoi: Span,
 ) -> (Option<SpannedBlock>, Vec<CompilerError>) {
-    compiler_parser().parse_recovery(chumsky::Stream::from_iter(
+    block_parser().parse_recovery(chumsky::Stream::from_iter(
         eoi,
         tokens.into_iter().map(|token| token.take()),
     ))
 }
 
-fn compiler_parser() -> impl Compiler<SpannedBlock> {
+fn block_parser() -> impl Compiler<SpannedBlock> {
     recursive(|block| {
-        let eol = just(Token::EndOfLine); // .repeated().at_least(1);
+        let eol = just(Token::EndOfLine);
 
-        let expr = expr_compiler_parser()
+        let expr = expression_parser()
             .map(|expr| {
                 let (expr, span) = expr.take();
                 let block = Block::Expression(expr);
@@ -82,9 +74,6 @@ fn compiler_parser() -> impl Compiler<SpannedBlock> {
             .map_with_span(Spanned::new)
             .boxed();
 
-        // NOTE: is the problem a precedence issue?
-        // when there is a dedent, who captures this, the list or object?
-
         object.or(list).or(expr).boxed()
     })
     .then_ignore(end())
@@ -94,8 +83,8 @@ fn parse_object_entries(
     entries: Vec<(Spanned<String>, SpannedBlock)>,
     span: Span,
 ) -> Result<Block, CompilerError> {
-    if let Some(operator) = find_operator(&entries) {
-        return Ok(Block::Operation(Box::new(parse_operation(
+    if let Some(operator) = find_block_operator(&entries) {
+        return Ok(Block::Operation(Box::new(parse_block_operation(
             operator, entries, span,
         )?)));
     }
@@ -103,10 +92,87 @@ fn parse_object_entries(
     let mut next_entries = Vec::new();
     for (key, value) in entries.into_iter() {
         let (key, key_span) = key.take();
-        let key = unescape_non_operation_key(&key).to_owned();
+        let key = unescape_non_block_operation_key(&key).to_owned();
         next_entries.push((Spanned::new(key, key_span), value));
     }
     Ok(Block::Object(next_entries))
+}
+
+fn find_block_operator<Value>(entries: &[(Spanned<String>, Value)]) -> Option<String> {
+    for (key, _) in entries.iter() {
+        let key = key.inner();
+        let mut chars = key.chars();
+        let is_op = chars.next() == Some('$') && chars.next() != Some('$');
+        if is_op {
+            return Some(key.clone());
+        }
+    }
+    None
+}
+
+fn parse_block_operation(
+    operator: String,
+    entries: Vec<(Spanned<String>, Spanned<Block>)>,
+    span: Span,
+) -> Result<BlockOperation, CompilerError> {
+    let object = BTreeMap::from_iter(
+        entries
+            .into_iter()
+            .map(|(key, value)| (key.into_inner(), value)),
+    );
+    let operation = match operator.as_str() {
+        "$if" => {
+            static KEYS: [&str; 3] = ["$if", "then", "else"];
+            check_block_operation_keys(span, &KEYS, &object)?;
+
+            let condition = object.get("$if").unwrap().to_owned();
+            let consequent = object.get("then").cloned();
+            let alternative = object.get("else").cloned();
+
+            BlockOperation::If {
+                condition,
+                consequent,
+                alternative,
+            }
+        }
+        "$let" => {
+            static KEYS: [&str; 2] = ["$let", "in"];
+            check_block_operation_keys(span.clone(), &KEYS, &object)?;
+
+            let variables = object.get("$let").unwrap().to_owned();
+            let body = object
+                .get("in")
+                .ok_or_else(|| CompilerError::custom(span, "$let: missing field \"in\""))?
+                .to_owned();
+            BlockOperation::Let { variables, body }
+        }
+        &_ => todo!(),
+    };
+    Ok(operation)
+}
+
+fn check_block_operation_keys<Value>(
+    span: Span,
+    keys: &[&str],
+    object: &BTreeMap<String, Value>,
+) -> Result<(), CompilerError> {
+    for key in object.keys() {
+        if !keys.contains(&key.as_str()) {
+            return Err(CompilerError::custom(
+                span,
+                format!("$if: unexpected field \"{}\"", key),
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn unescape_non_block_operation_key(key: &str) -> &str {
+    if key.starts_with("$$") {
+        &key[1..]
+    } else {
+        key
+    }
 }
 
 #[cfg(test)]
@@ -115,13 +181,12 @@ mod tests {
 
     use chumsky::Parser;
     use pretty_assertions::assert_eq;
-    use rimu_expr::Expression;
-    use rimu_report::{SourceId, Span, Spanned};
-    use rimu_token::Token;
+    use rimu_ast::{Block, BlockOperation, Expression};
+    use rimu_meta::{SourceId, Span, Spanned};
 
-    use crate::{compiler::Block, operation::Operation};
+    use crate::Token;
 
-    use super::{compiler_parser, CompilerError, SpannedBlock};
+    use super::{block_parser, CompilerError, SpannedBlock};
 
     fn span(range: Range<usize>) -> Span {
         Span::new(SourceId::empty(), range.start, range.end)
@@ -131,7 +196,7 @@ mod tests {
         let source = SourceId::empty();
         let len = tokens.len();
         let eoi = Span::new(source.clone(), len, len);
-        compiler_parser().parse(chumsky::Stream::from_iter(
+        block_parser().parse(chumsky::Stream::from_iter(
             eoi,
             tokens
                 .into_iter()
@@ -588,7 +653,7 @@ mod tests {
         ]);
 
         let expected = Ok(Spanned::new(
-            Block::Operation(Box::new(Operation::If {
+            Block::Operation(Box::new(BlockOperation::If {
                 condition: Spanned::new(
                     Block::Expression(Expression::Identifier("ready".into())),
                     span(2..3),

@@ -1,11 +1,9 @@
 [workspace]
 members = [
-    "rimu-report",
-    "rimu-token",
-    "rimu-expr",
-    "rimu-block",
+    "rimu-meta",
+    "rimu-ast",
+    "rimu-parse",
     "rimu-value",
-    "rimu-env",
     "rimu-eval",
     "rimu-repl",
     "rimu",

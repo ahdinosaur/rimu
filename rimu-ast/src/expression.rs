@@ -1,8 +1,8 @@
-use core::fmt;
-
+use rimu_meta::Spanned;
 use rust_decimal::Decimal;
+use std::fmt;
 
-use crate::{BinaryOperator, Spanned, UnaryOperator};
+use crate::{BinaryOperator, UnaryOperator};
 
 /// An expression represents an entity which can be evaluated to a value.
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]

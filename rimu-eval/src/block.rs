@@ -1,13 +1,12 @@
 // with help from
 // - https://github.com/DennisPrediger/SLAC/blob/main/src/interpreter.rs
 
-use rimu_block::{Block, Operation, SpannedBlock};
-use rimu_env::Environment;
-use rimu_expr::Expression;
-use rimu_report::{Span, Spanned};
+use crate::Environment;
+use rimu_ast::{Block, BlockOperation, Expression, SpannedBlock};
+use rimu_meta::{Span, Spanned};
 use rimu_value::{List, Object, Value};
 
-use crate::{expr::evaluate as evaluate_expr, EvalError};
+use crate::{expression::evaluate as evaluate_expression, EvalError};
 
 type Result<Value> = std::result::Result<Value, EvalError>;
 
@@ -67,12 +66,12 @@ impl<'a> Evaluator<'a> {
     }
 
     fn expression(&self, span: Span, expr: &Expression) -> Result<Value> {
-        evaluate_expr(&Spanned::new(expr.clone(), span), self.env)
+        evaluate_expression(&Spanned::new(expr.clone(), span), self.env)
     }
 
-    fn operation(&self, span: Span, op: &Operation) -> Result<Value> {
+    fn operation(&self, span: Span, op: &BlockOperation) -> Result<Value> {
         let value = match op {
-            Operation::If {
+            BlockOperation::If {
                 condition,
                 consequent,
                 alternative,
@@ -94,7 +93,7 @@ impl<'a> Evaluator<'a> {
                     }
                 }
             }
-            Operation::Let { variables, body } => {
+            BlockOperation::Let { variables, body } => {
                 let (variables, _variables_span) = self.block(variables)?;
 
                 let env = Environment::from_value(&variables, Some(self.env)).map_err(|error| {
@@ -115,11 +114,12 @@ impl<'a> Evaluator<'a> {
 mod tests {
     use std::collections::BTreeMap;
 
+    use crate::Environment;
     use map_macro::btree_map;
     use pretty_assertions::assert_eq;
-    use rimu_block::{parse, SpannedBlock};
-    use rimu_env::Environment;
-    use rimu_report::SourceId;
+    use rimu_ast::SpannedBlock;
+    use rimu_meta::SourceId;
+    use rimu_parse::parse_block;
     use rimu_value::Value;
     use rust_decimal_macros::dec;
 
@@ -143,7 +143,7 @@ mod tests {
         code: &str,
         env_object: Option<BTreeMap<String, Value>>,
     ) -> Result<Value, EvalError> {
-        let (Some(expr), errors) = parse(code, SourceId::empty()) else {
+        let (Some(expr), errors) = parse_block(code, SourceId::empty()) else {
             panic!()
         };
         assert_eq!(errors.len(), 0);
