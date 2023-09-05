@@ -5,20 +5,24 @@
 // - https://github.com/DennisPrediger/SLAC/blob/main/src/scanner.rs
 
 use chumsky::prelude::*;
+use rimu_meta::{SourceId, Span, Spanned};
 use rust_decimal::Decimal;
 use std::str::FromStr;
 
-use crate::{SourceId, Span, Spanned, SpannedToken, Token};
+use crate::token::{SpannedToken, Token};
 
-pub type LexerError = Simple<char, Span>;
+pub type LineLexerError = Simple<char, Span>;
 
-pub trait Lexer<T>: Parser<char, T, Error = LexerError> + Sized + Clone {}
-impl<P, T> Lexer<T> for P where P: Parser<char, T, Error = LexerError> + Clone {}
+pub trait LineLexer<T>: Parser<char, T, Error = LineLexerError> + Sized + Clone {}
+impl<P, T> LineLexer<T> for P where P: Parser<char, T, Error = LineLexerError> + Clone {}
 
-pub fn tokenize(code: &str, source: SourceId) -> Result<Vec<SpannedToken>, Vec<LexerError>> {
+pub(crate) fn tokenize_line(
+    code: &str,
+    source: SourceId,
+) -> (Option<Vec<SpannedToken>>, Vec<LineLexerError>) {
     let len = code.chars().count();
     let eoi = Span::new(source.clone(), len, len);
-    lexer_parser().parse(chumsky::Stream::from_iter(
+    line_parser().parse_recovery(chumsky::Stream::from_iter(
         eoi,
         code.chars()
             .enumerate()
@@ -26,7 +30,24 @@ pub fn tokenize(code: &str, source: SourceId) -> Result<Vec<SpannedToken>, Vec<L
     ))
 }
 
-pub fn lexer_parser() -> impl Lexer<Vec<SpannedToken>> {
+pub(crate) fn tokenize_spanned_line(
+    spanned_line: Spanned<&str>,
+    source: SourceId,
+) -> (Option<Vec<SpannedToken>>, Vec<LineLexerError>) {
+    let (line, span) = spanned_line.take();
+    let eoi = Span::new(source.clone(), span.end(), span.end());
+    line_parser().parse_recovery(chumsky::Stream::from_iter(
+        eoi,
+        line.chars().enumerate().map(|(i, c)| {
+            (
+                c,
+                Span::new(source.clone(), span.start() + i, span.start() + i + 1),
+            )
+        }),
+    ))
+}
+
+fn line_parser() -> impl LineLexer<Vec<SpannedToken>> {
     let null = just("null").to(Token::Null).labelled("null");
 
     let boolean = choice((
@@ -127,21 +148,30 @@ pub fn ident<C: text::Character, E: chumsky::Error<C>>(
 
 #[cfg(test)]
 mod tests {
+    use chumsky::Parser;
+    use pretty_assertions::assert_eq;
+    use rimu_meta::{SourceId, Span, Spanned};
+    use rust_decimal::{prelude::FromPrimitive, Decimal};
     use std::{f64::consts::PI, ops::Range};
 
-    use pretty_assertions::assert_eq;
-    use rimu_report::SourceId;
-    use rust_decimal::{prelude::FromPrimitive, Decimal};
+    use crate::token::{SpannedToken, Token};
 
-    use super::{tokenize, LexerError};
-    use crate::{Span, Spanned, SpannedToken, Token};
+    use super::{line_parser, LineLexerError};
 
     fn span(range: Range<usize>) -> Span {
         Span::new(SourceId::empty(), range.start, range.end)
     }
 
-    fn test(code: &str) -> Result<Vec<SpannedToken>, Vec<LexerError>> {
-        tokenize(code, SourceId::empty())
+    fn test(code: &str) -> Result<Vec<SpannedToken>, Vec<LineLexerError>> {
+        let source = SourceId::empty();
+        let len = code.chars().count();
+        let eoi = Span::new(source.clone(), len, len);
+        line_parser().parse(chumsky::Stream::from_iter(
+            eoi,
+            code.chars()
+                .enumerate()
+                .map(|(i, c)| (c, Span::new(source.clone(), i, i + 1))),
+        ))
     }
 
     #[test]

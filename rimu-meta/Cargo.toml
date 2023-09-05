@@ -1,10 +1,11 @@
 [package]
-name = "rimu-token"
+name = "rimu-meta"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rimu-report = { path = "../rimu-report/" }
-rust_decimal = "1.32.0"
+chumsky = "0.9.2"
+ariadne = "0.3.0"
+thiserror = "1.0.44"

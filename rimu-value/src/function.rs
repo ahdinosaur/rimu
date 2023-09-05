@@ -1,6 +1,6 @@
 use std::fmt;
 
-use rimu_expr::SpannedExpression;
+use rimu_ast::SpannedExpression;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd)]
 pub struct Function {

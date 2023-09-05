@@ -1,5 +1,5 @@
 [package]
-name = "rimu-expr"
+name = "rimu-parse"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,11 +7,12 @@ edition = "2021"
 
 [dependencies]
 rust_decimal = "1.31.0"
-rimu-report = { path = "../rimu-report" }
-rimu-token = { path = "../rimu-token" }
+rimu-meta = { path = "../rimu-meta" }
+rimu-ast = { path = "../rimu-ast" }
 chumsky = "0.9.2"
 thiserror = "1.0.44"
 ariadne = "0.3.0"
+line-span = "0.1.5"
 
 [dev-dependencies]
 pretty_assertions = "1.4.0"

@@ -12,11 +12,10 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rimu-report = { path = "../rimu-report" }
-rimu-expr = { path = "../rimu-expr" }
-rimu-block = { path = "../rimu-block" }
+rimu-meta = { path = "../rimu-meta" }
+rimu-ast = { path = "../rimu-ast" }
+rimu-parse = { path = "../rimu-parse" }
 rimu-value = { path = "../rimu-value" }
-rimu-env = { path = "../rimu-env" }
 rimu-eval = { path = "../rimu-eval" }
 
 [dev-dependencies]

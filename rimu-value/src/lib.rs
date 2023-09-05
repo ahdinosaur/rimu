@@ -10,7 +10,6 @@ use std::collections::BTreeMap;
 
 use std::fmt::{Debug, Display};
 
-use rust_decimal_macros::dec;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 

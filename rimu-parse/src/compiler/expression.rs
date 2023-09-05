@@ -6,32 +6,27 @@
 // - https://github.com/DennisPrediger/SLAC/blob/main/src/compiler.rs
 
 use chumsky::prelude::*;
+use rimu_ast::{BinaryOperator, Expression, SpannedExpression, UnaryOperator};
+use rimu_meta::{Span, Spanned};
 
 use crate::{
-    BinaryOperator, Expression, SourceId, Span, Spanned, SpannedExpression, Token, UnaryOperator,
+    compiler::Compiler,
+    token::{SpannedToken, Token},
 };
 
-pub type CompilerError = Simple<Token, Span>;
+use super::CompilerError;
 
-pub trait Compiler<T>: Parser<Token, T, Error = CompilerError> + Sized + Clone {}
-impl<P, T> Compiler<T> for P where P: Parser<Token, T, Error = CompilerError> + Clone {}
-
-pub fn compile(
-    tokens: Vec<Token>,
-    source: SourceId,
-) -> Result<SpannedExpression, Vec<CompilerError>> {
-    let len = tokens.len();
-    let eoi = Span::new(source.clone(), len, len);
-    compiler_parser().parse(chumsky::Stream::from_iter(
+pub(crate) fn compile_expression(
+    tokens: Vec<SpannedToken>,
+    eoi: Span,
+) -> (Option<SpannedExpression>, Vec<CompilerError>) {
+    expression_parser().parse_recovery(chumsky::Stream::from_iter(
         eoi,
-        tokens
-            .into_iter()
-            .enumerate()
-            .map(|(i, c)| (c, Span::new(source.clone(), i, i + 1))),
+        tokens.into_iter().map(|token| token.take()),
     ))
 }
 
-pub fn compiler_parser() -> impl Compiler<SpannedExpression> {
+pub(crate) fn expression_parser() -> impl Compiler<SpannedExpression> {
     recursive(|expr| {
         // Begin precedence order:
 
@@ -314,24 +309,32 @@ fn binary_operator_parser<'a>(
 
 #[cfg(test)]
 mod tests {
+    use chumsky::Parser;
+    use pretty_assertions::assert_eq;
+    use rimu_ast::{BinaryOperator, Expression, SpannedExpression, UnaryOperator};
+    use rimu_meta::{SourceId, Span, Spanned};
+    use rust_decimal::{prelude::FromPrimitive, Decimal};
     use std::ops::Range;
 
-    use pretty_assertions::assert_eq;
-    use rust_decimal::{prelude::FromPrimitive, Decimal};
+    use crate::token::Token;
 
-    use crate::{
-        BinaryOperator, Expression, SourceId, Span, Spanned, SpannedExpression, Token,
-        UnaryOperator,
-    };
-
-    use super::{compile, CompilerError};
+    use super::{expression_parser, CompilerError};
 
     fn span(range: Range<usize>) -> Span {
         Span::new(SourceId::empty(), range.start, range.end)
     }
 
     fn test(tokens: Vec<Token>) -> Result<SpannedExpression, Vec<CompilerError>> {
-        compile(tokens, SourceId::empty())
+        let source = SourceId::empty();
+        let len = tokens.len();
+        let eoi = Span::new(source.clone(), len, len);
+        expression_parser().parse(chumsky::Stream::from_iter(
+            eoi,
+            tokens
+                .into_iter()
+                .enumerate()
+                .map(|(i, c)| (c, Span::new(source.clone(), i, i + 1))),
+        ))
     }
 
     #[test]

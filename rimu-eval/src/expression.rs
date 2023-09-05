@@ -1,14 +1,13 @@
 // with help from
 // - https://github.com/DennisPrediger/SLAC/blob/main/src/interpreter.rs
 
-use rimu_env::Environment;
-use rimu_expr::{BinaryOperator, Expression, SpannedExpression, UnaryOperator};
-use rimu_report::{Span, Spanned};
+use rimu_ast::{BinaryOperator, Expression, SpannedExpression, UnaryOperator};
+use rimu_meta::{Span, Spanned};
 use rimu_value::{Number, Object, Value};
 use rust_decimal::prelude::ToPrimitive;
 use std::ops::Deref;
 
-use crate::EvalError;
+use crate::{Environment, EvalError};
 
 pub fn evaluate<'a>(
     expression: &SpannedExpression,
@@ -539,11 +538,12 @@ fn get_index(
 mod tests {
     use std::{collections::BTreeMap, ops::Range};
 
+    use crate::Environment;
     use map_macro::btree_map;
     use pretty_assertions::assert_eq;
-    use rimu_env::Environment;
-    use rimu_expr::{parse, BinaryOperator, Expression, SpannedExpression};
-    use rimu_report::{SourceId, Span, Spanned};
+    use rimu_ast::{BinaryOperator, Expression, SpannedExpression};
+    use rimu_meta::{SourceId, Span, Spanned};
+    use rimu_parse::parse_expression;
     use rimu_value::{Function, Value};
     use rust_decimal_macros::dec;
 
@@ -553,7 +553,7 @@ mod tests {
         Span::new(SourceId::empty(), range.start, range.end)
     }
 
-    fn test_expr(
+    fn test_expression(
         expr: SpannedExpression,
         env_object: Option<BTreeMap<String, Value>>,
     ) -> Result<Value, EvalError> {
@@ -571,17 +571,17 @@ mod tests {
         code: &str,
         env_object: Option<BTreeMap<String, Value>>,
     ) -> Result<Value, EvalError> {
-        let (Some(expr), errors) = parse(code, SourceId::empty()) else {
+        let (Some(expr), errors) = parse_expression(code, SourceId::empty()) else {
             panic!()
         };
         assert_eq!(errors.len(), 0);
-        test_expr(expr, env_object)
+        test_expression(expr, env_object)
     }
 
     #[test]
     fn simple_null() {
         let expr = Spanned::new(Expression::Null, span(0..1));
-        let actual = test_expr(expr, None);
+        let actual = test_expression(expr, None);
 
         let expected = Ok(Value::Null);
 
@@ -591,7 +591,7 @@ mod tests {
     #[test]
     fn simple_bool() {
         let expr = Spanned::new(Expression::Boolean(false), span(0..1));
-        let actual = test_expr(expr, None);
+        let actual = test_expression(expr, None);
 
         let expected = Ok(Value::Boolean(false));
 
@@ -602,7 +602,7 @@ mod tests {
     fn simple_number() {
         let number = dec!(9001).into();
         let expr = Spanned::new(Expression::Number(number), span(0..1));
-        let actual = test_expr(expr, None);
+        let actual = test_expression(expr, None);
 
         let expected = Ok(Value::Number(number.into()));
 
@@ -619,7 +619,7 @@ mod tests {
             ]),
             span(0..8),
         );
-        let actual = test_expr(expr, None);
+        let actual = test_expression(expr, None);
 
         let expected = Ok(Value::List(vec![
             Value::String("hello".into()),
@@ -645,7 +645,7 @@ mod tests {
             ]),
             span(0..10),
         );
-        let actual = test_expr(expr, None);
+        let actual = test_expression(expr, None);
 
         let expected = Ok(Value::Object(btree_map! {
             "a".into() => "hello".into(),
@@ -694,7 +694,7 @@ mod tests {
             span(0..7),
         );
 
-        let actual = test_expr(expr, Some(env));
+        let actual = test_expression(expr, Some(env));
 
         let expected = Ok(Value::Number(dec!(3).into()));
 

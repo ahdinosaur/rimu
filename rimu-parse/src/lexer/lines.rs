@@ -3,7 +3,7 @@
 // - https://github.com/DennisPrediger/SLAC/blob/main/src/scanner.rs
 
 use line_span::{LineSpanIter, LineSpans};
-use rimu_report::{SourceId, Span, Spanned};
+use rimu_meta::{SourceId, Span, Spanned};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum LinesToken<'src> {
@@ -184,7 +184,7 @@ pub(crate) fn tokenize_lines(code: &str, source_id: SourceId) -> Result<Vec<Span
 #[cfg(test)]
 mod tests {
     use pretty_assertions::assert_eq;
-    use rimu_report::{SourceId, Span};
+    use rimu_meta::{SourceId, Span};
 
     use super::{tokenize_lines, LinesLexerError, LinesToken, Spanned, SpannedLinesToken};
 

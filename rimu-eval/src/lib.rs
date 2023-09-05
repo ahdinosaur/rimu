@@ -1,7 +1,9 @@
 mod block;
+mod environment;
 mod error;
-mod expr;
+mod expression;
 
 pub use block::evaluate as evaluate_block;
+pub use environment::{Environment, EnvironmentError};
 pub use error::EvalError;
-pub use expr::evaluate as evaluate_expr;
+pub use expression::evaluate as evaluate_expression;

@@ -1,8 +1,9 @@
 use ariadne::{Color, Config, Label, Report, ReportKind, Source};
-use rimu_env::EnvironmentError;
-use rimu_expr::Expression;
-use rimu_report::{ReportError, Span};
+use rimu_ast::Expression;
+use rimu_meta::{ReportError, Span};
 use rimu_value::{Object, Value};
+
+use crate::EnvironmentError;
 
 #[derive(Debug, thiserror::Error, Clone, PartialEq, PartialOrd)]
 pub enum EvalError {
@@ -51,7 +52,7 @@ pub enum EvalError {
 }
 
 impl ReportError for EvalError {
-    fn display<'a>(&self, source: &'a str, source_id: rimu_report::SourceId) {
+    fn display<'a>(&self, source: &'a str, source_id: rimu_meta::SourceId) {
         let (msg, spans, notes): (&str, Vec<(Span, String, Color)>, Vec<String>) = match self {
             EvalError::Environment { span, source } => (
                 "Eval: Environment error",

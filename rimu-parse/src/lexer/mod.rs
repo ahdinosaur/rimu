@@ -1,10 +1,10 @@
-use rimu_report::{SourceId, Spanned};
-use rimu_token::{SpannedToken, Token};
+use rimu_meta::{SourceId, Spanned};
 
 use self::{
-    line::{tokenize_line, LineLexerError},
+    line::{tokenize_line, tokenize_spanned_line, LineLexerError},
     lines::{tokenize_lines, LinesLexerError, LinesToken},
 };
+use crate::{SpannedToken, Token};
 
 pub(crate) mod line;
 pub(crate) mod lines;
@@ -15,11 +15,20 @@ pub enum LexerError {
     Line(LineLexerError),
 }
 
-pub(crate) fn tokenize(
+pub(crate) fn tokenize_expression(
     code: &str,
-    source: SourceId,
+    source_id: SourceId,
 ) -> (Option<Vec<SpannedToken>>, Vec<LexerError>) {
-    let lines_tokens = match tokenize_lines(code, source.clone()) {
+    let (tokens, errors) = tokenize_line(code, source_id);
+    let errors = errors.into_iter().map(LexerError::Line).collect();
+    (tokens, errors)
+}
+
+pub(crate) fn tokenize_block(
+    code: &str,
+    source_id: SourceId,
+) -> (Option<Vec<SpannedToken>>, Vec<LexerError>) {
+    let lines_tokens = match tokenize_lines(code, source_id.clone()) {
         Ok(lines_tokens) => lines_tokens,
         Err(lines_lexer_error) => return (None, vec![LexerError::Lines(lines_lexer_error)]),
     };
@@ -36,7 +45,8 @@ pub(crate) fn tokenize(
             LinesToken::EndOfLine => tokens.push(Spanned::new(Token::EndOfLine, span)),
             LinesToken::Line(line) => {
                 let spanned_line = Spanned::new(line, span);
-                let (line_tokens, line_lexer_errors) = tokenize_line(spanned_line, source.clone());
+                let (line_tokens, line_lexer_errors) =
+                    tokenize_spanned_line(spanned_line, source_id.clone());
                 if let Some(line_tokens) = line_tokens {
                     tokens.extend(line_tokens.into_iter());
                 }
@@ -56,16 +66,16 @@ mod tests {
     use std::ops::Range;
 
     use pretty_assertions::assert_eq;
-    use rimu_report::{SourceId, Span, Spanned};
+    use rimu_meta::{SourceId, Span, Spanned};
 
-    use super::{tokenize, LexerError, SpannedToken, Token};
+    use super::{tokenize_block, LexerError, SpannedToken, Token};
 
     fn span(range: Range<usize>) -> Span {
         Span::new(SourceId::empty(), range.start, range.end)
     }
 
-    fn test(code: &str) -> Result<Vec<SpannedToken>, Vec<LexerError>> {
-        let (tokens, errors) = tokenize(code, SourceId::empty());
+    fn test_block(code: &str) -> Result<Vec<SpannedToken>, Vec<LexerError>> {
+        let (tokens, errors) = tokenize_block(code, SourceId::empty());
         if let Some(tokens) = tokens {
             Ok(tokens)
         } else {
@@ -74,8 +84,8 @@ mod tests {
     }
 
     #[test]
-    fn something() {
-        let actual = test(
+    fn block_misc() {
+        let actual = test_block(
             "
 a:
   b:
