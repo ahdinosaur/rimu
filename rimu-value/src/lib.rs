@@ -23,8 +23,9 @@ use self::ser::Serializer;
 pub type List = Vec<Value>;
 pub type Object = BTreeMap<String, Value>;
 
-#[derive(Clone, PartialEq, PartialOrd)]
+#[derive(Default, Clone, PartialEq, PartialOrd)]
 pub enum Value {
+    #[default]
     Null,
     Boolean(bool),
     String(String),
@@ -32,12 +33,6 @@ pub enum Value {
     List(List),
     Object(Object),
     Function(Function),
-}
-
-impl Default for Value {
-    fn default() -> Value {
-        Value::Null
-    }
 }
 
 pub fn to_value<T>(value: T) -> Result<Value, ValueError>
@@ -120,16 +115,13 @@ pub fn value_get_in<'a>(value: &'a Value, keys: &[&str]) -> Option<&'a Value> {
     }
 }
 
+/// Everything except `false` and `null' is truthy.
 impl From<Value> for bool {
     fn from(value: Value) -> Self {
+        #[allow(clippy::match_like_matches_macro)]
         match value {
-            Value::Null => false,
-            Value::Boolean(boolean) => boolean,
-            Value::String(string) => string.len() > 0,
-            Value::Number(number) => number.ne(&dec!(0).into()),
-            Value::List(list) => list.len() > 0,
-            Value::Object(object) => object.len() > 0,
-            Value::Function(_) => true,
+            Value::Null | Value::Boolean(false) => false,
+            _ => true,
         }
     }
 }
