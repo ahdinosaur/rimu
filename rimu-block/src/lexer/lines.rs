@@ -18,7 +18,11 @@ pub(crate) type SpannedLinesToken<'src> = Spanned<LinesToken<'src>>;
 #[derive(Debug, thiserror::Error, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LinesLexerError {
     #[error("inconsistent indentation")]
-    InconsistentLeadingWhitespace { found: usize, expected: Vec<usize> },
+    InconsistentLeadingWhitespace {
+        span: Span,
+        found: usize,
+        expected: Vec<usize>,
+    },
 }
 
 type Result<T> = std::result::Result<T, LinesLexerError>;
@@ -153,6 +157,7 @@ impl<'src> LinesLexer<'src> {
                 Ok(vec![indent])
             }
             IndentChange::Inconsistent => Err(LinesLexerError::InconsistentLeadingWhitespace {
+                span,
                 found: next_indent,
                 expected: self.indentation.clone(),
             }),

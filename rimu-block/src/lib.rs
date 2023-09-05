@@ -1,21 +1,16 @@
+use compiler::compile;
+use lexer::tokenize;
 use rimu_report::{SourceId, Span};
-
-use crate::compiler::{compile, CompilerError};
-use crate::lexer::{tokenize, LexerError};
 
 mod block;
 mod compiler;
+mod error;
 mod lexer;
 mod operation;
 
 pub use crate::block::{Block, SpannedBlock};
+pub use crate::error::Error;
 pub use crate::operation::Operation;
-
-#[derive(Debug)]
-pub enum Error {
-    Lexer(LexerError),
-    Compiler(CompilerError),
-}
 
 pub fn parse(code: &str, source: SourceId) -> (Option<SpannedBlock>, Vec<Error>) {
     let mut errors = Vec::new();

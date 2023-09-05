@@ -7,8 +7,4 @@ edition = "2021"
 
 [dependencies]
 rustyline = "12.0.0"
-rimu-report = { path = "../rimu-report" }
-rimu-expr = { path = "../rimu-expr" }
-rimu-value = { path = "../rimu-value" }
-rimu-env = { path = "../rimu-env" }
-rimu-eval = { path = "../rimu-eval" }
+rimu = { path = "../rimu" }

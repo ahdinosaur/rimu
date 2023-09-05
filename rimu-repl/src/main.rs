@@ -1,11 +1,7 @@
-use rimu_env::Environment;
-use rimu_report::SourceId;
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result};
 
-use rimu_eval::evaluate_expr;
-use rimu_expr::parse;
-use rimu_report::ReportError;
+use rimu::{evaluate_expr, parse_expr, Environment, ReportError, SourceId};
 
 fn main() -> Result<()> {
     // `()` can be used when no completer is required
@@ -19,8 +15,8 @@ fn main() -> Result<()> {
         match readline {
             Ok(line) => {
                 rl.add_history_entry(line.as_str())?;
-                let (expr, errors) = parse(line.as_str(), SourceId::repl());
-                if errors.len() > 0 {
+                let (expr, errors) = parse_expr(line.as_str(), SourceId::repl());
+                if !errors.is_empty() {
                     for error in errors {
                         error.display(line.as_str(), SourceId::repl());
                     }
