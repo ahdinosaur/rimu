@@ -5,24 +5,18 @@ use crate::{SourceId, Span};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ErrorReport {
+    pub span: Span,
     pub message: String,
-    pub spans: Vec<(Span, String)>,
+    pub labels: Vec<(Span, String)>,
     pub notes: Vec<String>,
 }
 
 impl ErrorReport {
     pub fn display(&self, source: &str, source_id: SourceId) {
-        let mut report = Report::build(
-            ReportKind::Error,
-            self.spans
-                .first()
-                .map(|s| s.0.source())
-                .unwrap_or(source_id.clone()),
-            self.spans.first().map(|s| s.0.end()).unwrap_or(0),
-        )
-        .with_message(self.message.clone());
+        let mut report = Report::build(ReportKind::Error, self.span.source(), self.span.end())
+            .with_message(self.message.clone());
 
-        for (i, (span, msg)) in self.spans.clone().into_iter().enumerate() {
+        for (i, (span, msg)) in self.labels.clone().into_iter().enumerate() {
             report = report.with_label(Label::new(span).with_message(msg).with_order(i as i32));
         }
 

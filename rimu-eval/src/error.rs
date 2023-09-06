@@ -52,18 +52,22 @@ pub enum EvalError {
 
 impl From<EvalError> for ErrorReport {
     fn from(value: EvalError) -> Self {
-        let (msg, spans, notes): (&str, Vec<(Span, String)>, Vec<String>) = match value {
+        let (span, msg, labels, notes): (Span, &str, Vec<(Span, String)>, Vec<String>) = match value
+        {
             EvalError::Environment { span, source } => (
+                span.clone(),
                 "Eval: Environment error",
                 vec![(span.clone(), format!("{}", source))],
                 vec![],
             ),
             EvalError::MissingVariable { span, var } => (
+                span.clone(),
                 "Eval: Missing variable",
                 vec![(span.clone(), format!("Not in environment: {}", var))],
                 vec![],
             ),
             EvalError::CallNonFunction { span, expr } => (
+                span.clone(),
                 "Eval: Tried to call non-function",
                 vec![(span.clone(), format!("Not a function: {}", expr))],
                 vec![],
@@ -73,6 +77,7 @@ impl From<EvalError> for ErrorReport {
                 expected,
                 got,
             } => (
+                span.clone(),
                 "Eval: Unexpected type",
                 vec![(
                     span.clone(),
@@ -86,6 +91,7 @@ impl From<EvalError> for ErrorReport {
                 index_span,
                 length,
             } => (
+                container_span.clone().union(index_span.clone()),
                 "Eval: Index out of bounds",
                 vec![
                     (container_span.clone(), format!("Length: {}", length)),
@@ -99,6 +105,7 @@ impl From<EvalError> for ErrorReport {
                 object_span,
                 object,
             } => (
+                key_span.clone().union(object_span.clone()),
                 "Eval: Key not found",
                 vec![
                     (
@@ -110,16 +117,19 @@ impl From<EvalError> for ErrorReport {
                 vec![],
             ),
             EvalError::RangeStartGreaterThanOrEqualToEnd { span, start, end } => (
+                span.clone(),
                 "Eval: Range start >= end",
                 vec![(span.clone(), format!("{} >= {}", start, end))],
                 vec![],
             ),
             EvalError::UnterminatedInterpolation { span, src } => (
+                span.clone(),
                 "Eval: Unterminated interpolation",
                 vec![(span.clone(), format!("Source: {}", src))],
                 vec![],
             ),
             EvalError::InvalidInterpolationValue { span, value } => (
+                span.clone(),
                 "Eval: Cannot be interpolated into a string",
                 vec![(
                     span.clone(),
@@ -128,6 +138,7 @@ impl From<EvalError> for ErrorReport {
                 vec![],
             ),
             EvalError::ErrorExpression { span } => (
+                span.clone(),
                 "Eval: Expression error",
                 vec![(span.clone(), "Error".to_string())],
                 vec![],
@@ -135,8 +146,9 @@ impl From<EvalError> for ErrorReport {
         };
 
         ErrorReport {
+            span,
             message: msg.into(),
-            spans,
+            labels,
             notes,
         }
     }

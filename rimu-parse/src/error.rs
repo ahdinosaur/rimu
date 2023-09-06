@@ -20,7 +20,8 @@ impl From<Error> for ErrorReport {
                     expected,
                 } => ErrorReport {
                     message: "Lexer: Inconsistent leading whitespace".into(),
-                    spans: vec![(
+                    span: span.clone(),
+                    labels: vec![(
                         span.clone(),
                         format!(
                             "Found {} spaces, expected one of {} spaces.",
@@ -37,7 +38,8 @@ impl From<Error> for ErrorReport {
             },
             Error::Lexer(LexerError::Line(error)) => ErrorReport {
                 message: "Lexer: Unexpected character".into(),
-                spans: vec![(error.span(), format!("{}", error))],
+                span: error.span(),
+                labels: vec![(error.span(), format!("{}", error))],
                 notes: if let Some(e) = error.label() {
                     vec![format!("Label is `{}`", e)]
                 } else {
@@ -46,7 +48,8 @@ impl From<Error> for ErrorReport {
             },
             Error::Compiler(error) => ErrorReport {
                 message: "Compiler: Unexpected token".into(),
-                spans: vec![(error.span(), format!("{}", error))],
+                span: error.span(),
+                labels: vec![(error.span(), format!("{}", error))],
                 notes: if let Some(e) = error.label() {
                     vec![format!("Label is `{}`", e)]
                 } else {

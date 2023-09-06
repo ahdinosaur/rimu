@@ -3,17 +3,30 @@
   <head>
     <meta charset="utf-8" />
     <title>Rimu playground</title>
+    <style>
+      main {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: row;
+      }
+
+      .input.panel,
+      .output.panel {
+        width: 50%;
+        height: 100%;
+      }
+    </style>
   </head>
   <body>
     <noscript>
       This page contains webassembly and javascript content, please enable
       javascript in your browser.
     </noscript>
-    <div>
-      <div id="input"></div>
-      <button id="render">Render</button>
-      <code><pre id="output"></pre></code>
-    </div>
+    <main>
+      <div id="input" class="input panel"></div>
+      <code class="output panel"><pre id="output"></pre></code>
+    </main>
     <script src="./bootstrap.js"></script>
   </body>
 </html>
