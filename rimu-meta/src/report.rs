@@ -4,22 +4,20 @@ use serde::{Deserialize, Serialize};
 use crate::{SourceId, Span};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ErrorReport<'a> {
-    source: &'a str,
-    source_id: SourceId,
-    message: String,
-    spans: Vec<(Span, String)>,
-    notes: Vec<String>,
+pub struct ErrorReport {
+    pub message: String,
+    pub spans: Vec<(Span, String)>,
+    pub notes: Vec<String>,
 }
 
-impl ErrorReport<'_> {
-    pub fn display(&self) {
+impl ErrorReport {
+    pub fn display(&self, source: &str, source_id: SourceId) {
         let mut report = Report::build(
             ReportKind::Error,
             self.spans
                 .first()
                 .map(|s| s.0.source())
-                .unwrap_or(self.source_id.clone()),
+                .unwrap_or(source_id.clone()),
             self.spans.first().map(|s| s.0.end()).unwrap_or(0),
         )
         .with_message(self.message.clone());
@@ -35,7 +33,18 @@ impl ErrorReport<'_> {
         report
             .with_config(Config::default().with_compact(false))
             .finish()
-            .eprint((self.source_id.clone(), Source::from(self.source)))
+            .eprint((source_id.clone(), Source::from(source)))
             .unwrap();
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ErrorReports {
+    pub reports: Vec<ErrorReport>,
+}
+
+impl From<Vec<ErrorReport>> for ErrorReports {
+    fn from(reports: Vec<ErrorReport>) -> Self {
+        ErrorReports { reports }
     }
 }

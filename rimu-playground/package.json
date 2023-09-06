@@ -27,12 +27,16 @@
   },
   "homepage": "https://github.com/rustwasm/create-wasm-app#readme",
   "dependencies": {
+    "@codemirror/language": "^6.9.0",
+    "@codemirror/legacy-modes": "^6.3.3",
+    "@codemirror/lint": "^6.4.1",
+    "codemirror": "^6.0.1",
     "rimu-wasm": "file:../rimu-wasm/pkg"
   },
   "devDependencies": {
-    "webpack": "^4.29.3",
-    "webpack-cli": "^3.1.0",
-    "webpack-dev-server": "^3.1.5",
-    "copy-webpack-plugin": "^5.0.0"
+    "copy-webpack-plugin": "^11.0.0",
+    "webpack": "^5.88.2",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^4.15.1"
   }
 }

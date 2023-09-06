@@ -1,6 +1,5 @@
-use ariadne::{Color, Config, Label, Report, ReportKind, Source};
 use rimu_ast::Expression;
-use rimu_meta::{ReportError, Span};
+use rimu_meta::{ErrorReport, Span};
 use rimu_value::{Object, Value};
 
 use crate::EnvironmentError;
@@ -51,30 +50,22 @@ pub enum EvalError {
     ErrorExpression { span: Span },
 }
 
-impl ReportError for EvalError {
-    fn display<'a>(&self, source: &'a str, source_id: rimu_meta::SourceId) {
-        let (msg, spans, notes): (&str, Vec<(Span, String, Color)>, Vec<String>) = match self {
+impl From<EvalError> for ErrorReport {
+    fn from(value: EvalError) -> Self {
+        let (msg, spans, notes): (&str, Vec<(Span, String)>, Vec<String>) = match value {
             EvalError::Environment { span, source } => (
                 "Eval: Environment error",
-                vec![(span.clone(), format!("{}", source), Color::Cyan)],
+                vec![(span.clone(), format!("{}", source))],
                 vec![],
             ),
             EvalError::MissingVariable { span, var } => (
                 "Eval: Missing variable",
-                vec![(
-                    span.clone(),
-                    format!("Not in environment: {}", var),
-                    Color::Cyan,
-                )],
+                vec![(span.clone(), format!("Not in environment: {}", var))],
                 vec![],
             ),
             EvalError::CallNonFunction { span, expr } => (
                 "Eval: Tried to call non-function",
-                vec![(
-                    span.clone(),
-                    format!("Not a function: {}", expr),
-                    Color::Cyan,
-                )],
+                vec![(span.clone(), format!("Not a function: {}", expr))],
                 vec![],
             ),
             EvalError::TypeError {
@@ -86,7 +77,6 @@ impl ReportError for EvalError {
                 vec![(
                     span.clone(),
                     format!("Expected: {}, got: {}", expected, got),
-                    Color::Cyan,
                 )],
                 vec![],
             ),
@@ -98,12 +88,8 @@ impl ReportError for EvalError {
             } => (
                 "Eval: Index out of bounds",
                 vec![
-                    (
-                        container_span.clone(),
-                        format!("Length: {}", length),
-                        Color::Cyan,
-                    ),
-                    (index_span.clone(), format!("Index: {}", index), Color::Cyan),
+                    (container_span.clone(), format!("Length: {}", length)),
+                    (index_span.clone(), format!("Index: {}", index)),
                 ],
                 vec![],
             ),
@@ -118,20 +104,19 @@ impl ReportError for EvalError {
                     (
                         object_span.clone(),
                         format!("Object: {}", Value::Object(object.clone())),
-                        Color::Cyan,
                     ),
-                    (key_span.clone(), format!("Key: {}", key), Color::Cyan),
+                    (key_span.clone(), format!("Key: {}", key)),
                 ],
                 vec![],
             ),
             EvalError::RangeStartGreaterThanOrEqualToEnd { span, start, end } => (
                 "Eval: Range start >= end",
-                vec![(span.clone(), format!("{} >= {}", start, end), Color::Cyan)],
+                vec![(span.clone(), format!("{} >= {}", start, end))],
                 vec![],
             ),
             EvalError::UnterminatedInterpolation { span, src } => (
                 "Eval: Unterminated interpolation",
-                vec![(span.clone(), format!("Source: {}", src), Color::Cyan)],
+                vec![(span.clone(), format!("Source: {}", src))],
                 vec![],
             ),
             EvalError::InvalidInterpolationValue { span, value } => (
@@ -139,44 +124,20 @@ impl ReportError for EvalError {
                 vec![(
                     span.clone(),
                     format!("Value cannot be interpolated into a string: {}", value),
-                    Color::Cyan,
                 )],
                 vec![],
             ),
             EvalError::ErrorExpression { span } => (
                 "Eval: Expression error",
-                vec![(span.clone(), format!("Error"), Color::Cyan)],
+                vec![(span.clone(), "Error".to_string())],
                 vec![],
             ),
         };
 
-        let mut report = Report::build(
-            ReportKind::Error,
-            spans
-                .first()
-                .map(|s| s.0.source())
-                .unwrap_or(source_id.clone()),
-            spans.first().map(|s| s.0.end()).unwrap_or(0),
-        )
-        .with_message(msg);
-
-        for (i, (span, msg, color)) in spans.into_iter().enumerate() {
-            report = report.with_label(
-                Label::new(span)
-                    .with_message(msg)
-                    .with_order(i as i32)
-                    .with_color(color),
-            );
+        ErrorReport {
+            message: msg.into(),
+            spans,
+            notes,
         }
-
-        for note in notes {
-            report = report.with_note(note);
-        }
-
-        report
-            .with_config(Config::default().with_compact(false))
-            .finish()
-            .eprint((source_id, Source::from(source)))
-            .unwrap();
     }
 }

@@ -12,7 +12,6 @@ rimu-value = { path = "../rimu-value" }
 rust_decimal = "1.31.0"
 rust_decimal_macros = "1.31.0"
 thiserror = "1.0.44"
-ariadne = "0.3.0"
 lazy_static = "1.4.0"
 regex = "1.9.1"
 indexmap = "2.0.0"
