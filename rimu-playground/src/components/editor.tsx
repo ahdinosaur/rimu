@@ -1,6 +1,9 @@
 'use client'
 
+import './editor.css'
+
 import React, { useRef, useEffect } from 'react'
+import { clsx } from 'clsx'
 
 import { EditorState } from '@codemirror/state'
 import { EditorView, basicSetup } from 'codemirror'
@@ -8,23 +11,22 @@ import * as yamlMode from '@codemirror/legacy-modes/mode/yaml'
 import { StreamLanguage, LanguageSupport } from '@codemirror/language'
 import { oneDark } from '@codemirror/theme-one-dark'
 
-import type { RimuModule } from './rimu'
-
 const sourceId = 'playground'
 
 export type EditorProps = {
+  className: string
+  rimu: typeof import('rimu-wasm')
   initialCode: string
-  rimu: RimuModule
   setCode: (code: string) => void
   setOutput: (output: any) => void
 }
 
 export function Editor(props: EditorProps) {
-  const { initialCode, setCode, setOutput } = props
+  const { className, rimu, initialCode, setCode, setOutput } = props
 
   const editorRef = useRef(null)
 
-  // useEffect(() => init(), [])
+  useEffect(() => rimu.init(), [rimu])
 
   useEffect(() => {
     if (editorRef.current == null) return
@@ -32,12 +34,11 @@ export function Editor(props: EditorProps) {
     const yaml = new LanguageSupport(StreamLanguage.define(yamlMode.yaml))
 
     const onUpdate = EditorView.updateListener.of((v) => {
-      /*
       const code = v.state.doc.toString()
 
       let output
       try {
-        output = render(code, sourceId)
+        output = rimu.render(code, sourceId)
       } catch (err) {
         console.error(err)
         return
@@ -45,7 +46,6 @@ export function Editor(props: EditorProps) {
 
       setOutput(output)
       setCode(code)
-      */
     })
 
     const startState = EditorState.create({
@@ -58,9 +58,9 @@ export function Editor(props: EditorProps) {
     return () => {
       view.destroy()
     }
-  }, [editorRef, initialCode, setCode, setOutput])
+  }, [editorRef, rimu, initialCode, setCode, setOutput])
 
-  return <div ref={editorRef}></div>
+  return <div className={className} ref={editorRef}></div>
 }
 
 /*

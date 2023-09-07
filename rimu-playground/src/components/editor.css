@@ -1,0 +1,12 @@
+.cm-editor {
+  height: 100%;
+}
+
+.cm-scroller {
+  overflow: 'auto';
+}
+
+.cm-content,
+.cm-gutter {
+  min-height: 100vh;
+}

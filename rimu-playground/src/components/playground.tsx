@@ -1,27 +1,38 @@
 'use client'
 
-import { Suspense, useState } from 'react'
+import { useState } from 'react'
 
-import { Rimu } from './rimu'
+import { useLoader } from '@/hooks/use-loader'
+
 import { Editor } from './editor'
 import { Output } from './output'
 
 export function Playground() {
   const initialCode = 'hello: "world"'
 
+  const rimu = useLoader(() => import('rimu-wasm'))
   const [code, setCode] = useState<string>(initialCode)
   const [output, setOutput] = useState<any>({ hello: 'world' })
 
+  if (rimu === null) {
+    return <div>Loading</div>
+  }
+
   return (
     <div className="flex flex-row">
-      <Suspense>
-        <Rimu
-          render={(rimu) => (
-            <Editor rimu={rimu} initialCode={initialCode} setCode={setCode} setOutput={setOutput} />
-          )}
-        />
-      </Suspense>
-      <Output output={output} />
+      <Editor
+        className="w-1/2 h-screen"
+        rimu={rimu}
+        initialCode={initialCode}
+        setCode={setCode}
+        setOutput={setOutput}
+      />
+      <Output
+        classNames={{
+          container: 'w-1/2 h-screen',
+        }}
+        output={output}
+      />
     </div>
   )
 }
