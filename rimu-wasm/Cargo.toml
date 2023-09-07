@@ -19,6 +19,3 @@ wee_alloc = "0.4.5"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.34"
-
-[profile.release]
-opt-level = "s"

@@ -6,4 +6,4 @@ playground-install:
   cd rimu-playground && npm install
 
 playground: playground-install
-  cd rimu-playground && npm run start
+  cd rimu-playground && npm run dev

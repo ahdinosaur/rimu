@@ -10,3 +10,10 @@ members = [
     "rimu-cli",
     "rimu-wasm",
 ]
+resolver = "2"
+
+[profile.release]
+lto = true
+
+[profile.release.package.rimu-wasm]
+opt-level = "s"

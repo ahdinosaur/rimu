@@ -1,42 +1,31 @@
 {
-  "name": "create-wasm-app",
+  "name": "rimu-playground",
   "version": "0.1.0",
-  "description": "create an app to consume rust-generated wasm packages",
-  "main": "index.js",
-  "bin": {
-    "create-wasm-app": ".bin/create-wasm-app.js"
-  },
+  "private": true,
   "scripts": {
-    "build": "webpack --config webpack.config.js",
-    "start": "webpack-dev-server"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/rustwasm/create-wasm-app.git"
-  },
-  "keywords": [
-    "webassembly",
-    "wasm",
-    "rust",
-    "webpack"
-  ],
-  "author": "Ashley Williams <ashley666ashley@gmail.com>",
-  "license": "(MIT OR Apache-2.0)",
-  "bugs": {
-    "url": "https://github.com/rustwasm/create-wasm-app/issues"
-  },
-  "homepage": "https://github.com/rustwasm/create-wasm-app#readme",
   "dependencies": {
     "@codemirror/language": "^6.9.0",
     "@codemirror/legacy-modes": "^6.3.3",
     "@codemirror/lint": "^6.4.1",
+    "@codemirror/theme-one-dark": "^6.1.2",
+    "@types/node": "20.5.9",
+    "@types/react": "18.2.21",
+    "@types/react-dom": "18.2.7",
+    "autoprefixer": "10.4.15",
     "codemirror": "^6.0.1",
-    "rimu-wasm": "file:../rimu-wasm/pkg"
-  },
-  "devDependencies": {
-    "copy-webpack-plugin": "^11.0.0",
-    "webpack": "^5.88.2",
-    "webpack-cli": "^5.1.4",
-    "webpack-dev-server": "^4.15.1"
+    "eslint": "8.48.0",
+    "eslint-config-next": "13.4.19",
+    "next": "13.4.19",
+    "postcss": "8.4.29",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "rimu-wasm": "file:../rimu-wasm/pkg",
+    "tailwindcss": "3.3.3",
+    "typescript": "5.2.2"
   }
 }
