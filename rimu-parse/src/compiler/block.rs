@@ -123,7 +123,7 @@ fn parse_block_operation(
     let operation = match operator.as_str() {
         "$if" => {
             static KEYS: [&str; 3] = ["$if", "then", "else"];
-            check_block_operation_keys(span, &KEYS, &object)?;
+            check_block_operation_keys(span, "$if", &KEYS, &object)?;
 
             let condition = object.get("$if").unwrap().to_owned();
             let consequent = object.get("then").cloned();
@@ -137,7 +137,7 @@ fn parse_block_operation(
         }
         "$let" => {
             static KEYS: [&str; 2] = ["$let", "in"];
-            check_block_operation_keys(span.clone(), &KEYS, &object)?;
+            check_block_operation_keys(span.clone(), "$let", &KEYS, &object)?;
 
             let variables = object.get("$let").unwrap().to_owned();
             let body = object
@@ -153,6 +153,7 @@ fn parse_block_operation(
 
 fn check_block_operation_keys<Value>(
     span: Span,
+    op: &str,
     keys: &[&str],
     object: &IndexMap<String, Value>,
 ) -> Result<(), CompilerError> {
@@ -160,7 +161,7 @@ fn check_block_operation_keys<Value>(
         if !keys.contains(&key.as_str()) {
             return Err(CompilerError::custom(
                 span,
-                format!("$if: unexpected field \"{}\"", key),
+                format!("{}: unexpected field \"{}\"", op, key),
             ));
         }
     }
