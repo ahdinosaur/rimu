@@ -11,7 +11,6 @@
   "dependencies": {
     "@codemirror/language": "^6.9.0",
     "@codemirror/legacy-modes": "^6.3.3",
-    "@codemirror/lint": "^6.4.1",
     "@codemirror/theme-one-dark": "^6.1.2",
     "@types/node": "20.5.9",
     "@types/react": "18.2.21",
