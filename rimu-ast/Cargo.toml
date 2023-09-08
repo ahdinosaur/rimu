@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 rust_decimal = "1.31.0"
 rimu-meta = { path = "../rimu-meta" }
+indexmap = "2.0.0"
 
 [dev-dependencies]
 pretty_assertions = "1.4.0"

@@ -1,6 +1,8 @@
+use indexmap::IndexMap;
 use lazy_static::lazy_static;
 use regex::Regex;
-use std::{collections::BTreeMap, iter::empty};
+use std::iter::empty;
+use std::{collections::IndexMap, iter::empty};
 
 use rimu_value::{value_get_in, Object, Value};
 
@@ -13,14 +15,14 @@ pub struct Environment<'a> {
 impl<'a> Environment<'a> {
     pub fn new() -> Environment<'a> {
         Environment {
-            content: BTreeMap::new(),
+            content: IndexMap::new(),
             parent: None,
         }
     }
 
     pub fn child(&'a self) -> Environment<'a> {
         Environment {
-            content: BTreeMap::new(),
+            content: IndexMap::new(),
             parent: Some(self),
         }
     }
@@ -43,7 +45,7 @@ impl<'a> Environment<'a> {
         parent: Option<&'a Environment>,
     ) -> Result<Environment<'a>, EnvironmentError> {
         let mut context = Environment {
-            content: BTreeMap::new(),
+            content: IndexMap::new(),
             parent,
         };
 
