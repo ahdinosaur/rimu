@@ -50,7 +50,7 @@ export interface Report {
   message: string
   from: number
   to: number
-  sourceId?: string
+  sourceId: string
   severity: Severity
   markClass?: string
   // labels: Array<Label>
@@ -561,21 +561,7 @@ class EvalPanel implements Panel {
       onkeydown,
       onclick,
     })
-    this.dom = elt(
-      'div',
-      { class: 'cm-panel-eval' },
-      this.list,
-      elt(
-        'button',
-        {
-          type: 'button',
-          name: 'close',
-          'aria-label': this.view.state.phrase('close'),
-          onclick: () => closeEvalPanel(this.view),
-        },
-        '×',
-      ),
-    )
+    this.dom = elt('div', { class: 'cm-panel-eval' }, this.list)
     this.update()
   }
 
@@ -624,17 +610,6 @@ class EvalPanel implements Panel {
     while (i < this.items.length && !(this.items.length == 1 && this.items[0].report.from < 0)) {
       needsSync = true
       this.items.pop()
-    }
-    if (this.items.length == 0) {
-      this.items.push(
-        new PanelItem(this.view, {
-          from: -1,
-          to: -1,
-          severity: 'info',
-          message: this.view.state.phrase('No reports'),
-        }),
-      )
-      needsSync = true
     }
     if (newSelectedItem) {
       this.list.setAttribute('aria-activedescendant', newSelectedItem!.id)
