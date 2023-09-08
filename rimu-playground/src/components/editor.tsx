@@ -1,13 +1,13 @@
 'use client'
 
 import { CodeMirror } from '@/codemirror'
-import './editor.css'
 
 import React, { useRef, useEffect } from 'react'
-// import { clsx } from 'clsx'
+
+import './editor.css'
+import styles from './editor.module.css'
 
 export type EditorProps = {
-  className: string
   rimu: typeof import('rimu-wasm')
   initialCode: string
   setCode: (code: string) => void
@@ -15,7 +15,7 @@ export type EditorProps = {
 }
 
 export function Editor(props: EditorProps) {
-  const { className, rimu, initialCode, setCode, setOutput } = props
+  const { rimu, initialCode, setCode, setOutput } = props
 
   const editorRef = useRef(null)
 
@@ -37,5 +37,5 @@ export function Editor(props: EditorProps) {
     }
   }, [editorRef, rimu, initialCode, setCode, setOutput])
 
-  return <div className={className} ref={editorRef}></div>
+  return <div className={styles.container} ref={editorRef}></div>
 }

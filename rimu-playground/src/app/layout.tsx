@@ -1,4 +1,7 @@
+import 'tw-variables/preflight.css'
+import 'tw-variables/variables.css'
 import './globals.css'
+
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 

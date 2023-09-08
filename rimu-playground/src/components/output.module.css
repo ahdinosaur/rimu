@@ -1,0 +1,22 @@
+.container {
+  width: 50%;
+}
+
+.formatList {
+  display: flex;
+  flex-direction: row;
+}
+
+.formatItem {
+  padding-left: var(--size-2);
+  padding-right: var(--size-2);
+}
+
+.formatButton {
+  color: var(--sky-800);
+}
+
+.formatButton[aria-selected='true'] {
+  color: var(--purple-400);
+  font-weight: bold;
+}

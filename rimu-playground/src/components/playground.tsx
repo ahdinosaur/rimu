@@ -7,6 +7,8 @@ import { useLoader } from '@/hooks/use-loader'
 import { Editor } from './editor'
 import { Output } from './output'
 
+import styles from './playground.module.css'
+
 export function Playground() {
   const initialCode = 'hello: "world"'
 
@@ -15,24 +17,18 @@ export function Playground() {
   const [output, setOutput] = useState<any>({ hello: 'world' })
 
   if (rimu === null) {
-    return <div>Loading</div>
+    return <div className="loading">Loading</div>
   }
 
   return (
-    <div className="flex flex-row">
-      <Editor
-        className="w-1/2 h-screen"
-        rimu={rimu}
-        initialCode={initialCode}
-        setCode={setCode}
-        setOutput={setOutput}
-      />
-      <Output
-        classNames={{
-          container: 'w-1/2 h-screen',
-        }}
-        output={output}
-      />
+    <div className={styles.container}>
+      <div className={styles.menu}>
+        <h1 className={styles.heading}>Rimu</h1>
+      </div>
+      <div className={styles.panels}>
+        <Editor rimu={rimu} initialCode={initialCode} setCode={setCode} setOutput={setOutput} />
+        <Output output={output} />
+      </div>
     </div>
   )
 }
