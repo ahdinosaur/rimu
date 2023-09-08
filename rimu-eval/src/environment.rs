@@ -2,7 +2,6 @@ use indexmap::IndexMap;
 use lazy_static::lazy_static;
 use regex::Regex;
 use std::iter::empty;
-use std::{collections::IndexMap, iter::empty};
 
 use rimu_value::{value_get_in, Object, Value};
 
@@ -108,7 +107,7 @@ impl<'a> Environment<'a> {
     }
 }
 
-#[derive(Debug, thiserror::Error, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, thiserror::Error, Clone, PartialEq)]
 pub enum EnvironmentError {
     #[error("top level keys of context must follow /[a-zA-Z_][a-zA-Z0-9_]*: `{key}`")]
     InvalidKey { key: String },

@@ -1,7 +1,7 @@
 // https://github.com/serde-rs/json/blob/master/src/value/ser.rs
 
 use serde::{ser::Impossible, Serialize};
-use std::{fmt::Display};
+use std::fmt::Display;
 use indexmap::IndexMap;
 
 use crate::{to_value, Object, Value, ValueError};

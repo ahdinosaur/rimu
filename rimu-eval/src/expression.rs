@@ -235,10 +235,66 @@ impl<'a> Evaluator<'a> {
                             got: left,
                         }),
                     },
-                    BinaryOperator::Greater => Ok(Value::Boolean(left > right)),
-                    BinaryOperator::GreaterEqual => Ok(Value::Boolean(left >= right)),
-                    BinaryOperator::Less => Ok(Value::Boolean(left < right)),
-                    BinaryOperator::LessEqual => Ok(Value::Boolean(left <= right)),
+                    BinaryOperator::Greater => match (left.clone(), right.clone()) {
+                        (Value::Number(left), Value::Number(right)) => {
+                            Ok(Value::Boolean(left > right))
+                        }
+                        (Value::Number(_left), right) => Err(EvalError::TypeError {
+                            span: right_span,
+                            expected: "number".into(),
+                            got: right,
+                        }),
+                        _ => Err(EvalError::TypeError {
+                            span: left_span,
+                            expected: "number".into(),
+                            got: left,
+                        }),
+                    },
+                    BinaryOperator::GreaterEqual => match (left.clone(), right.clone()) {
+                        (Value::Number(left), Value::Number(right)) => {
+                            Ok(Value::Boolean(left >= right))
+                        }
+                        (Value::Number(_left), right) => Err(EvalError::TypeError {
+                            span: right_span,
+                            expected: "number".into(),
+                            got: right,
+                        }),
+                        _ => Err(EvalError::TypeError {
+                            span: left_span,
+                            expected: "number".into(),
+                            got: left,
+                        }),
+                    },
+                    BinaryOperator::Less => match (left.clone(), right.clone()) {
+                        (Value::Number(left), Value::Number(right)) => {
+                            Ok(Value::Boolean(left < right))
+                        }
+                        (Value::Number(_left), right) => Err(EvalError::TypeError {
+                            span: right_span,
+                            expected: "number".into(),
+                            got: right,
+                        }),
+                        _ => Err(EvalError::TypeError {
+                            span: left_span,
+                            expected: "number".into(),
+                            got: left,
+                        }),
+                    },
+                    BinaryOperator::LessEqual => match (left.clone(), right.clone()) {
+                        (Value::Number(left), Value::Number(right)) => {
+                            Ok(Value::Boolean(left <= right))
+                        }
+                        (Value::Number(_left), right) => Err(EvalError::TypeError {
+                            span: right_span,
+                            expected: "number".into(),
+                            got: right,
+                        }),
+                        _ => Err(EvalError::TypeError {
+                            span: left_span,
+                            expected: "number".into(),
+                            got: left,
+                        }),
+                    },
                     BinaryOperator::Equal => Ok(Value::Boolean(left == right)),
                     BinaryOperator::NotEqual => Ok(Value::Boolean(left != right)),
                 }?
@@ -390,7 +446,7 @@ impl<'a> Evaluator<'a> {
                 span: container_span,
                 expected: "object".into(),
                 got: container,
-            })
+            });
         };
 
         object
@@ -536,8 +592,8 @@ fn get_index(
 
 #[cfg(test)]
 mod tests {
-    use std::{ops::Range};
     use indexmap::IndexMap;
+    use std::ops::Range;
 
     use crate::Environment;
     use indexmap::indexmap;
