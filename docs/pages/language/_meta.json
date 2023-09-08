@@ -2,8 +2,8 @@
   "types": "Types",
   "values": "Values",
   "expressions": "Expressions",
-  "structure": "Structure",
   "blocks": "Blocks",
+  "operations": "Operations",
   "stdlib": "Standard Library",
   "schemas": "Schemas"
 }

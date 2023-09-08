@@ -1,3 +1,77 @@
-# Rimu blocks
+# Rimu structure
+
+Rimu is structured as blocks similar to [YAML](https://yaml.org/), with some important differences.
+
+## Collections
+
+### Objects
+
+```yaml
+mikey:
+  name: "Mikey"
+  website: "https://mikey.nz"
+```
+
+#### Keys
+
+Keys must either be:
+
+##### Unquoted Key
+
+Unquoted keys are [identifiers](./expressions#Identifiers) and must conform to regex: `^[a-zA-Z_][a-zA-Z0-9_]*$`.
+
+##### Quoted Key
+
+Quoted keys can be any valid Unicode.
+
+```yaml
+"🙆": "okay!"
+```
+
+### Lists
+
+```yaml
+similar_projects:
+  - JSON-e
+  - Nickel
+  - Jsonnet
+```
+
+## Scalars
+
+Unlike YAML, scalars are expressions.
+
+So this means Rimu is both more strict and more expressive:
+
+- Strings must be wrapped in quotes, otherwise is assumed to be an identifier.
+- No more implicit typing (aka the ["Norway Problem"](https://hitchdev.com/strictyaml/why/implicit-typing-removed/))
+
+Before we go into expressions in more detail, here are the basic scalars, as similar to YAML.
+
+### Null
+
+```yaml
+mikey: null
+```
+
+### Boolean
+
+```yaml
+nonsense: true
+```
+
+### Number
+
+```yaml
+bottles_of_beer_on_the_wall: 99
+```
+
+### String
+
+```yaml
+cat: "Charlie"
+```
+
+## Multi-line values
 
 TODO
