@@ -6,7 +6,7 @@ pub(crate) mod function;
 pub(crate) mod number;
 pub(crate) mod ser;
 
-use std::collections::BTreeMap;
+use indexmap::IndexMap;
 
 use std::fmt::{Debug, Display};
 
@@ -20,9 +20,9 @@ pub use self::number::Number;
 use self::ser::Serializer;
 
 pub type List = Vec<Value>;
-pub type Object = BTreeMap<String, Value>;
+pub type Object = IndexMap<String, Value>;
 
-#[derive(Default, Clone, PartialEq, PartialOrd)]
+#[derive(Default, Clone, PartialEq)]
 pub enum Value {
     #[default]
     Null,

@@ -235,10 +235,66 @@ impl<'a> Evaluator<'a> {
                             got: left,
                         }),
                     },
-                    BinaryOperator::Greater => Ok(Value::Boolean(left > right)),
-                    BinaryOperator::GreaterEqual => Ok(Value::Boolean(left >= right)),
-                    BinaryOperator::Less => Ok(Value::Boolean(left < right)),
-                    BinaryOperator::LessEqual => Ok(Value::Boolean(left <= right)),
+                    BinaryOperator::Greater => match (left.clone(), right.clone()) {
+                        (Value::Number(left), Value::Number(right)) => {
+                            Ok(Value::Boolean(left > right))
+                        }
+                        (Value::Number(_left), right) => Err(EvalError::TypeError {
+                            span: right_span,
+                            expected: "number".into(),
+                            got: right,
+                        }),
+                        _ => Err(EvalError::TypeError {
+                            span: left_span,
+                            expected: "number".into(),
+                            got: left,
+                        }),
+                    },
+                    BinaryOperator::GreaterEqual => match (left.clone(), right.clone()) {
+                        (Value::Number(left), Value::Number(right)) => {
+                            Ok(Value::Boolean(left >= right))
+                        }
+                        (Value::Number(_left), right) => Err(EvalError::TypeError {
+                            span: right_span,
+                            expected: "number".into(),
+                            got: right,
+                        }),
+                        _ => Err(EvalError::TypeError {
+                            span: left_span,
+                            expected: "number".into(),
+                            got: left,
+                        }),
+                    },
+                    BinaryOperator::Less => match (left.clone(), right.clone()) {
+                        (Value::Number(left), Value::Number(right)) => {
+                            Ok(Value::Boolean(left < right))
+                        }
+                        (Value::Number(_left), right) => Err(EvalError::TypeError {
+                            span: right_span,
+                            expected: "number".into(),
+                            got: right,
+                        }),
+                        _ => Err(EvalError::TypeError {
+                            span: left_span,
+                            expected: "number".into(),
+                            got: left,
+                        }),
+                    },
+                    BinaryOperator::LessEqual => match (left.clone(), right.clone()) {
+                        (Value::Number(left), Value::Number(right)) => {
+                            Ok(Value::Boolean(left <= right))
+                        }
+                        (Value::Number(_left), right) => Err(EvalError::TypeError {
+                            span: right_span,
+                            expected: "number".into(),
+                            got: right,
+                        }),
+                        _ => Err(EvalError::TypeError {
+                            span: left_span,
+                            expected: "number".into(),
+                            got: left,
+                        }),
+                    },
                     BinaryOperator::Equal => Ok(Value::Boolean(left == right)),
                     BinaryOperator::NotEqual => Ok(Value::Boolean(left != right)),
                 }?
@@ -390,7 +446,7 @@ impl<'a> Evaluator<'a> {
                 span: container_span,
                 expected: "object".into(),
                 got: container,
-            })
+            });
         };
 
         object
@@ -536,10 +592,11 @@ fn get_index(
 
 #[cfg(test)]
 mod tests {
-    use std::{collections::BTreeMap, ops::Range};
+    use indexmap::IndexMap;
+    use std::ops::Range;
 
     use crate::Environment;
-    use map_macro::btree_map;
+    use indexmap::indexmap;
     use pretty_assertions::assert_eq;
     use rimu_ast::{BinaryOperator, Expression, SpannedExpression};
     use rimu_meta::{SourceId, Span, Spanned};
@@ -555,7 +612,7 @@ mod tests {
 
     fn test_expression(
         expr: SpannedExpression,
-        env_object: Option<BTreeMap<String, Value>>,
+        env_object: Option<IndexMap<String, Value>>,
     ) -> Result<Value, EvalError> {
         let mut env = Environment::new();
         if let Some(env_object) = env_object {
@@ -569,7 +626,7 @@ mod tests {
 
     fn test_code(
         code: &str,
-        env_object: Option<BTreeMap<String, Value>>,
+        env_object: Option<IndexMap<String, Value>>,
     ) -> Result<Value, EvalError> {
         let (Some(expr), errors) = parse_expression(code, SourceId::empty()) else {
             panic!()
@@ -647,7 +704,7 @@ mod tests {
         );
         let actual = test_expression(expr, None);
 
-        let expected = Ok(Value::Object(btree_map! {
+        let expected = Ok(Value::Object(indexmap! {
             "a".into() => "hello".into(),
             "b".into() => "world".into(),
         }));
@@ -657,7 +714,7 @@ mod tests {
 
     #[test]
     fn simple_function_call() {
-        let env = btree_map! {
+        let env = indexmap! {
             "add".into() => Value::Function(Function {
                 name: "add".into(),
                 args: vec!["a".into(), "b".into()],
@@ -703,7 +760,7 @@ mod tests {
 
     #[test]
     fn arithmetic() {
-        let env = btree_map! {
+        let env = indexmap! {
             "x".into() => Value::Number(dec!(10).into()),
             "y".into() => Value::Number(dec!(20).into()),
             "z".into() => Value::Number(dec!(40).into()),
@@ -718,7 +775,7 @@ mod tests {
 
     #[test]
     fn get_list_index() {
-        let env = btree_map! {
+        let env = indexmap! {
             "list".into() => Value::List(vec![
                 Value::String("a".into()),
                 Value::String("b".into()),
@@ -736,7 +793,7 @@ mod tests {
 
     #[test]
     fn get_list_index_negative() {
-        let env = btree_map! {
+        let env = indexmap! {
             "list".into() => Value::List(vec![
                 Value::String("a".into()),
                 Value::String("b".into()),
@@ -754,8 +811,8 @@ mod tests {
 
     #[test]
     fn get_key() {
-        let env = btree_map! {
-            "object".into() => Value::Object(btree_map! {
+        let env = indexmap! {
+            "object".into() => Value::Object(indexmap! {
                 "a".into() => Value::String("apple".into()),
                 "b".into() => Value::String("bear".into()),
                 "c".into() => Value::String("cranberry".into()),
@@ -771,7 +828,7 @@ mod tests {
 
     #[test]
     fn get_slice_start_end() {
-        let env = btree_map! {
+        let env = indexmap! {
             "list".into() => Value::List(vec![
                 Value::String("a".into()),
                 Value::String("b".into()),

@@ -112,10 +112,10 @@ impl<'a> Evaluator<'a> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
+    use indexmap::IndexMap;
 
     use crate::Environment;
-    use map_macro::btree_map;
+    use indexmap::indexmap;
     use pretty_assertions::assert_eq;
     use rimu_ast::SpannedBlock;
     use rimu_meta::SourceId;
@@ -127,7 +127,7 @@ mod tests {
 
     fn test_block(
         expr: SpannedBlock,
-        env_object: Option<BTreeMap<String, Value>>,
+        env_object: Option<IndexMap<String, Value>>,
     ) -> Result<Value, EvalError> {
         let mut env = Environment::new();
         if let Some(env_object) = env_object {
@@ -141,7 +141,7 @@ mod tests {
 
     fn test_code(
         code: &str,
-        env_object: Option<BTreeMap<String, Value>>,
+        env_object: Option<IndexMap<String, Value>>,
     ) -> Result<Value, EvalError> {
         let (Some(expr), errors) = parse_block(code, SourceId::empty()) else {
             panic!()
@@ -159,13 +159,13 @@ zero:
   else: ten
 ";
 
-        let env = btree_map! {
+        let env = indexmap! {
             "five".into() => Value::Number(dec!(5).into()),
             "ten".into() => Value::Number(dec!(10).into()),
         };
         let actual = test_code(code, Some(env));
 
-        let expected = Ok(Value::Object(btree_map! {
+        let expected = Ok(Value::Object(indexmap! {
             "zero".into() => Value::Number(dec!(5).into())
         }));
 
@@ -183,13 +183,13 @@ zero:
     three: one + two
 ";
 
-        let env = btree_map! {
+        let env = indexmap! {
             "ten".into() => Value::Number(dec!(10).into()),
         };
         let actual = test_code(code, Some(env));
 
-        let expected = Ok(Value::Object(btree_map! {
-            "zero".into() => Value::Object(btree_map! {
+        let expected = Ok(Value::Object(indexmap! {
+            "zero".into() => Value::Object(indexmap! {
                 "three".into() => Value::Number(dec!(12).into())
             })
         }));

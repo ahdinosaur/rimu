@@ -1,7 +1,8 @@
 // https://github.com/serde-rs/json/blob/master/src/value/ser.rs
 
 use serde::{ser::Impossible, Serialize};
-use std::{collections::BTreeMap, fmt::Display};
+use std::fmt::Display;
+use indexmap::IndexMap;
 
 use crate::{to_value, Object, Value, ValueError};
 
@@ -263,14 +264,14 @@ pub struct SerializeTupleVariant {
 
 pub enum SerializeMap {
     Map {
-        map: BTreeMap<String, Value>,
+        map: IndexMap<String, Value>,
         next_key: Option<String>,
     },
 }
 
 pub struct SerializeStructVariant {
     name: String,
-    map: BTreeMap<String, Value>,
+    map: IndexMap<String, Value>,
 }
 
 impl serde::ser::SerializeSeq for SerializeVec {

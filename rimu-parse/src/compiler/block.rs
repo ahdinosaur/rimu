@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use indexmap::IndexMap;
 
 use chumsky::prelude::*;
 
@@ -115,7 +115,7 @@ fn parse_block_operation(
     entries: Vec<(Spanned<String>, Spanned<Block>)>,
     span: Span,
 ) -> Result<BlockOperation, CompilerError> {
-    let object = BTreeMap::from_iter(
+    let object = IndexMap::from_iter(
         entries
             .into_iter()
             .map(|(key, value)| (key.into_inner(), value)),
@@ -154,7 +154,7 @@ fn parse_block_operation(
 fn check_block_operation_keys<Value>(
     span: Span,
     keys: &[&str],
-    object: &BTreeMap<String, Value>,
+    object: &IndexMap<String, Value>,
 ) -> Result<(), CompilerError> {
     for key in object.keys() {
         if !keys.contains(&key.as_str()) {

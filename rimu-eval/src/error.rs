@@ -5,7 +5,7 @@ use rimu_value::{Object, Value};
 
 use crate::EnvironmentError;
 
-#[derive(Debug, thiserror::Error, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, thiserror::Error, Clone, PartialEq)]
 pub enum EvalError {
     #[error("{source}")]
     Environment {

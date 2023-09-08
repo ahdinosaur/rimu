@@ -1,10 +1,10 @@
 use std::{
     borrow::Cow,
-    collections::BTreeMap,
     path::Path,
     string::{String, ToString},
 };
 use std::{ffi::OsString, path::PathBuf};
+use indexmap::IndexMap;
 
 use crate::{Number, Value};
 
@@ -74,8 +74,8 @@ impl From<Number> for Value {
     }
 }
 
-impl From<BTreeMap<String, Value>> for Value {
-    fn from(f: BTreeMap<String, Value>) -> Self {
+impl From<IndexMap<String, Value>> for Value {
+    fn from(f: IndexMap<String, Value>) -> Self {
         Value::Object(f)
     }
 }
