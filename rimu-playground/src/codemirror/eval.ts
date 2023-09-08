@@ -32,6 +32,7 @@ import {
   Range,
 } from '@codemirror/state'
 import elt from 'crelt'
+import { color } from '@codemirror/theme-one-dark'
 
 type Severity = 'hint' | 'info' | 'warning' | 'error'
 
@@ -780,14 +781,12 @@ const baseTheme = EditorView.baseTheme({
       maxHeight: '100px',
       overflowY: 'auto',
       '& [aria-selected]': {
-        backgroundColor: '#ddd',
+        backgroundColor: color.darkBackground,
         '& u': { textDecoration: 'underline' },
       },
       '&:focus [aria-selected]': {
-        background_fallback: '#bdf',
-        backgroundColor: 'Highlight',
-        color_fallback: 'white',
-        color: 'HighlightText',
+        backgroundColor: color.highlightBackground,
+        color: color.ivory,
       },
       '& u': { textDecoration: 'none' },
       padding: 0,
