@@ -1,6 +1,4 @@
 use indexmap::IndexMap;
-use lazy_static::lazy_static;
-use regex::Regex;
 use std::iter::empty;
 
 use rimu_value::{value_get_in, Object, Value};
@@ -48,11 +46,6 @@ impl<'a> Environment<'a> {
             parent,
         };
 
-        for key in object.keys() {
-            if !is_identifier(key) {
-                return Err(EnvironmentError::InvalidKey { key: key.clone() });
-            }
-        }
         for (key, value) in object.iter() {
             context.insert(key, value.clone());
         }
@@ -109,15 +102,6 @@ impl<'a> Environment<'a> {
 
 #[derive(Debug, thiserror::Error, Clone, PartialEq)]
 pub enum EnvironmentError {
-    #[error("top level keys of context must follow /[a-zA-Z_][a-zA-Z0-9_]*: `{key}`")]
-    InvalidKey { key: String },
     #[error("context value is not an object: {:?}", value)]
     InvalidEnvironmentValue { value: Value },
-}
-
-fn is_identifier(identifier: &str) -> bool {
-    lazy_static! {
-        static ref RE: Regex = Regex::new("^[a-zA-Z_][a-zA-Z0-9_]*$").unwrap();
-    }
-    RE.is_match(identifier)
 }
