@@ -11,6 +11,8 @@ import * as yamlMode from '@codemirror/legacy-modes/mode/yaml'
 import { StreamLanguage, LanguageSupport } from '@codemirror/language'
 import { oneDark } from '@codemirror/theme-one-dark'
 
+import { Report, evaler as createEvaler } from '@/codemirror/eval'
+
 const sourceId = 'playground'
 
 export type EditorProps = {
@@ -33,24 +35,50 @@ export function Editor(props: EditorProps) {
 
     const yaml = new LanguageSupport(StreamLanguage.define(yamlMode.yaml))
 
-    const onUpdate = EditorView.updateListener.of((v) => {
-      const code = v.state.doc.toString()
+    const evaler = createEvaler(
+      (view) => {
+        const reports: Array<Report> = []
 
-      let output
-      try {
-        output = rimu.render(code, sourceId)
-      } catch (err) {
-        console.error(err)
-        return
-      }
+        const code = view.state.sliceDoc()
 
-      setOutput(output)
-      setCode(code)
-    })
+        let output
+        try {
+          output = rimu.render(code, sourceId)
+        } catch (err) {
+          // @ts-ignore
+          if (err.reports == null) throw err
+
+          // @ts-ignore
+          for (const report of err.reports) {
+            const { span } = report
+            let message = report.message
+            for (const [_span, label] of report.labels) {
+              message += '\n\n' + label
+            }
+            reports.push({
+              from: span.start,
+              to: span.end,
+              severity: 'error',
+              message,
+            })
+          }
+        }
+
+        if (output !== undefined) {
+          setCode(code)
+          setOutput(output)
+        }
+
+        return reports
+      },
+      {
+        delay: 50,
+      },
+    )
 
     const startState = EditorState.create({
       doc: initialCode,
-      extensions: [basicSetup, oneDark, yaml, onUpdate],
+      extensions: [basicSetup, oneDark, yaml, evaler],
     })
 
     const view = new EditorView({ state: startState, parent: editorRef.current })
@@ -62,75 +90,3 @@ export function Editor(props: EditorProps) {
 
   return <div className={className} ref={editorRef}></div>
 }
-
-/*
-import { init, render } from "rimu-wasm";
-import { basicSetup, EditorView } from "codemirror";
-import {
-  linter as createLinter,
-  lintGutter,
-  openLintPanel,
-} from "@codemirror/lint";
-
-const yaml = new LanguageSupport(StreamLanguage.define(yamlMode.yaml));
-
-init();
-
-const sourceId = "playground";
-
-const inputEl = document.getElementById("input");
-const renderButtonEl = document.getElementById("render");
-const outputEl = document.getElementById("output");
-
-const linter = createLinter(
-  (view) => {
-    const diagnostics = [];
-
-    const input = inputView.state.sliceDoc();
-    console.log("input", input);
-
-    let output;
-    try {
-      output = render(input, sourceId);
-    } catch (err) {
-      const { reports } = err;
-      if (reports == null) throw err;
-
-      for (const report of reports) {
-        const { span } = report;
-        let message = report.message;
-        for (const [_span, label] of report.labels) {
-          message += "\n\n" + label;
-        }
-        diagnostics.push({
-          from: span.start,
-          to: span.end,
-          severity: "error",
-          message,
-        });
-      }
-    }
-
-    if (output !== undefined) {
-      console.log("value", output);
-      outputEl.innerText = JSON.stringify(output, null, 2);
-    }
-
-    return diagnostics;
-  },
-  {
-    delay: 250,
-  }
-);
-
-const inputView = new EditorView({
-  doc: `
-hello:
-  world: 10 + 2
-`,
-  extensions: [basicSetup, yaml, linter, lintGutter()],
-  parent: inputEl,
-});
-
-openLintPanel(inputView);
-*/
