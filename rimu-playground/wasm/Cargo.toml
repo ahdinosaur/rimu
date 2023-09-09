@@ -11,9 +11,13 @@ default = ["console_error_panic_hook"]
 
 [dependencies]
 console_error_panic_hook = { version = "0.1.7", optional = true }
+js-sys = "0.3.64"
 rimu = { path = "../../rimu" }
 serde = "1.0.181"
+serde_json = "1.0.105"
 serde-wasm-bindgen = "0.5.0"
+serde_yaml = "0.9.25"
+toml = "0.7.6"
 wasm-bindgen = "0.2.84"
 wee_alloc = "0.4.5"
 

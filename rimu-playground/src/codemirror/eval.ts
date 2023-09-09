@@ -251,6 +251,17 @@ function reportsTooltip(view: EditorView, reports: readonly Report[]) {
   )
 }
 
+/*
+// Command to receive reports to display
+export const setReports: Command = (view: EditorView) => {
+  let { state } = view
+  let field = state.field(evalState, false)
+  if (view.state.doc == state.doc) {
+    view.dispatch(setReports(view.state, all))
+  }
+}
+*/
+
 /// Command to open and focus the eval panel.
 export const openEvalPanel: Command = (view: EditorView) => {
   let field = view.state.field(evalState, false)
@@ -320,8 +331,8 @@ export const evalKeymap: readonly KeyBinding[] = [
   { key: 'F8', run: nextReport },
 ]
 
-/// The type of a function that produces reports.
-export type EvalSource = (view: EditorView) => readonly Report[] | Promise<readonly Report[]>
+/// The type of a function that lists to doc changes.
+export type EvalSource = (view: EditorView) => void
 
 const evalPlugin = ViewPlugin.fromClass(
   class {
@@ -345,11 +356,7 @@ const evalPlugin = ViewPlugin.fromClass(
         let { state } = this.view,
           { sources } = state.facet(evalConfig)
         Promise.all(sources.map((source) => Promise.resolve(source(this.view)))).then(
-          (annotations) => {
-            let all = annotations.reduce((a, b) => a.concat(b))
-            if (this.view.state.doc == state.doc)
-              this.view.dispatch(setReports(this.view.state, all))
-          },
+          () => {},
           (error) => {
             logException(this.view.state, error)
           },

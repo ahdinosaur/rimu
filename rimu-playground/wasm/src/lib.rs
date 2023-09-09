@@ -1,5 +1,6 @@
 use rimu::{evaluate, Environment, ErrorReport, ErrorReports};
-use serde_wasm_bindgen::{Error as SerdeWasmError, Serializer};
+use serde::Serialize;
+use serde_wasm_bindgen::{Error as SerdeWasmError, Serializer as WasmSerializer};
 use wasm_bindgen::prelude::*;
 
 #[global_allocator]
@@ -18,7 +19,14 @@ pub fn init() {
 }
 
 #[wasm_bindgen]
-pub fn render(code: &str, source_id: &str) -> Result<JsValue, JsValue> {
+pub enum Format {
+    Json = "json",
+    Yaml = "yaml",
+    Toml = "toml",
+}
+
+#[wasm_bindgen]
+pub fn render(code: &str, source_id: &str, format: Format) -> Result<String, JsValue> {
     let source_id = source_id.parse().unwrap();
 
     let (block, errors) = rimu::parse(code, source_id);
@@ -26,7 +34,7 @@ pub fn render(code: &str, source_id: &str) -> Result<JsValue, JsValue> {
     let Some(block) = block else {
         let reports: Vec<ErrorReport> = errors.into_iter().map(Into::into).collect::<Vec<_>>();
         let reports: ErrorReports = reports.into();
-        return Err(to_value(&reports)?);
+        return Err(to_js_value(&reports)?);
     };
 
     let env = Environment::new();
@@ -36,13 +44,38 @@ pub fn render(code: &str, source_id: &str) -> Result<JsValue, JsValue> {
         Err(error) => {
             let reports: Vec<ErrorReport> = vec![error.into()];
             let reports: ErrorReports = reports.into();
-            return Err(to_value(&reports)?);
+            return Err(to_js_value(&reports)?);
         }
     };
 
-    Ok(to_value(&value)?)
+    let output: Result<String, OutputFormatError> = match format {
+        Format::Json => serde_json::to_string(&value).map_err(OutputFormatError::new),
+        Format::Yaml => serde_yaml::to_string(&value).map_err(OutputFormatError::new),
+        Format::Toml => toml::to_string(&value).map_err(OutputFormatError::new),
+        _ => panic!("Unexpected format!"),
+    };
+
+    match output {
+        Ok(output) => Ok(output),
+        Err(error) => Err(to_js_value(&error)?),
+    }
 }
 
-pub fn to_value<T: serde::ser::Serialize + ?Sized>(value: &T) -> Result<JsValue, SerdeWasmError> {
-    value.serialize(&Serializer::json_compatible())
+pub fn to_js_value<T: serde::ser::Serialize + ?Sized>(
+    value: &T,
+) -> Result<JsValue, SerdeWasmError> {
+    value.serialize(&WasmSerializer::json_compatible())
+}
+
+#[derive(Serialize)]
+pub struct OutputFormatError {
+    pub message: String,
+}
+
+impl OutputFormatError {
+    fn new<E: ToString>(error: E) -> Self {
+        Self {
+            message: error.to_string(),
+        }
+    }
 }

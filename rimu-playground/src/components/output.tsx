@@ -6,21 +6,22 @@ import { stringify as tomlStringify } from '@ltd/j-toml'
 
 import styles from './output.module.css'
 
-type OutputData = any
+export type Format = 'json' | 'yaml' | 'toml'
 
-type Format = 'json' | 'yaml' | 'toml'
+export type OutputData = any
 
 export type OutputProps = {
   output: OutputData
+  format: Format
+  setFormat: (format: Format) => void
 }
 
 export function Output(props: OutputProps) {
-  const { output } = props
+  const { output, format, setFormat } = props
 
-  const [format, setFormat] = useState<Format>('json')
-  const setFormatToJson = useCallback(() => setFormat('json'), [])
-  const setFormatToYaml = useCallback(() => setFormat('yaml'), [])
-  const setFormatToToml = useCallback(() => setFormat('toml'), [])
+  const setFormatToJson = useCallback(() => setFormat('json'), [setFormat])
+  const setFormatToYaml = useCallback(() => setFormat('yaml'), [setFormat])
+  const setFormatToToml = useCallback(() => setFormat('toml'), [setFormat])
 
   const string = useMemo(() => {
     switch (format) {

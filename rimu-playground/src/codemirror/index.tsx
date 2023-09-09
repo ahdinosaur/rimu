@@ -10,24 +10,46 @@ import { Report, evaler as createEvaler } from '@/codemirror/eval'
 
 const sourceId = 'playground'
 
+// message passing
+//
+// out:
+// - code output
+//
+// in:
+// - error reports
+//
+// how?
+//
+// - use commands to send messages in
+//   - to send messages to codemirror
+// - use "set*" functions to receive messages out
+//
+// so ...
+//
+// [ ] a setCode function passed to codemirror
+// [ ] a setReports command dispatched to codemirror on change
+//
+
 export type CodeMirrorOptions = {
-  rimu: typeof import('rimu-wasm')
   parent: HTMLDivElement
   initialCode: string
   setCode: (code: string) => void
-  setOutput: (output: any) => void
 }
 
 export function CodeMirror(options: CodeMirrorOptions) {
-  const { rimu, parent, initialCode, setCode, setOutput } = options
+  // const { rimu, parent, initialCode, setCode, setOutput } = options
+  const { parent, initialCode, setCode } = options
 
   const yaml = new LanguageSupport(StreamLanguage.define(yamlMode.yaml))
 
   const evaler = createEvaler(
     (view) => {
-      const reports: Array<Report> = []
-
       const code = view.state.sliceDoc()
+      setCode(code)
+
+      /*
+
+      const reports: Array<Report> = []
 
       let output
       try {
@@ -59,6 +81,7 @@ export function CodeMirror(options: CodeMirrorOptions) {
       }
 
       return reports
+        */
     },
     {
       delay: 50,
