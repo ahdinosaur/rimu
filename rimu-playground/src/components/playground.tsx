@@ -7,7 +7,7 @@ import { Output, Format } from './output'
 
 import styles from './playground.module.css'
 import { useRimu } from '@/hooks/use-rimu'
-import { Report } from '@/codemirror/eval'
+import { Report } from '@/codemirror/diagnostics'
 
 export function Playground() {
   const initialCode = 'hello: "world"'

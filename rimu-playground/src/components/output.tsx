@@ -17,8 +17,6 @@ export type OutputProps = {
 export function Output(props: OutputProps) {
   const { output, format, setFormat } = props
 
-  console.log('output', output)
-
   const setFormatToJson = useCallback(() => setFormat('json'), [setFormat])
   const setFormatToYaml = useCallback(() => setFormat('yaml'), [setFormat])
   const setFormatToToml = useCallback(() => setFormat('toml'), [setFormat])

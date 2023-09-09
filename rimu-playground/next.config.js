@@ -1,5 +1,4 @@
 const { resolve } = require('path')
-const { readdirSync } = require('fs')
 const WasmPackPlugin = require('@wasm-tool/wasm-pack-plugin')
 
 /** @type {import('next').NextConfig} */
@@ -10,12 +9,6 @@ const nextConfig = {
     config.plugins.push(
       new WasmPackPlugin({
         crateDirectory: resolve(__dirname, 'wasm'),
-
-        /*
-        watchDirectories: [
-          ...readdirSync(resolve(__dirname, '..')).filter((dir) => dir.startsWith('rimu-')),
-        ],
-        */
       }),
     )
 

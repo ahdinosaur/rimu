@@ -6,11 +6,8 @@ import React, { useRef, useEffect } from 'react'
 
 import './editor.css'
 import styles from './editor.module.css'
-import { Format } from './output'
 import { EditorView } from 'codemirror'
-import { Report, setReports } from '@/codemirror/eval'
-
-const sourceId = 'playground'
+import { Report, setReports } from '@/codemirror/diagnostics'
 
 export type EditorProps = {
   initialCode: string

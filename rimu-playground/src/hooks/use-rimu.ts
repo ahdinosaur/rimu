@@ -1,7 +1,8 @@
 import { Format } from '@/components/output'
-import { useLoader } from './use-loader'
-import { Report } from '@/codemirror/eval'
+import { Report } from '@/codemirror/diagnostics'
 import { useEffect } from 'react'
+
+import { useLoader } from './use-loader'
 
 const sourceId = 'playground'
 

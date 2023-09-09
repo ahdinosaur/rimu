@@ -1,12 +1,9 @@
 import {
   EditorView,
-  ViewPlugin,
   Decoration,
   DecorationSet,
   WidgetType,
-  ViewUpdate,
   Command,
-  logException,
   KeyBinding,
   hoverTooltip,
   Tooltip,
@@ -71,14 +68,12 @@ export interface Action {
 
 type ReportFilter = (reports: readonly Report[]) => Report[]
 
-interface EvalConfig {
-  delay?: number
-  needsRefresh?: null | ((update: ViewUpdate) => boolean)
+interface DiagnosticConfig {
   markerFilter?: null | ReportFilter
   tooltipFilter?: null | ReportFilter
 }
 
-interface EvalGutterConfig {
+interface DiagnosticGutterConfig {
   hoverTime?: number
   markerFilter?: null | ReportFilter
   tooltipFilter?: null | ReportFilter
@@ -88,7 +83,7 @@ class SelectedReport {
   constructor(readonly from: number, readonly to: number, readonly report: Report) {}
 }
 
-class EvalState {
+class DiagnosticState {
   constructor(
     readonly reports: DecorationSet,
     readonly panel: PanelConstructor | null,
@@ -98,7 +93,7 @@ class EvalState {
   static init(reports: readonly Report[], panel: PanelConstructor | null, state: EditorState) {
     // Filter the list of reports for which to create markers
     let markedReports = reports
-    let reportFilter = state.facet(evalConfig).markerFilter
+    let reportFilter = state.facet(diagnosticConfig).markerFilter
     if (reportFilter) markedReports = reportFilter(markedReports)
 
     let ranges = Decoration.set(
@@ -112,7 +107,7 @@ class EvalState {
           : Decoration.mark({
               attributes: {
                 class:
-                  'cm-evalRange cm-evalRange-' +
+                  'cm-diagnosticRange cm-diagnosticRange-' +
                   d.severity +
                   (d.markClass ? ' ' + d.markClass : ''),
               },
@@ -121,7 +116,7 @@ class EvalState {
       }),
       true,
     )
-    return new EvalState(ranges, panel, findReport(ranges))
+    return new DiagnosticState(ranges, panel, findReport(ranges))
   }
 }
 
@@ -146,18 +141,18 @@ function hideTooltip(tr: Transaction, tooltip: Tooltip) {
   )
 }
 
-function maybeEnableEval(state: EditorState, effects: readonly StateEffect<unknown>[]) {
-  return state.field(evalState, false)
+function maybeEnableDiagnostic(state: EditorState, effects: readonly StateEffect<unknown>[]) {
+  return state.field(diagnosticState, false)
     ? effects
-    : effects.concat(StateEffect.appendConfig.of(evalExtensions))
+    : effects.concat(StateEffect.appendConfig.of(diagnosticExtensions))
 }
 
 /// Returns a transaction spec which updates the current set of
-/// reports, and enables the eval extension if if wasn't already
+/// reports, and enables the diagnostic extension if if wasn't already
 /// active.
 export function setReports(state: EditorState, reports: readonly Report[]): TransactionSpec {
   return {
-    effects: maybeEnableEval(state, [setReportsEffect.of(reports)]),
+    effects: maybeEnableDiagnostic(state, [setReportsEffect.of(reports)]),
   }
 }
 
@@ -169,9 +164,9 @@ const togglePanel = StateEffect.define<boolean>()
 
 const movePanelSelection = StateEffect.define<SelectedReport>()
 
-const evalState = StateField.define<EvalState>({
+const diagnosticState = StateField.define<DiagnosticState>({
   create() {
-    return new EvalState(Decoration.none, EvalPanel.open, null)
+    return new DiagnosticState(Decoration.none, DiagnosticPanel.open, null)
   },
   update(value, tr) {
     if (tr.docChanged) {
@@ -182,16 +177,20 @@ const evalState = StateField.define<EvalState>({
         selected =
           findReport(mapped, value.selected.report, selPos) || findReport(mapped, null, selPos)
       }
-      value = new EvalState(mapped, value.panel, selected)
+      value = new DiagnosticState(mapped, value.panel, selected)
     }
 
     for (let effect of tr.effects) {
       if (effect.is(setReportsEffect)) {
-        value = EvalState.init(effect.value, value.panel, tr.state)
+        value = DiagnosticState.init(effect.value, value.panel, tr.state)
       } else if (effect.is(togglePanel)) {
-        value = new EvalState(value.reports, effect.value ? EvalPanel.open : null, value.selected)
+        value = new DiagnosticState(
+          value.reports,
+          effect.value ? DiagnosticPanel.open : null,
+          value.selected,
+        )
       } else if (effect.is(movePanelSelection)) {
-        value = new EvalState(value.reports, value.panel, effect.value)
+        value = new DiagnosticState(value.reports, value.panel, effect.value)
       }
     }
 
@@ -203,16 +202,16 @@ const evalState = StateField.define<EvalState>({
   ],
 })
 
-/// Returns the number of active eval reports in the given state.
+/// Returns the number of active diagnostic reports in the given state.
 export function reportCount(state: EditorState) {
-  const eval_ = state.field(evalState, false)
-  return eval_ ? eval_.reports.size : 0
+  const diagnostic_ = state.field(diagnosticState, false)
+  return diagnostic_ ? diagnostic_.reports.size : 0
 }
 
-const activeMark = Decoration.mark({ class: 'cm-evalRange cm-evalRange-active' })
+const activeMark = Decoration.mark({ class: 'cm-diagnosticRange cm-diagnosticRange-active' })
 
-function evalTooltip(view: EditorView, pos: number, side: -1 | 1) {
-  let { reports } = view.state.field(evalState)
+function diagnosticTooltip(view: EditorView, pos: number, side: -1 | 1) {
+  let { reports } = view.state.field(diagnosticState)
   let found: Report[] = [],
     stackStart = 2e8,
     stackEnd = 0
@@ -228,7 +227,7 @@ function evalTooltip(view: EditorView, pos: number, side: -1 | 1) {
     }
   })
 
-  let reportFilter = view.state.facet(evalConfig).tooltipFilter
+  let reportFilter = view.state.facet(diagnosticConfig).tooltipFilter
   if (reportFilter) found = reportFilter(found)
 
   if (!found.length) return null
@@ -246,35 +245,24 @@ function evalTooltip(view: EditorView, pos: number, side: -1 | 1) {
 function reportsTooltip(view: EditorView, reports: readonly Report[]) {
   return elt(
     'ul',
-    { class: 'cm-tooltip-eval' },
+    { class: 'cm-tooltip-diagnostic' },
     reports.map((d) => renderReport(view, d, false)),
   )
 }
 
-/*
-// Command to receive reports to display
-export const setReports: Command = (view: EditorView) => {
-  let { state } = view
-  let field = state.field(evalState, false)
-  if (view.state.doc == state.doc) {
-    view.dispatch(setReports(view.state, all))
-  }
-}
-*/
-
-/// Command to open and focus the eval panel.
-export const openEvalPanel: Command = (view: EditorView) => {
-  let field = view.state.field(evalState, false)
+/// Command to open and focus the diagnostic panel.
+export const openDiagnosticPanel: Command = (view: EditorView) => {
+  let field = view.state.field(diagnosticState, false)
   if (!field || !field.panel)
-    view.dispatch({ effects: maybeEnableEval(view.state, [togglePanel.of(true)]) })
-  let panel = getPanel(view, EvalPanel.open)
-  if (panel) (panel.dom.querySelector('.cm-panel-eval ul') as HTMLElement).focus()
+    view.dispatch({ effects: maybeEnableDiagnostic(view.state, [togglePanel.of(true)]) })
+  let panel = getPanel(view, DiagnosticPanel.open)
+  if (panel) (panel.dom.querySelector('.cm-panel-diagnostic ul') as HTMLElement).focus()
   return true
 }
 
-/// Command to close the eval panel, when open.
-export const closeEvalPanel: Command = (view: EditorView) => {
-  let field = view.state.field(evalState, false)
+/// Command to close the diagnostic panel, when open.
+export const closeDiagnosticPanel: Command = (view: EditorView) => {
+  let field = view.state.field(diagnosticState, false)
   if (!field || !field.panel) return false
   view.dispatch({ effects: togglePanel.of(false) })
   return true
@@ -282,7 +270,7 @@ export const closeEvalPanel: Command = (view: EditorView) => {
 
 /// Move the selection to the next report.
 export const nextReport: Command = (view: EditorView) => {
-  let field = view.state.field(evalState, false)
+  let field = view.state.field(diagnosticState, false)
   if (!field) return false
   let sel = view.state.selection.main,
     next = field.reports.iter(sel.to + 1)
@@ -297,7 +285,7 @@ export const nextReport: Command = (view: EditorView) => {
 /// Move the selection to the previous report.
 export const previousReport: Command = (view: EditorView) => {
   let { state } = view,
-    field = state.field(evalState, false)
+    field = state.field(diagnosticState, false)
   if (!field) return false
   let sel = state.selection.main
   let prevFrom: number | undefined,
@@ -322,111 +310,31 @@ export const previousReport: Command = (view: EditorView) => {
   return true
 }
 
-/// A set of default key bindings for the eval functionality.
+/// A set of default key bindings for the diagnostic functionality.
 ///
-/// - Ctrl-Shift-m (Cmd-Shift-m on macOS): [`openEvalPanel`](#eval.openEvalPanel)
-/// - F8: [`nextReport`](#eval.nextReport)
-export const evalKeymap: readonly KeyBinding[] = [
-  { key: 'Mod-Shift-m', run: openEvalPanel, preventDefault: true },
+/// - Ctrl-Shift-m (Cmd-Shift-m on macOS): [`openDiagnosticPanel`](#diagnostic.openDiagnosticPanel)
+/// - F8: [`nextReport`](#diagnostic.nextReport)
+export const diagnosticKeymap: readonly KeyBinding[] = [
+  { key: 'Mod-Shift-m', run: openDiagnosticPanel, preventDefault: true },
   { key: 'F8', run: nextReport },
 ]
 
-/// The type of a function that lists to doc changes.
-export type EvalSource = (view: EditorView) => void
-
-const evalPlugin = ViewPlugin.fromClass(
-  class {
-    evalTime: number
-    timeout: ReturnType<typeof setTimeout> | undefined = undefined
-    set = true
-
-    constructor(readonly view: EditorView) {
-      let { delay } = view.state.facet(evalConfig)
-      this.evalTime = Date.now() + delay
-      this.run = this.run.bind(this)
-      this.timeout = setTimeout(this.run, delay)
-    }
-
-    run() {
-      let now = Date.now()
-      if (now < this.evalTime - 10) {
-        this.timeout = setTimeout(this.run, this.evalTime - now)
-      } else {
-        this.set = false
-        let { state } = this.view,
-          { sources } = state.facet(evalConfig)
-        Promise.all(sources.map((source) => Promise.resolve(source(this.view)))).then(
-          () => {},
-          (error) => {
-            logException(this.view.state, error)
-          },
-        )
-      }
-    }
-
-    update(update: ViewUpdate) {
-      let config = update.state.facet(evalConfig)
-      if (
-        update.docChanged ||
-        config != update.startState.facet(evalConfig) ||
-        (config.needsRefresh && config.needsRefresh(update))
-      ) {
-        this.evalTime = Date.now() + config.delay
-        if (!this.set) {
-          this.set = true
-          this.timeout = setTimeout(this.run, config.delay)
-        }
-      }
-    }
-
-    force() {
-      if (this.set) {
-        this.evalTime = Date.now()
-        this.run()
-      }
-    }
-
-    destroy() {
-      clearTimeout(this.timeout)
-    }
-  },
-)
-
-const evalConfig = Facet.define<
-  { source: EvalSource; config: EvalConfig },
-  Required<EvalConfig> & { sources: readonly EvalSource[] }
->({
+const diagnosticConfig = Facet.define<{ config: DiagnosticConfig }, Required<DiagnosticConfig>>({
   combine(input) {
     return {
-      sources: input.map((i) => i.source),
       ...combineConfig(
         input.map((i) => i.config),
         {
-          delay: 750,
           markerFilter: null,
           tooltipFilter: null,
-          needsRefresh: null,
-        },
-        {
-          needsRefresh: (a, b) => (!a ? b : !b ? a : (u) => a(u) || b(u)),
         },
       ),
     }
   },
 })
 
-/// Given a report source, this function returns an extension that
-/// enables evaling with that source. It will be called whenever the
-/// editor is idle (after its content changed).
-export function evaler(source: EvalSource, config: EvalConfig = {}): Extension {
-  return [evalConfig.of({ source, config }), evalPlugin, evalExtensions]
-}
-
-/// Forces any evalers [configured](#eval.evaler) to run when the
-/// editor is idle to run right away.
-export function forceEvaling(view: EditorView) {
-  let plugin = view.plugin(evalPlugin)
-  if (plugin) plugin.force()
+export function createDiagnostics(config: DiagnosticConfig = {}): Extension {
+  return [diagnosticConfig.of({ config }), diagnosticExtensions]
 }
 
 function assignKeys(actions: readonly Action[] | undefined) {
@@ -461,7 +369,7 @@ function renderReport(view: EditorView, report: Report, inPanel: boolean) {
           e.preventDefault()
           if (fired) return
           fired = true
-          let found = findReport(view.state.field(evalState).reports, report)
+          let found = findReport(view.state.field(diagnosticState).reports, report)
           if (found) action.apply(view, found.from, found.to)
         }
       let { name } = action,
@@ -500,7 +408,7 @@ class ReportWidget extends WidgetType {
   }
 
   toDOM() {
-    return elt('span', { class: 'cm-evalPoint cm-evalPoint-' + this.report.severity })
+    return elt('span', { class: 'cm-diagnosticPoint cm-diagnosticPoint-' + this.report.severity })
   }
 }
 
@@ -515,7 +423,7 @@ class PanelItem {
   }
 }
 
-class EvalPanel implements Panel {
+class DiagnosticPanel implements Panel {
   items: PanelItem[] = []
   dom: HTMLElement
   list: HTMLElement
@@ -524,7 +432,7 @@ class EvalPanel implements Panel {
     let onkeydown = (event: KeyboardEvent) => {
       if (event.keyCode == 27) {
         // Escape
-        closeEvalPanel(this.view)
+        closeDiagnosticPanel(this.view)
         this.view.focus()
       } else if (event.keyCode == 38 || event.keyCode == 33) {
         // ArrowUp, PageUp
@@ -547,7 +455,7 @@ class EvalPanel implements Panel {
           keys = assignKeys(report.actions)
         for (let i = 0; i < keys.length; i++)
           if (keys[i].toUpperCase().charCodeAt(0) == event.keyCode) {
-            let found = findReport(this.view.state.field(evalState).reports, report)
+            let found = findReport(this.view.state.field(diagnosticState).reports, report)
             if (found) report.actions![i].apply(view, found.from, found.to)
           }
       } else {
@@ -568,12 +476,12 @@ class EvalPanel implements Panel {
       onkeydown,
       onclick,
     })
-    this.dom = elt('div', { class: 'cm-panel-eval' }, this.list)
+    this.dom = elt('div', { class: 'cm-panel-diagnostic' }, this.list)
     this.update()
   }
 
   get selectedIndex() {
-    let selected = this.view.state.field(evalState).selected
+    let selected = this.view.state.field(diagnosticState).selected
     if (!selected) return -1
     for (let i = 0; i < this.items.length; i++)
       if (this.items[i].report == selected.report) return i
@@ -581,7 +489,7 @@ class EvalPanel implements Panel {
   }
 
   update() {
-    let { reports, selected } = this.view.state.field(evalState)
+    let { reports, selected } = this.view.state.field(diagnosticState)
     let i = 0,
       needsSync = false,
       newSelectedItem: PanelItem | null = null
@@ -660,7 +568,7 @@ class EvalPanel implements Panel {
 
   moveSelection(selectedIndex: number) {
     if (this.selectedIndex < 0) return
-    let field = this.view.state.field(evalState)
+    let field = this.view.state.field(diagnosticState)
     let selection = findReport(field.reports, this.items[selectedIndex].report)
     if (!selection) return
     this.view.dispatch({
@@ -671,7 +579,7 @@ class EvalPanel implements Panel {
   }
 
   static open(view: EditorView) {
-    return new EvalPanel(view)
+    return new DiagnosticPanel(view)
   }
 }
 
@@ -716,24 +624,24 @@ const baseTheme = EditorView.baseTheme({
     opacity: 0.7,
   },
 
-  '.cm-evalRange': {
+  '.cm-diagnosticRange': {
     backgroundPosition: 'left bottom',
     backgroundRepeat: 'repeat-x',
     paddingBottom: '0.7px',
   },
 
-  '.cm-evalRange-error': { backgroundImage: underline('#d11') },
-  '.cm-evalRange-warning': { backgroundImage: underline('orange') },
-  '.cm-evalRange-info': { backgroundImage: underline('#999') },
-  '.cm-evalRange-hint': { backgroundImage: underline('#66d') },
-  '.cm-evalRange-active': { backgroundColor: '#ffdd9980' },
+  '.cm-diagnosticRange-error': { backgroundImage: underline('#d11') },
+  '.cm-diagnosticRange-warning': { backgroundImage: underline('orange') },
+  '.cm-diagnosticRange-info': { backgroundImage: underline('#999') },
+  '.cm-diagnosticRange-hint': { backgroundImage: underline('#66d') },
+  '.cm-diagnosticRange-active': { backgroundColor: '#ffdd9980' },
 
-  '.cm-tooltip-eval': {
+  '.cm-tooltip-diagnostic': {
     padding: 0,
     margin: 0,
   },
 
-  '.cm-evalPoint': {
+  '.cm-diagnosticPoint': {
     position: 'relative',
 
     '&:after': {
@@ -747,17 +655,17 @@ const baseTheme = EditorView.baseTheme({
     },
   },
 
-  '.cm-evalPoint-warning': {
+  '.cm-diagnosticPoint-warning': {
     '&:after': { borderBottomColor: 'orange' },
   },
-  '.cm-evalPoint-info': {
+  '.cm-diagnosticPoint-info': {
     '&:after': { borderBottomColor: '#999' },
   },
-  '.cm-evalPoint-hint': {
+  '.cm-diagnosticPoint-hint': {
     '&:after': { borderBottomColor: '#66d' },
   },
 
-  '.cm-panel.cm-panel-eval': {
+  '.cm-panel.cm-panel-diagnostic': {
     position: 'relative',
     '& ul': {
       maxHeight: '100px',
@@ -791,7 +699,7 @@ function severityWeight(sev: Severity) {
   return sev == 'error' ? 4 : sev == 'warning' ? 3 : sev == 'info' ? 2 : 1
 }
 
-class EvalGutterMarker extends GutterMarker {
+class DiagnosticGutterMarker extends GutterMarker {
   severity: Severity
   constructor(readonly reports: readonly Report[]) {
     super()
@@ -803,10 +711,10 @@ class EvalGutterMarker extends GutterMarker {
 
   toDOM(view: EditorView) {
     let elt = document.createElement('div')
-    elt.className = 'cm-eval-marker cm-eval-marker-' + this.severity
+    elt.className = 'cm-diagnostic-marker cm-diagnostic-marker-' + this.severity
 
     let reports = this.reports
-    let reportsFilter = view.state.facet(evalGutterConfig).tooltipFilter
+    let reportsFilter = view.state.facet(diagnosticGutterConfig).tooltipFilter
     if (reportsFilter) reports = reportsFilter(reports)
 
     if (reports.length) elt.onmouseover = () => gutterMarkerMouseOver(view, elt, reports)
@@ -831,12 +739,15 @@ function trackHoverOn(view: EditorView, marker: HTMLElement) {
     )
       return
     for (let target = event.target as Node | null; target; target = target.parentNode) {
-      if (target.nodeType == 1 && (target as HTMLElement).classList.contains('cm-tooltip-eval'))
+      if (
+        target.nodeType == 1 &&
+        (target as HTMLElement).classList.contains('cm-tooltip-diagnostic')
+      )
         return
     }
     window.removeEventListener('mousemove', mousemove)
-    if (view.state.field(evalGutterTooltip))
-      view.dispatch({ effects: setEvalGutterTooltip.of(null) })
+    if (view.state.field(diagnosticGutterTooltip))
+      view.dispatch({ effects: setDiagnosticGutterTooltip.of(null) })
   }
   window.addEventListener('mousemove', mousemove)
 }
@@ -847,7 +758,7 @@ function gutterMarkerMouseOver(view: EditorView, marker: HTMLElement, reports: r
     const linePos = view.coordsAtPos(line.from)
     if (linePos) {
       view.dispatch({
-        effects: setEvalGutterTooltip.of({
+        effects: setDiagnosticGutterTooltip.of({
           pos: line.from,
           above: false,
           create() {
@@ -863,7 +774,7 @@ function gutterMarkerMouseOver(view: EditorView, marker: HTMLElement, reports: r
     trackHoverOn(view, marker)
   }
 
-  let { hoverTime } = view.state.facet(evalGutterConfig)
+  let { hoverTime } = view.state.facet(diagnosticGutterConfig)
 
   let hoverTimeout = setTimeout(hovered, hoverTime)
   marker.onmouseout = () => {
@@ -884,23 +795,23 @@ function markersForReports(doc: Text, reports: readonly Report[]) {
   }
   let markers: Range<GutterMarker>[] = []
   for (let line in byLine) {
-    markers.push(new EvalGutterMarker(byLine[line]).range(+line))
+    markers.push(new DiagnosticGutterMarker(byLine[line]).range(+line))
   }
   return RangeSet.of(markers, true)
 }
 
-const evalGutterExtension = gutter({
-  class: 'cm-gutter-eval',
-  markers: (view) => view.state.field(evalGutterMarkers),
+const diagnosticGutterExtension = gutter({
+  class: 'cm-gutter-diagnostic',
+  markers: (view) => view.state.field(diagnosticGutterMarkers),
 })
 
-const evalGutterMarkers = StateField.define<RangeSet<GutterMarker>>({
+const diagnosticGutterMarkers = StateField.define<RangeSet<GutterMarker>>({
   create() {
     return RangeSet.empty
   },
   update(markers, tr) {
     markers = markers.map(tr.changes)
-    let reportFilter = tr.state.facet(evalGutterConfig).markerFilter
+    let reportFilter = tr.state.facet(diagnosticGutterConfig).markerFilter
     for (let effect of tr.effects) {
       if (effect.is(setReportsEffect)) {
         let reports = effect.value
@@ -912,9 +823,9 @@ const evalGutterMarkers = StateField.define<RangeSet<GutterMarker>>({
   },
 })
 
-const setEvalGutterTooltip = StateEffect.define<Tooltip | null>()
+const setDiagnosticGutterTooltip = StateEffect.define<Tooltip | null>()
 
-const evalGutterTooltip = StateField.define<Tooltip | null>({
+const diagnosticGutterTooltip = StateField.define<Tooltip | null>({
   create() {
     return null
   },
@@ -923,50 +834,53 @@ const evalGutterTooltip = StateField.define<Tooltip | null>({
       tooltip = hideTooltip(tr, tooltip)
         ? null
         : { ...tooltip, pos: tr.changes.mapPos(tooltip.pos) }
-    return tr.effects.reduce((t, e) => (e.is(setEvalGutterTooltip) ? e.value : t), tooltip)
+    return tr.effects.reduce((t, e) => (e.is(setDiagnosticGutterTooltip) ? e.value : t), tooltip)
   },
   provide: (field) => showTooltip.from(field),
 })
 
-const evalGutterTheme = EditorView.baseTheme({
-  '.cm-gutter-eval': {
+const diagnosticGutterTheme = EditorView.baseTheme({
+  '.cm-gutter-diagnostic': {
     width: '1.4em',
     '& .cm-gutterElement': {
       padding: '.2em',
     },
   },
-  '.cm-eval-marker': {
+  '.cm-diagnostic-marker': {
     width: '1em',
     height: '1em',
   },
-  '.cm-eval-marker-info': {
+  '.cm-diagnostic-marker-info': {
     content: svg(
       `<path fill="#aaf" stroke="#77e" stroke-width="6" stroke-linejoin="round" d="M5 5L35 5L35 35L5 35Z"/>`,
     ),
   },
-  '.cm-eval-marker-warning': {
+  '.cm-diagnostic-marker-warning': {
     content: svg(
       `<path fill="#fe8" stroke="#fd7" stroke-width="6" stroke-linejoin="round" d="M20 6L37 35L3 35Z"/>`,
     ),
   },
-  '.cm-eval-marker-error': {
+  '.cm-diagnostic-marker-error': {
     content: svg(`<circle cx="20" cy="20" r="15" fill="#f87" stroke="#f43" stroke-width="6"/>`),
   },
 })
 
-const evalExtensions = [
-  evalState,
-  EditorView.decorations.compute([evalState], (state) => {
-    let { selected, panel } = state.field(evalState)
+const diagnosticExtensions = [
+  diagnosticState,
+  EditorView.decorations.compute([diagnosticState], (state) => {
+    let { selected, panel } = state.field(diagnosticState)
     return !selected || !panel || selected.from == selected.to
       ? Decoration.none
       : Decoration.set([activeMark.range(selected.from, selected.to)])
   }),
-  hoverTooltip(evalTooltip, { hideOn: hideTooltip }),
+  hoverTooltip(diagnosticTooltip, { hideOn: hideTooltip }),
   baseTheme,
 ]
 
-const evalGutterConfig = Facet.define<EvalGutterConfig, Required<EvalGutterConfig>>({
+const diagnosticGutterConfig = Facet.define<
+  DiagnosticGutterConfig,
+  Required<DiagnosticGutterConfig>
+>({
   combine(configs) {
     return combineConfig(configs, {
       hoverTime: Hover.Time,
@@ -979,13 +893,13 @@ const evalGutterConfig = Facet.define<EvalGutterConfig, Required<EvalGutterConfi
 /// Returns an extension that installs a gutter showing markers for
 /// each line that has reports, which can be hovered over to see
 /// the reports.
-export function evalGutter(config: EvalGutterConfig = {}): Extension {
+export function diagnosticGutter(config: DiagnosticGutterConfig = {}): Extension {
   return [
-    evalGutterConfig.of(config),
-    evalGutterMarkers,
-    evalGutterExtension,
-    evalGutterTheme,
-    evalGutterTooltip,
+    diagnosticGutterConfig.of(config),
+    diagnosticGutterMarkers,
+    diagnosticGutterExtension,
+    diagnosticGutterTheme,
+    diagnosticGutterTooltip,
   ]
 }
 
@@ -998,7 +912,7 @@ export function forEachReport(
   state: EditorState,
   f: (d: Report, from: number, to: number) => void,
 ) {
-  let lState = state.field(evalState, false)
+  let lState = state.field(diagnosticState, false)
   if (lState && lState.reports.size)
     for (let iter = RangeSet.iter([lState.reports]); iter.value; iter.next())
       f(iter.value.spec.report, iter.from, iter.to)
