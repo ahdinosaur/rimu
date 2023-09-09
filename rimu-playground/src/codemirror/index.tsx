@@ -6,7 +6,7 @@ import { StreamLanguage, LanguageSupport } from '@codemirror/language'
 import { indentWithTab } from '@codemirror/commands'
 import { oneDark } from '@codemirror/theme-one-dark'
 
-import { Report, createDiagnostics } from '@/codemirror/diagnostics'
+import { createDiagnostics } from '@/codemirror/diagnostics'
 import { createIdler } from '@/codemirror/idle'
 
 export type CodeMirrorOptions = {
@@ -16,7 +16,6 @@ export type CodeMirrorOptions = {
 }
 
 export function CodeMirror(options: CodeMirrorOptions) {
-  // const { rimu, parent, initialCode, setCode, setOutput } = options
   const { parent, initialCode, setCode } = options
 
   const yaml = new LanguageSupport(StreamLanguage.define(yamlMode.yaml))

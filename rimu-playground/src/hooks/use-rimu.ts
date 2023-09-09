@@ -39,7 +39,7 @@ export function useRimu(options: UseRimuOptions) {
         const { span } = report
         let message = report.message
         for (const [_span, label] of report.labels) {
-          message += '\n\n' + label
+          message += '\n' + label
         }
         reports.push({
           from: span.start,
