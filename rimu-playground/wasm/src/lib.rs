@@ -24,9 +24,9 @@ pub fn render(code: &str, source_id: &str) -> Result<JsValue, JsValue> {
     let (block, errors) = rimu::parse(code, source_id);
 
     let Some(block) = block else {
-            let reports: Vec<ErrorReport> = errors.into_iter().map(Into::into).collect::<Vec<_>>();
-            let reports: ErrorReports = reports.into();
-            return Err(to_value(&reports)?);
+        let reports: Vec<ErrorReport> = errors.into_iter().map(Into::into).collect::<Vec<_>>();
+        let reports: ErrorReports = reports.into();
+        return Err(to_value(&reports)?);
     };
 
     let env = Environment::new();

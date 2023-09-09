@@ -8,7 +8,7 @@ import './editor.css'
 import styles from './editor.module.css'
 
 export type EditorProps = {
-  rimu: typeof import('rimu-wasm')
+  rimu: typeof import('@/wasm')
   initialCode: string
   setCode: (code: string) => void
   setOutput: (output: any) => void

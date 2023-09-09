@@ -12,7 +12,7 @@ import styles from './playground.module.css'
 export function Playground() {
   const initialCode = 'hello: "world"'
 
-  const rimu = useLoader(() => import('rimu-wasm'))
+  const rimu = useLoader(() => import('@/wasm'))
   const [code, setCode] = useState<string>(initialCode)
   const [output, setOutput] = useState<any>({ hello: 'world' })
 
