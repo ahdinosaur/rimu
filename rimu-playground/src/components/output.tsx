@@ -1,8 +1,6 @@
 'use client'
 
 import { useCallback, useMemo, useState } from 'react'
-import { stringify as yamlStringify } from 'yaml'
-import { stringify as tomlStringify } from '@ltd/j-toml'
 
 import styles from './output.module.css'
 
@@ -19,24 +17,11 @@ export type OutputProps = {
 export function Output(props: OutputProps) {
   const { output, format, setFormat } = props
 
+  console.log('output', output)
+
   const setFormatToJson = useCallback(() => setFormat('json'), [setFormat])
   const setFormatToYaml = useCallback(() => setFormat('yaml'), [setFormat])
   const setFormatToToml = useCallback(() => setFormat('toml'), [setFormat])
-
-  const string = useMemo(() => {
-    switch (format) {
-      case 'json':
-        return JSON.stringify(output, null, 2)
-      case 'yaml':
-        return yamlStringify(output)
-      case 'toml':
-        return tomlStringify(output, {
-          newline: '\n',
-          newlineAround: 'section',
-          indent: 2,
-        }).trimStart()
-    }
-  }, [output, format])
 
   return (
     <div className={styles.container}>
@@ -76,7 +61,7 @@ export function Output(props: OutputProps) {
         </li>
       </ul>
       <code>
-        <pre>{string}</pre>
+        <pre>{output}</pre>
       </code>
     </div>
   )

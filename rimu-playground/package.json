@@ -13,7 +13,6 @@
     "@codemirror/legacy-modes": "^6.3.3",
     "@codemirror/theme-one-dark": "^6.1.2",
     "@wasm-tool/wasm-pack-plugin": "^1.7.0",
-    "@ltd/j-toml": "^1.38.0",
     "@types/node": "20.5.9",
     "@types/react": "18.2.21",
     "@types/react-dom": "18.2.7",
@@ -27,7 +26,6 @@
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "tw-variables": "^3.3.2",
-    "typescript": "5.2.2",
-    "yaml": "^2.3.2"
+    "typescript": "5.2.2"
   }
 }

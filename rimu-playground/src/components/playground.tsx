@@ -14,7 +14,7 @@ export function Playground() {
 
   const rimu = useLoader(() => import('@/wasm'))
   const [code, setCode] = useState<string>(initialCode)
-  const [output, setOutput] = useState<any>({ hello: 'world' })
+  const [output, setOutput] = useState<any>(null)
   const [format, setFormat] = useState<Format>('json')
 
   if (rimu === null) {
