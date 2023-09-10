@@ -1,7 +1,7 @@
 'use client'
 
-import { useCallback } from 'react'
-import { ListItem, Button, HStack, List, Code, Flex, Text } from '@chakra-ui/react'
+import { useCallback, ChangeEventHandler } from 'react'
+import { Code, Flex, Select } from '@chakra-ui/react'
 
 export type Format = 'json' | 'yaml' | 'toml'
 
@@ -17,55 +17,42 @@ export function Output(props: OutputProps) {
   const { output, format, setFormat } = props
 
   return (
-    <Flex sx={{ flexDirection: 'column', width: '50%', height: 'full', alignItems: 'stretch' }}>
-      <HStack sx={{ backgroundColor: 'rimu-output-header-bg' }}>
-        <Text>Output:</Text>
-        <List as={HStack} sx={{ justifyContent: 'flex-start' }}>
-          <ListItem>
-            <FormatButton buttonFormat="json" outputFormat={format} setFormat={setFormat}>
-              JSON
-            </FormatButton>
-          </ListItem>
-          <ListItem>
-            <FormatButton buttonFormat="yaml" outputFormat={format} setFormat={setFormat}>
-              YAML
-            </FormatButton>
-          </ListItem>
-          <ListItem>
-            <FormatButton buttonFormat="toml" outputFormat={format} setFormat={setFormat}>
-              TOML
-            </FormatButton>
-          </ListItem>
-        </List>
-      </HStack>
-      <Code sx={{ flexGrow: 1, backgroundColor: 'rimu-output-code-bg' }}>{output}</Code>
+    <Flex sx={{ flexDirection: 'column', width: '50%', height: 'full' }}>
+      <FormatSelect format={format} setFormat={setFormat} />
+      <Code sx={{ width: '100%', flexGrow: 1, backgroundColor: 'rimu-output-bg' }}>{output}</Code>
     </Flex>
   )
 }
 
-type FormatButtonProps = {
-  outputFormat: Format
-  buttonFormat: Format
+export type FormatSelectProps = {
+  format: Format
   setFormat: (format: Format) => void
-  children: React.ReactNode
 }
 
-function FormatButton(props: FormatButtonProps) {
-  const { outputFormat, buttonFormat, setFormat, children } = props
+export function FormatSelect(props: FormatSelectProps) {
+  const { format, setFormat } = props
 
-  const setButtonFormat = useCallback(() => setFormat(buttonFormat), [buttonFormat, setFormat])
-
-  const isSelected = outputFormat === buttonFormat
+  const handleChange = useCallback<ChangeEventHandler<HTMLSelectElement>>(
+    (ev) => {
+      setFormat(ev.target.value as Format)
+    },
+    [setFormat],
+  )
 
   return (
-    <Button
-      role="tab"
-      colorScheme={isSelected ? 'purple' : 'teal'}
-      onClick={setButtonFormat}
-      aria-selected={isSelected}
-      id={`format-${buttonFormat}`}
+    <Select
+      variant="outline"
+      value={format}
+      onChange={handleChange}
+      sx={{
+        color: 'rimu.format.text',
+        borderColor: 'rimu.format.border',
+        backgroundColor: 'rimu.format.background',
+      }}
     >
-      {children}
-    </Button>
+      <option value="json">JSON</option>
+      <option value="yaml">YAML</option>
+      <option value="toml">TOML</option>
+    </Select>
   )
 }

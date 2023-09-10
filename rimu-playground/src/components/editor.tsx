@@ -1,5 +1,3 @@
-'use client'
-
 import React, { useRef, useEffect } from 'react'
 import { Box } from '@chakra-ui/react'
 import { EditorView } from 'codemirror'

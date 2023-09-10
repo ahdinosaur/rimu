@@ -1,7 +1,9 @@
 import { FaMoon, FaSun } from 'react-icons/fa'
 import { Box, Flex, Heading, IconButton, useColorMode, useColorModeValue } from '@chakra-ui/react'
 
-export function HeaderMenu() {
+export type HeaderMenuProps = {}
+
+export function HeaderMenu(_props: HeaderMenuProps) {
   return (
     <Flex sx={{ flexDirection: 'row', width: '100%', backgroundColor: 'rimu-header-bg' }}>
       <Box>
@@ -12,9 +14,9 @@ export function HeaderMenu() {
 
       <Box sx={{ flexGrow: 1 }} />
 
-      <Box sx={{}}>
+      <Flex sx={{ flexDirection: 'row' }}>
         <ColorModeSwitch />
-      </Box>
+      </Flex>
     </Flex>
   )
 }

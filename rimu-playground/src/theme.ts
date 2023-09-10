@@ -1,7 +1,7 @@
 import { extendBaseTheme, ThemeConfig } from '@chakra-ui/react'
 import { theme as baseTheme } from '@chakra-ui/theme'
 
-const { Button, List, Heading, Link, Spinner, Code, Kbd, Modal, Badge } = baseTheme.components
+const { Button, List, Heading, Link, Spinner, Code, Kbd, Modal, Select } = baseTheme.components
 
 const config: ThemeConfig = {
   initialColorMode: 'system',
@@ -19,9 +19,16 @@ const semanticTokens = {
     'chakra-subtle-text': { _light: 'gray.600', _dark: 'gray.400' },
     'chakra-placeholder-color': { _light: 'gray.500', _dark: 'whiteAlpha.400' },
 
-    'rimu-header-bg': { _light: 'gray.200', _dark: 'gray.600' },
-    'rimu-output-header-bg': { _light: 'gray.100', _dark: 'gray.900' },
-    'rimu-output-code-bg': { _light: 'gray.50', _dark: 'gray.800' },
+    'rimu-header-bg': { _light: 'gray.300', _dark: 'gray.600' },
+    'rimu-output-bg': { _light: 'gray.200', _dark: 'gray.700' },
+
+    rimu: {
+      format: {
+        background: { _light: 'teal.50', _dark: 'teal.800' },
+        text: { _light: 'teal.800', _dark: 'teal.50' },
+        border: { _light: 'teal.500', _dark: 'teal.500' },
+      },
+    },
   },
 }
 
@@ -37,6 +44,6 @@ export const theme = extendBaseTheme({
     Code,
     Kbd,
     Modal,
-    Badge,
+    Select,
   },
 })
