@@ -1,7 +1,6 @@
 import { Format } from '@/components/output'
 import { Report } from '@/codemirror/diagnostics'
 import { useEffect } from 'react'
-import { stringify as yamlStringify } from 'yaml'
 
 import { useLoader } from './use-loader'
 
@@ -54,19 +53,6 @@ export function useRimu(options: UseRimuOptions) {
     }
 
     if (output !== undefined) {
-      // serialize JSON and YAML in JavaScript
-      //   because is less code to load.
-      switch (format) {
-        case 'json':
-          output = JSON.stringify(output, null, 2)
-          break
-        case 'yaml':
-          output = yamlStringify(output)
-          break
-      }
-
-      console.log('output', output)
-
       setOutput(output)
     }
   }, [rimu, code, format, setOutput, setReports])
