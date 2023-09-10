@@ -1,13 +1,13 @@
 'use client'
 
-import { CodeMirror } from '@/codemirror'
-
 import React, { useRef, useEffect } from 'react'
+import { Box } from '@chakra-ui/react'
+import { EditorView } from 'codemirror'
+
+import { CodeMirror } from '@/codemirror'
+import { Report, setReports } from '@/codemirror/diagnostics'
 
 import './editor.css'
-import styles from './editor.module.css'
-import { EditorView } from 'codemirror'
-import { Report, setReports } from '@/codemirror/diagnostics'
 
 export type EditorProps = {
   initialCode: string
@@ -44,5 +44,5 @@ export function Editor(props: EditorProps) {
     view.dispatch(setReports(view.state, reports))
   }, [editorViewRef, reports])
 
-  return <div className={styles.container} ref={editorParentRef}></div>
+  return <Box sx={{ width: '50%' }} ref={editorParentRef} />
 }
