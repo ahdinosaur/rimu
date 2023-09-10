@@ -26,7 +26,7 @@ pub enum Format {
 }
 
 #[wasm_bindgen]
-pub fn render(code: &str, source_id: &str, format: Format) -> Result<String, JsValue> {
+pub fn render(code: &str, source_id: &str, format: Format) -> Result<JsValue, JsValue> {
     let source_id = source_id.parse().unwrap();
 
     let (block, errors) = rimu::parse(code, source_id);
@@ -48,17 +48,21 @@ pub fn render(code: &str, source_id: &str, format: Format) -> Result<String, JsV
         }
     };
 
-    let output: Result<String, OutputFormatError> = match format {
-        Format::Json => serde_json::to_string(&value).map_err(OutputFormatError::new),
-        Format::Yaml => serde_yaml::to_string(&value).map_err(OutputFormatError::new),
-        Format::Toml => toml::to_string(&value).map_err(OutputFormatError::new),
+    let output: JsValue = match format {
+        Format::Json => to_js_value(&value)?,
+        Format::Yaml => to_js_value(&value)?,
+        Format::Toml => match toml::to_string(&value) {
+            Ok(string) => string.into(),
+            Err(error) => {
+                let error = OutputFormatError::new(error.to_string());
+                let error: JsValue = error.try_into()?;
+                return Err(error);
+            }
+        },
         _ => panic!("Unexpected format!"),
     };
 
-    match output {
-        Ok(output) => Ok(output),
-        Err(error) => Err(to_js_value(&error)?),
-    }
+    Ok(output)
 }
 
 pub fn to_js_value<T: serde::ser::Serialize + ?Sized>(
@@ -77,5 +81,13 @@ impl OutputFormatError {
         Self {
             message: error.to_string(),
         }
+    }
+}
+
+impl TryFrom<OutputFormatError> for JsValue {
+    type Error = SerdeWasmError;
+
+    fn try_from(value: OutputFormatError) -> Result<Self, Self::Error> {
+        to_js_value(&value)
     }
 }

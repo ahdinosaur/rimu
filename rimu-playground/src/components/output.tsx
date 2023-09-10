@@ -1,15 +1,13 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback } from 'react'
 
 import styles from './output.module.css'
 
 export type Format = 'json' | 'yaml' | 'toml'
 
-export type OutputData = any
-
 export type OutputProps = {
-  output: OutputData
+  output: string
   format: Format
   setFormat: (format: Format) => void
 }
