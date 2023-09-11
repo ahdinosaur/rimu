@@ -12,7 +12,6 @@ import { Report } from '@/codemirror/diagnostics'
 
 export function Playground() {
   const initialCode = 'hello: "world"'
-
   const [code, setCode] = useState<string>(initialCode)
   const [output, setOutput] = useState<string>('')
   const [format, setFormat] = useState<Format>('json')
@@ -30,7 +29,7 @@ export function Playground() {
       <HeaderMenu />
 
       <Flex sx={{ flexDirection: 'row', flexGrow: 1 }}>
-        <Editor initialCode={initialCode} setCode={setCode} reports={reports} />
+        <Editor code={code} setCode={setCode} reports={reports} />
         <Output output={output} format={format} setFormat={setFormat} />
       </Flex>
     </Flex>

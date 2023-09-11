@@ -19,7 +19,9 @@ export function Output(props: OutputProps) {
   return (
     <Flex sx={{ flexDirection: 'column', width: '50%', height: 'full' }}>
       <FormatSelect format={format} setFormat={setFormat} />
-      <Code sx={{ width: '100%', flexGrow: 1, backgroundColor: 'rimu-output-bg' }}>{output}</Code>
+      <Code sx={{ width: '100%', flexGrow: 1, backgroundColor: 'rimu.output.background' }}>
+        {output}
+      </Code>
     </Flex>
   )
 }

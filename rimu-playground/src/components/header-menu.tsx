@@ -5,7 +5,7 @@ export type HeaderMenuProps = {}
 
 export function HeaderMenu(_props: HeaderMenuProps) {
   return (
-    <Flex sx={{ flexDirection: 'row', width: '100%', backgroundColor: 'rimu-header-bg' }}>
+    <Flex sx={{ flexDirection: 'row', width: '100%', backgroundColor: 'rimu.header.background' }}>
       <Box>
         <Heading as="h1" sx={{ alignSelf: 'start', paddingLeft: 4 }}>
           Rimu

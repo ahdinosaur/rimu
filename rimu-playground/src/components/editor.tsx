@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react'
-import { Box } from '@chakra-ui/react'
+import { Box, useColorModeValue } from '@chakra-ui/react'
 import { EditorView } from 'codemirror'
+import { Variant } from 'codemirror-theme-catppuccin'
 
 import { CodeMirror } from '@/codemirror'
 import { Report, setReports } from '@/codemirror/diagnostics'
@@ -8,32 +9,35 @@ import { Report, setReports } from '@/codemirror/diagnostics'
 import './editor.css'
 
 export type EditorProps = {
-  initialCode: string
+  code: string
   setCode: (code: string) => void
   reports: Array<Report>
 }
 
 export function Editor(props: EditorProps) {
-  const { initialCode, setCode, reports } = props
+  const { code, setCode, reports } = props
 
   const editorParentRef = useRef(null)
   const editorViewRef = useRef<EditorView | null>(null)
+  const theme = useColorModeValue<Variant>('latte', 'mocha') as Variant
 
   useEffect(() => {
     if (editorParentRef.current == null) return
 
     const view = CodeMirror({
       parent: editorParentRef.current,
-      initialCode,
+      theme,
+      initialCode: code,
       setCode,
     })
 
     editorViewRef.current = view
 
     return () => {
+      console.log('dessprorryy')
       view.destroy()
     }
-  }, [editorParentRef, initialCode, setCode])
+  }, [editorParentRef, theme, setCode])
 
   useEffect(() => {
     if (editorViewRef.current == null) return

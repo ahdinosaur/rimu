@@ -9,7 +9,6 @@ const nextConfig = {
     config.plugins.push(
       new WasmPackPlugin({
         crateDirectory: resolve(__dirname, 'wasm'),
-        forceMode: 'production',
       }),
     )
 
