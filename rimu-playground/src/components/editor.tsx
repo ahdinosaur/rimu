@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react'
-import { Box } from '@chakra-ui/react'
+import { Box, useColorModeValue } from '@chakra-ui/react'
 import { EditorView } from 'codemirror'
 import { Variant } from 'codemirror-theme-catppuccin'
 
@@ -8,7 +8,6 @@ import { Report, setReports } from '@/codemirror/diagnostics'
 
 export type EditorProps = {
   height: string
-  theme: Variant
   code: string
   setCode: (code: string) => void
   codeToLoad: string | null
@@ -17,10 +16,11 @@ export type EditorProps = {
 }
 
 export function Editor(props: EditorProps) {
-  const { height, theme, code, setCode, codeToLoad, resetCodeToLoad, reports } = props
+  const { height, code, setCode, codeToLoad, resetCodeToLoad, reports } = props
 
   const editorParentRef = useRef(null)
   const editorViewRef = useRef<EditorView | null>(null)
+  const theme = useColorModeValue<Variant>('latte', 'mocha') as Variant
 
   // on init
   useEffect(() => {
