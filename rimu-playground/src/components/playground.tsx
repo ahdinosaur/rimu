@@ -31,8 +31,8 @@ export function Playground() {
     setReports,
   })
 
-  const headerHeight = '3rem'
-  const bodyHeight = 'calc(100dvh - 3rem)'
+  const headerHeight = '2.5rem'
+  const bodyHeight = 'calc(100dvh - 2.5rem)'
 
   return (
     <Flex sx={{ flexDirection: 'column', height: '100dvh', alignItems: 'stretch' }}>
