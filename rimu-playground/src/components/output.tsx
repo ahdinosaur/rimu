@@ -8,16 +8,17 @@ export type Format = 'json' | 'yaml' | 'toml'
 export type OutputData = any
 
 export type OutputProps = {
+  height: string
   output: OutputData
   format: Format
   setFormat: (format: Format) => void
 }
 
 export function Output(props: OutputProps) {
-  const { output, format, setFormat } = props
+  const { height, output, format, setFormat } = props
 
   return (
-    <Flex sx={{ flexDirection: 'column', width: '50%', height: 'full' }}>
+    <Flex sx={{ height, flexDirection: 'column', width: '100%' }}>
       <FormatSelect format={format} setFormat={setFormat} />
       <Code sx={{ width: '100%', flexGrow: 1, backgroundColor: 'rimu.output.background' }}>
         {output}

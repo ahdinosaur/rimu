@@ -31,6 +31,9 @@ const semanticTokens = {
       header: {
         background: color('crust'),
       },
+      splitter: {
+        background: color('surface0'),
+      },
       output: {
         background: color('mantle'),
       },

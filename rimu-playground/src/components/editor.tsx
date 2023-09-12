@@ -6,16 +6,15 @@ import { Variant } from 'codemirror-theme-catppuccin'
 import { CodeMirror } from '@/codemirror'
 import { Report, setReports } from '@/codemirror/diagnostics'
 
-import './editor.css'
-
 export type EditorProps = {
+  height: string
   code: string
   setCode: (code: string) => void
   reports: Array<Report>
 }
 
 export function Editor(props: EditorProps) {
-  const { code, setCode, reports } = props
+  const { height, code, setCode, reports } = props
 
   const editorParentRef = useRef(null)
   const editorViewRef = useRef<EditorView | null>(null)
@@ -34,7 +33,6 @@ export function Editor(props: EditorProps) {
     editorViewRef.current = view
 
     return () => {
-      console.log('dessprorryy')
       view.destroy()
     }
   }, [editorParentRef, theme, setCode])
@@ -46,5 +44,22 @@ export function Editor(props: EditorProps) {
     view.dispatch(setReports(view.state, reports))
   }, [editorViewRef, reports])
 
-  return <Box sx={{ width: '50%' }} ref={editorParentRef} />
+  return (
+    <Box
+      sx={{
+        width: '100%',
+        height,
+
+        '.cm-editor': {
+          height: '100%',
+        },
+
+        '.cm-scroller': {
+          height: '100%',
+          overflowY: 'auto',
+        },
+      }}
+      ref={editorParentRef}
+    />
+  )
 }

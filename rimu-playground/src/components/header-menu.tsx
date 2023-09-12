@@ -1,20 +1,36 @@
 import { FaMoon, FaSun } from 'react-icons/fa'
 import { Box, Flex, Heading, IconButton, useColorMode, useColorModeValue } from '@chakra-ui/react'
 
-export type HeaderMenuProps = {}
+export type HeaderMenuProps = {
+  height: string
+}
 
-export function HeaderMenu(_props: HeaderMenuProps) {
+export function HeaderMenu(props: HeaderMenuProps) {
+  const { height } = props
+
   return (
-    <Flex sx={{ flexDirection: 'row', width: '100%', backgroundColor: 'rimu.header.background' }}>
-      <Box>
-        <Heading as="h1" sx={{ alignSelf: 'start', paddingLeft: 4 }}>
+    <Flex
+      sx={{
+        height,
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        width: '100%',
+        backgroundColor: 'rimu.header.background',
+      }}
+    >
+      <Flex sx={{ flexDirection: 'row', alignItems: 'baseline' }}>
+        <Heading
+          as="h1"
+          size="lg"
+          sx={{ alignSelf: 'start', paddingLeft: 4, lineHeight: 'normal' }}
+        >
           Rimu
         </Heading>
-      </Box>
+      </Flex>
 
       <Box sx={{ flexGrow: 1 }} />
 
-      <Flex sx={{ flexDirection: 'row' }}>
+      <Flex sx={{ flexDirection: 'row', alignItems: 'baseline' }}>
         <ColorModeSwitch />
       </Flex>
     </Flex>
@@ -29,7 +45,7 @@ function ColorModeSwitch() {
 
   return (
     <IconButton
-      size="md"
+      size="sm"
       fontSize="lg"
       aria-label={`Switch to ${text} mode`}
       variant="ghost"
