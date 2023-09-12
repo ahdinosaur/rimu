@@ -12,7 +12,8 @@ export const createDiagnosticTheme = (palette: Palette) => {
 
   const panelBg = palette.surface2.hex
   const panelFg = palette.text.hex
-  const panelFocusedBg = palette.surface1.hex
+  const panelSelectedBg = palette.surface1.hex
+  const panelFocusedBg = palette.surface0.hex
 
   return EditorView.baseTheme({
     '.cm-report': {
@@ -86,11 +87,12 @@ export const createDiagnosticTheme = (palette: Palette) => {
     '.cm-panel.cm-panel-diagnostic': {
       position: 'relative',
       '& ul': {
-        maxHeight: '100px',
+        maxHeight: '35vh',
         overflowY: 'auto',
+        backgroundColor: panelBg,
+        color: panelFg,
         '& [aria-selected]': {
-          backgroundColor: panelBg,
-          color: panelFg,
+          backgroundColor: panelSelectedBg,
           '& u': { textDecoration: 'underline' },
         },
         '&:focus [aria-selected]': {
