@@ -672,6 +672,7 @@ const baseTheme = EditorView.baseTheme({
       overflowY: 'auto',
       '& [aria-selected]': {
         backgroundColor: color.darkBackground,
+        color: color.stone,
         '& u': { textDecoration: 'underline' },
       },
       '&:focus [aria-selected]': {
