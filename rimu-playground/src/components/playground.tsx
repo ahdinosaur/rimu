@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Box, Flex } from '@chakra-ui/react'
 import { useResplit } from 'react-resplit'
 
@@ -14,6 +14,8 @@ import { Report } from '@/codemirror/diagnostics'
 export function Playground() {
   const initialCode = 'hello: "world"'
   const [code, setCode] = useState<string>(initialCode)
+  const [codeToLoad, setCodeToLoad] = useState<string | null>(null)
+  const resetCodeToLoad = useCallback(() => setCodeToLoad(null), [])
   const [output, setOutput] = useState<string>('')
   const [format, setFormat] = useState<Format>('json')
   const [reports, setReports] = useState<Array<Report>>([])
@@ -34,11 +36,18 @@ export function Playground() {
 
   return (
     <Flex sx={{ flexDirection: 'column', height: '100dvh', alignItems: 'stretch' }}>
-      <HeaderMenu height={headerHeight} />
+      <HeaderMenu height={headerHeight} setCodeToLoad={setCodeToLoad} />
 
       <Box {...getContainerProps()} sx={{ flexGrow: 1 }}>
         <Box {...getPaneProps(0, { initialSize: '0.5fr' })}>
-          <Editor height={bodyHeight} code={code} setCode={setCode} reports={reports} />
+          <Editor
+            height={bodyHeight}
+            code={code}
+            setCode={setCode}
+            codeToLoad={codeToLoad}
+            resetCodeToLoad={resetCodeToLoad}
+            reports={reports}
+          />
         </Box>
         <Box
           {...getSplitterProps(1, { size: '16px' })}

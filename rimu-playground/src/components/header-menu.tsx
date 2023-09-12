@@ -1,12 +1,25 @@
-import { FaMoon, FaSun } from 'react-icons/fa'
-import { Box, Flex, Heading, IconButton, useColorMode, useColorModeValue } from '@chakra-ui/react'
+import { FaChevronDown, FaMoon, FaSun } from 'react-icons/fa'
+import {
+  Box,
+  Button,
+  Flex,
+  Heading,
+  IconButton,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuList,
+  useColorMode,
+  useColorModeValue,
+} from '@chakra-ui/react'
 
 export type HeaderMenuProps = {
   height: string
+  setCodeToLoad: (code: string) => void
 }
 
 export function HeaderMenu(props: HeaderMenuProps) {
-  const { height } = props
+  const { height, setCodeToLoad } = props
 
   return (
     <Flex
@@ -26,6 +39,7 @@ export function HeaderMenu(props: HeaderMenuProps) {
         >
           Rimu
         </Heading>
+        <ExamplesMenu setCodeToLoad={setCodeToLoad} />
       </Flex>
 
       <Box sx={{ flexGrow: 1 }} />
@@ -34,6 +48,43 @@ export function HeaderMenu(props: HeaderMenuProps) {
         <ColorModeSwitch />
       </Flex>
     </Flex>
+  )
+}
+
+type Example = {
+  name: string
+  code: string
+}
+const examples: Array<Example> = [
+  {
+    name: 'Hello world',
+    code: 'hello: "world"',
+  },
+]
+
+type ExamplesMenuProps = {
+  setCodeToLoad: (code: string) => void
+}
+
+function ExamplesMenu(props: ExamplesMenuProps) {
+  const { setCodeToLoad } = props
+
+  return (
+    <Menu>
+      <MenuButton as={Button} rightIcon={<FaChevronDown />}>
+        Examples
+      </MenuButton>
+      <MenuList>
+        {examples.map((example, index) => {
+          const { name, code } = example
+          return (
+            <MenuItem key={index} onClick={() => setCodeToLoad(code)}>
+              {name}
+            </MenuItem>
+          )
+        })}
+      </MenuList>
+    </Menu>
   )
 }
 

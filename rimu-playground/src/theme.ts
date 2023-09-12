@@ -2,7 +2,8 @@ import { extendBaseTheme, ThemeConfig } from '@chakra-ui/react'
 import { theme as baseTheme } from '@chakra-ui/theme'
 import { variants as colorVariants, variants } from '@catppuccin/palette'
 
-const { Button, List, Heading, Link, Spinner, Code, Kbd, Modal, Select } = baseTheme.components
+const { Button, List, Heading, Link, Spinner, Code, Kbd, Modal, Select, Menu } =
+  baseTheme.components
 
 const config: ThemeConfig = {
   initialColorMode: 'system',
@@ -64,5 +65,6 @@ export const theme = extendBaseTheme({
     Kbd,
     Modal,
     Select,
+    Menu,
   },
 })

@@ -11,15 +11,32 @@ import { createDiagnostics, createDiagnosticGutter } from './diagnostics'
 import { createIdler } from './idle'
 import { createDiagnosticTheme, createDiagnosticGutterTheme } from './theme'
 
-export type CodeMirrorOptions = {
+export type CodeMirrorOptions = CodeMirrorStateOptions & {
   parent: HTMLDivElement
-  theme: Variant
-  initialCode: string
-  setCode: (code: string) => void
 }
 
 export function CodeMirror(options: CodeMirrorOptions) {
-  const { parent, theme, initialCode, setCode } = options
+  const { parent, theme, code, setCode } = options
+
+  const startState = CodeMirrorState({
+    code,
+    theme,
+    setCode,
+  })
+
+  const view = new EditorView({ state: startState, parent })
+
+  return view
+}
+
+export type CodeMirrorStateOptions = {
+  theme: Variant
+  code: string
+  setCode: (code: string) => void
+}
+
+export function CodeMirrorState(options: CodeMirrorStateOptions) {
+  const { code, theme, setCode } = options
 
   const yaml = new LanguageSupport(StreamLanguage.define(yamlMode.yaml))
 
@@ -35,8 +52,8 @@ export function CodeMirror(options: CodeMirrorOptions) {
 
   const palette = variants[theme]
 
-  const startState = EditorState.create({
-    doc: initialCode,
+  return EditorState.create({
+    doc: code,
     extensions: [
       basicSetup,
       keymap.of([indentWithTab]),
@@ -49,8 +66,4 @@ export function CodeMirror(options: CodeMirrorOptions) {
       createDiagnosticGutterTheme(palette),
     ],
   })
-
-  const view = new EditorView({ state: startState, parent })
-
-  return view
 }
