@@ -21,7 +21,7 @@ export function Output(props: OutputProps) {
     <Flex sx={{ height, flexDirection: 'column', width: '100%' }}>
       <FormatSelect format={format} setFormat={setFormat} />
       <Code sx={{ width: '100%', flexGrow: 1, backgroundColor: 'rimu.output.background' }}>
-        {output}
+        <pre>{output}</pre>
       </Code>
     </Flex>
   )
