@@ -50,7 +50,7 @@ export function Playground() {
           />
         </Box>
         <Box
-          {...getSplitterProps(1, { size: '16px' })}
+          {...getSplitterProps(1, { size: '12px' })}
           sx={{ backgroundColor: 'rimu.splitter.background' }}
         />
         <Box {...getPaneProps(2, { initialSize: '0.5fr' })}>

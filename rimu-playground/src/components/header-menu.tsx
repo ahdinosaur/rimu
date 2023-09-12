@@ -27,13 +27,13 @@ export function HeaderMenu(props: HeaderMenuProps) {
       sx={{
         height,
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'baseline',
         width: '100%',
         backgroundColor: 'rimu.header.background',
         paddingX: 1,
       }}
     >
-      <HStack spacing={4} sx={{ alignItems: 'center', justifyContent: 'flex-start' }}>
+      <HStack spacing={4} sx={{ alignItems: 'baseline' }}>
         <Heading as="h1" size="lg" sx={{ lineHeight: 'normal' }}>
           Rimu
         </Heading>
