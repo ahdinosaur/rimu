@@ -26,6 +26,7 @@ export function useRimu(options: UseRimuOptions) {
   useEffect(() => {
     if (rimu === null) return
 
+    let reports: Array<Report> = []
     let output
     try {
       output = rimu.render(code, sourceId, format)
@@ -33,7 +34,6 @@ export function useRimu(options: UseRimuOptions) {
       // @ts-ignore
       if (err.reports == null) throw err
 
-      const reports: Array<Report> = []
       // @ts-ignore
       for (const report of err.reports) {
         const { span } = report
@@ -49,11 +49,12 @@ export function useRimu(options: UseRimuOptions) {
           message,
         })
       }
-      setReports(reports)
     }
 
     if (output !== undefined) {
       setOutput(output)
     }
+
+    setReports(reports)
   }, [rimu, code, format, setOutput, setReports])
 }
