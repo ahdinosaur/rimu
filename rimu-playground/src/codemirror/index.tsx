@@ -5,9 +5,11 @@ import * as yamlMode from '@codemirror/legacy-modes/mode/yaml'
 import { StreamLanguage, LanguageSupport } from '@codemirror/language'
 import { indentWithTab } from '@codemirror/commands'
 import { catppuccin, Variant } from 'codemirror-theme-catppuccin'
+import { variants } from '@catppuccin/palette'
 
-import { createDiagnostics } from '@/codemirror/diagnostics'
-import { createIdler } from '@/codemirror/idle'
+import { createDiagnostics, createDiagnosticGutter } from './diagnostics'
+import { createIdler } from './idle'
+import { createDiagnosticTheme, createDiagnosticGutterTheme } from './theme'
 
 export type CodeMirrorOptions = {
   parent: HTMLDivElement
@@ -31,7 +33,7 @@ export function CodeMirror(options: CodeMirrorOptions) {
     },
   )
 
-  const diagnostics = createDiagnostics()
+  const palette = variants[theme]
 
   const startState = EditorState.create({
     doc: initialCode,
@@ -41,7 +43,10 @@ export function CodeMirror(options: CodeMirrorOptions) {
       catppuccin(theme),
       yaml,
       idler,
-      diagnostics,
+      createDiagnostics(),
+      createDiagnosticTheme(palette),
+      createDiagnosticGutter(),
+      createDiagnosticGutterTheme(palette),
     ],
   })
 
