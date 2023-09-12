@@ -146,7 +146,12 @@ fn parse_block_operation(
                 .to_owned();
             BlockOperation::Let { variables, body }
         }
-        &_ => todo!(),
+        &_ => {
+            return Err(CompilerError::custom(
+                span,
+                format!("Unknown block operator: {}", operator.as_str()),
+            ))
+        }
     };
     Ok(operation)
 }
