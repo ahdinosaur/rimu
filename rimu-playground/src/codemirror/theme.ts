@@ -1,7 +1,7 @@
 import { variants } from '@catppuccin/palette'
+import { Variant } from 'codemirror-theme-catppuccin'
 import { EditorView } from 'codemirror'
 
-type Variant = keyof typeof variants
 type Palette = (typeof variants)[Variant]
 
 export const createDiagnosticTheme = (palette: Palette) => {
