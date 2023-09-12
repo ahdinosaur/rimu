@@ -3,6 +3,7 @@ import {
   Box,
   Button,
   Flex,
+  HStack,
   Heading,
   IconButton,
   Menu,
@@ -26,25 +27,22 @@ export function HeaderMenu(props: HeaderMenuProps) {
       sx={{
         height,
         flexDirection: 'row',
-        alignItems: 'baseline',
+        alignItems: 'center',
         width: '100%',
         backgroundColor: 'rimu.header.background',
+        paddingX: 1,
       }}
     >
-      <Flex sx={{ flexDirection: 'row', alignItems: 'baseline' }}>
-        <Heading
-          as="h1"
-          size="lg"
-          sx={{ alignSelf: 'start', paddingLeft: 4, lineHeight: 'normal' }}
-        >
+      <HStack spacing={4} sx={{ alignItems: 'center', justifyContent: 'flex-start' }}>
+        <Heading as="h1" size="lg" sx={{ lineHeight: 'normal' }}>
           Rimu
         </Heading>
         <ExamplesMenu setCodeToLoad={setCodeToLoad} />
-      </Flex>
+      </HStack>
 
       <Box sx={{ flexGrow: 1 }} />
 
-      <Flex sx={{ flexDirection: 'row', alignItems: 'baseline' }}>
+      <Flex sx={{ flexDirection: 'row', alignItems: 'center' }}>
         <ColorModeSwitch />
       </Flex>
     </Flex>
@@ -71,7 +69,7 @@ function ExamplesMenu(props: ExamplesMenuProps) {
 
   return (
     <Menu>
-      <MenuButton as={Button} rightIcon={<FaChevronDown />}>
+      <MenuButton as={Button} size="sm" rightIcon={<FaChevronDown />}>
         Examples
       </MenuButton>
       <MenuList>
