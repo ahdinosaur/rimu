@@ -37,6 +37,7 @@ const semanticTokens = {
       },
       output: {
         background: color('mantle'),
+        border: color('crust'),
       },
       format: {
         /*

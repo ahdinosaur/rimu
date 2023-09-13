@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, ChangeEventHandler } from 'react'
-import { Code, Flex, Select } from '@chakra-ui/react'
+import { Code, Flex, Text, Select, Box, HStack } from '@chakra-ui/react'
 
 export type Format = 'json' | 'yaml' | 'toml'
 
@@ -43,19 +43,39 @@ export function FormatSelect(props: FormatSelectProps) {
   )
 
   return (
-    <Select
-      variant="outline"
-      value={format}
-      onChange={handleChange}
+    <HStack
+      spacing={4}
       sx={{
-        color: 'rimu.format.text',
-        borderColor: 'rimu.format.border',
-        backgroundColor: 'rimu.format.background',
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'baseline',
+        borderBottomColor: 'rimu.output.border',
+        borderBottomWidth: '2px',
+        borderBottomStyle: 'solid',
+        backgroundColor: 'rimu.output.background',
+        padding: 1,
       }}
     >
-      <option value="json">JSON</option>
-      <option value="yaml">YAML</option>
-      <option value="toml">TOML</option>
-    </Select>
+      <Text sx={{ fontSize: 12, fontWeight: 'bold' }}>Output:</Text>
+
+      <Box>
+        <Select
+          size="xs"
+          variant="outline"
+          value={format}
+          onChange={handleChange}
+          sx={{
+            flexGrow: 1,
+            color: 'rimu.format.text',
+            borderColor: 'rimu.format.border',
+            backgroundColor: 'rimu.format.background',
+          }}
+        >
+          <option value="json">JSON</option>
+          <option value="yaml">YAML</option>
+          <option value="toml">TOML</option>
+        </Select>
+      </Box>
+    </HStack>
   )
 }
