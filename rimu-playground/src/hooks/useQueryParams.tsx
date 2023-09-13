@@ -1,8 +1,8 @@
 import { useEffect } from 'react'
 import { useDebounce } from 'use-debounce'
 import {
-  encode as encodeBase64WithGzipCompression,
-  decode as decodeBase64WithGzipCompression,
+  encode as encodeBase64WithCompression,
+  decode as decodeBase64WithCompression,
 } from 'base64-compressor'
 
 type UseQueryParamsOptions = {
@@ -29,11 +29,11 @@ export function useQueryParams(options: UseQueryParamsOptions) {
   useEffect(() => {
     if (debouncedCode == '') return
     ;(async () => {
-      const searchParams = new URLSearchParams(location.search)
       const serializedCode = await serializeCode(
-        CodeSerializationFormat.Base64WithGzipCompression,
+        CodeSerializationFormat.Base64WithDeflateRawCompression,
         debouncedCode,
       )
+      const searchParams = new URLSearchParams(location.search)
       searchParams.set('i', serializedCode)
       history.replaceState(null, '', `?${searchParams}`)
       document.location.search
@@ -42,16 +42,17 @@ export function useQueryParams(options: UseQueryParamsOptions) {
 }
 
 enum CodeSerializationFormat {
-  Base64WithGzipCompression = 'b1', // base64 version 1
+  // url-safe base64, `deflate-raw` compression
+  Base64WithDeflateRawCompression = 'b',
 }
 
 async function deserializeCode(serialized: string) {
-  const formatSigil = serialized.substring(0, 2)
-  const serializedCode = serialized.substring(2)
+  const formatSigil = serialized.substring(0, 1)
+  const serializedCode = serialized.substring(1)
 
   switch (formatSigil) {
-    case CodeSerializationFormat.Base64WithGzipCompression:
-      return decodeBase64WithGzipCompression(serializedCode)
+    case CodeSerializationFormat.Base64WithDeflateRawCompression:
+      return decodeBase64WithCompression(serializedCode, 'deflate-raw')
     default:
       throw new Error('Unexpected code serialization format.')
   }
@@ -59,9 +60,8 @@ async function deserializeCode(serialized: string) {
 
 async function serializeCode(formatSigil: CodeSerializationFormat, code: string) {
   switch (formatSigil) {
-    // base64 version 1 (with browser `gzip` compression)
-    case CodeSerializationFormat.Base64WithGzipCompression: {
-      const serializedCode = await encodeBase64WithGzipCompression(code)
+    case CodeSerializationFormat.Base64WithDeflateRawCompression: {
+      const serializedCode = await encodeBase64WithCompression(code, 'deflate-raw')
       return `${formatSigil}${serializedCode}`
     }
     default:

@@ -21,7 +21,7 @@
     "@types/react": "18.2.21",
     "@types/react-dom": "18.2.7",
     "@wasm-tool/wasm-pack-plugin": "^1.7.0",
-    "base64-compressor": "^1.0.0",
+    "base64-compressor": "github:ahdinosaur/base64-compressor#npm/build",
     "codemirror": "^6.0.1",
     "codemirror-theme-catppuccin": "^0.2.0",
     "eslint": "8.48.0",
