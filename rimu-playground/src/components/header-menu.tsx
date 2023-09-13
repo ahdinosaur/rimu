@@ -1,4 +1,4 @@
-import { FaChevronDown, FaMoon, FaSun } from 'react-icons/fa'
+import { FaChevronDown, FaExternalLinkAlt, FaGithub, FaMoon, FaSun } from 'react-icons/fa'
 import {
   Box,
   Button,
@@ -20,6 +20,9 @@ import {
   useColorMode,
   useColorModeValue,
   useDisclosure,
+  Text,
+  Link,
+  Icon,
 } from '@chakra-ui/react'
 
 export type HeaderMenuProps = {
@@ -52,6 +55,7 @@ export function HeaderMenu(props: HeaderMenuProps) {
       <Box sx={{ flexGrow: 1 }} />
 
       <Flex sx={{ flexDirection: 'row', alignItems: 'center' }}>
+        <GitHubSourceButton />
         <ColorModeSwitch />
       </Flex>
     </Flex>
@@ -107,9 +111,22 @@ function HelpButton() {
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>How to use the Rimu Playground</ModalHeader>
+          <ModalHeader>Help</ModalHeader>
           <ModalCloseButton />
-          <ModalBody>TODO</ModalBody>
+          <ModalBody>
+            <Text>
+              <Link
+                href="https://rimu.dev"
+                sx={{ color: { _light: 'teal.600', _dark: 'teal.50' } }}
+                isExternal
+              >
+                rimu.dev
+                <Icon sx={{ marginX: 1 }} as={FaExternalLinkAlt} />
+              </Link>
+            </Text>
+
+            <Text></Text>
+          </ModalBody>
 
           <ModalFooter>
             <Button colorScheme="teal" mr={3} onClick={onClose}>
@@ -122,6 +139,14 @@ function HelpButton() {
   )
 }
 
+function GitHubSourceButton() {
+  return (
+    <Link href="https://github.com/ahdinosaur/rimu">
+      <IconButton aria-label="GitHub source" icon={<Icon as={FaGithub} />} variant="ghost" />
+    </Link>
+  )
+}
+
 function ColorModeSwitch() {
   const { toggleColorMode } = useColorMode()
 
@@ -130,7 +155,6 @@ function ColorModeSwitch() {
 
   return (
     <IconButton
-      size="sm"
       fontSize="lg"
       aria-label={`Switch to ${text} mode`}
       variant="ghost"
