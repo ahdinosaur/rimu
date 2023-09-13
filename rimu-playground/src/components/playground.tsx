@@ -10,10 +10,10 @@ import { HeaderMenu } from './header-menu'
 
 import { useRimu } from '@/hooks/use-rimu'
 import { Report } from '@/codemirror/diagnostics'
+import { useQueryParams } from '@/hooks/useQueryParams'
 
 export function Playground() {
-  const initialCode = 'hello: "world"'
-  const [code, setCode] = useState<string>(initialCode)
+  const [code, setCode] = useState<string>('')
   const [codeToLoad, setCodeToLoad] = useState<string | null>(null)
   const resetCodeToLoad = useCallback(() => setCodeToLoad(null), [])
   const [output, setOutput] = useState<string>('')
@@ -29,6 +29,11 @@ export function Playground() {
     format,
     setOutput,
     setReports,
+  })
+
+  useQueryParams({
+    code,
+    setCodeToLoad,
   })
 
   const headerHeight = '2.5rem'
