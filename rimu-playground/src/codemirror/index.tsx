@@ -1,4 +1,4 @@
-import { EditorState } from '@codemirror/state'
+import { EditorState, Compartment } from '@codemirror/state'
 import { basicSetup } from 'codemirror'
 import { EditorView, keymap } from '@codemirror/view'
 import * as yamlMode from '@codemirror/legacy-modes/mode/yaml'
@@ -11,32 +11,17 @@ import { createDiagnostics, createDiagnosticGutter } from './diagnostics'
 import { createIdler } from './idle'
 import { createDiagnosticTheme, createDiagnosticGutterTheme } from './theme'
 
-export type CodeMirrorOptions = CodeMirrorStateOptions & {
+export type CodeMirrorOptions = {
   parent: HTMLDivElement
-}
-
-export function CodeMirror(options: CodeMirrorOptions) {
-  const { parent, theme, code, setCode } = options
-
-  const startState = CodeMirrorState({
-    code,
-    theme,
-    setCode,
-  })
-
-  const view = new EditorView({ state: startState, parent })
-
-  return view
-}
-
-export type CodeMirrorStateOptions = {
   theme: Variant
   code: string
   setCode: (code: string) => void
 }
 
-export function CodeMirrorState(options: CodeMirrorStateOptions) {
-  const { code, theme, setCode } = options
+const themeCompartment = new Compartment()
+
+export function CodeMirror(options: CodeMirrorOptions) {
+  const { parent, theme, code, setCode } = options
 
   const yaml = new LanguageSupport(StreamLanguage.define(yamlMode.yaml))
 
@@ -50,20 +35,46 @@ export function CodeMirrorState(options: CodeMirrorStateOptions) {
     },
   )
 
-  const palette = variants[theme]
-
-  return EditorState.create({
+  const startState = EditorState.create({
     doc: code,
     extensions: [
       basicSetup,
       keymap.of([indentWithTab]),
-      catppuccin(theme),
+      themeCompartment.of([
+        catppuccin(theme),
+        createDiagnosticTheme(variants[theme]),
+        createDiagnosticGutterTheme(variants[theme]),
+      ]),
       yaml,
       idler,
       createDiagnostics(),
-      createDiagnosticTheme(palette),
       createDiagnosticGutter(),
-      createDiagnosticGutterTheme(palette),
     ],
+  })
+
+  const view = new EditorView({ state: startState, parent })
+
+  return view
+}
+
+export function updateTheme(view: EditorView, theme: Variant) {
+  view.dispatch({
+    effects: [
+      themeCompartment.reconfigure([
+        catppuccin(theme),
+        createDiagnosticTheme(variants[theme]),
+        createDiagnosticGutterTheme(variants[theme]),
+      ]),
+    ],
+  })
+}
+
+export function updateCode(view: EditorView, code: string) {
+  view.dispatch({
+    changes: {
+      from: 0,
+      to: view.state.doc.length,
+      insert: code,
+    },
   })
 }
