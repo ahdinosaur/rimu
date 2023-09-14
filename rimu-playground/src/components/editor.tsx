@@ -1,9 +1,9 @@
-import React, { useRef, useEffect } from 'react'
+import React, { useRef, useEffect, useState } from 'react'
 import { Box, useColorModeValue } from '@chakra-ui/react'
 import { EditorView } from 'codemirror'
 import { Variant } from 'codemirror-theme-catppuccin'
 
-import { CodeMirror, CodeMirrorState } from '@/codemirror'
+import { CodeMirror, updateCode, updateTheme } from '@/codemirror'
 import { Report, setReports } from '@/codemirror/diagnostics'
 
 export type EditorProps = {
@@ -18,65 +18,48 @@ export type EditorProps = {
 export function Editor(props: EditorProps) {
   const { height, code, setCode, codeToLoad, resetCodeToLoad, reports } = props
 
-  const editorParentRef = useRef(null)
-  const editorViewRef = useRef<EditorView | null>(null)
+  const parentRef = useRef(null)
+  const [view, setView] = useState<EditorView | null>(null)
   const theme = useColorModeValue<Variant>('latte', 'mocha') as Variant
 
   // on init
   useEffect(() => {
-    if (editorParentRef.current == null) return
+    if (parentRef.current == null) return
+    const parent = parentRef.current
 
     const view = CodeMirror({
-      parent: editorParentRef.current,
+      parent,
+      setCode,
       theme,
       code,
-      setCode,
     })
-
-    editorViewRef.current = view
+    setView(view)
 
     return () => {
       view.destroy()
+      setView(null)
     }
-  }, [editorParentRef])
+  }, [parentRef, setCode])
 
   // on reports change
   useEffect(() => {
-    if (editorViewRef.current == null) return
-    const view = editorViewRef.current
-
+    if (view == null) return
     view.dispatch(setReports(view.state, reports))
-  }, [editorViewRef, reports])
+  }, [view, reports])
 
   // on theme change
   useEffect(() => {
-    if (editorViewRef.current == null) return
-    const view = editorViewRef.current
-
-    const state = CodeMirrorState({
-      code,
-      theme,
-      setCode,
-    })
-
-    view.setState(state)
-  }, [editorViewRef, theme])
+    if (view == null) return
+    updateTheme(view, theme)
+  }, [view, theme])
 
   // on code to load
   useEffect(() => {
-    if (editorViewRef.current == null) return
-    const view = editorViewRef.current
+    if (view == null) return
     if (codeToLoad == null) return
-
-    const state = CodeMirrorState({
-      code: codeToLoad,
-      theme,
-      setCode,
-    })
-
-    view.setState(state)
+    updateCode(view, codeToLoad)
     resetCodeToLoad()
-  }, [editorViewRef, codeToLoad])
+  }, [view, codeToLoad, resetCodeToLoad])
 
   return (
     <Box
@@ -93,7 +76,7 @@ export function Editor(props: EditorProps) {
           overflowY: 'auto',
         },
       }}
-      ref={editorParentRef}
+      ref={parentRef}
     />
   )
 }
