@@ -1,3 +1,4 @@
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect } from 'react'
 import { useDebounce } from 'use-debounce'
 import {
@@ -13,9 +14,12 @@ type UseQueryParamsOptions = {
 export function useQueryParams(options: UseQueryParamsOptions) {
   const { code, setCodeToLoad } = options
 
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+
   useEffect(() => {
     ;(async () => {
-      const searchParams = new URLSearchParams(location.search)
       const serializedCode = searchParams.get('i')
       if (serializedCode != null) {
         const code = await deserializeCode(serializedCode)
@@ -33,10 +37,10 @@ export function useQueryParams(options: UseQueryParamsOptions) {
         CodeSerializationFormat.Base64WithDeflateRawCompression,
         debouncedCode,
       )
-      const searchParams = new URLSearchParams(location.search)
-      searchParams.set('i', serializedCode)
-      history.replaceState(null, '', `?${searchParams}`)
-      document.location.search
+      const nextSearchParams = new URLSearchParams(searchParams)
+      nextSearchParams.set('i', serializedCode)
+      const nextUrl = `${pathname}?${nextSearchParams}`
+      router.replace(nextUrl)
     })()
   }, [debouncedCode])
 }

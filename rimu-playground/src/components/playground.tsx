@@ -10,7 +10,7 @@ import { HeaderMenu } from './header-menu'
 
 import { useRimu } from '@/hooks/use-rimu'
 import { Report } from '@/codemirror/diagnostics'
-import { useQueryParams } from '@/hooks/useQueryParams'
+import { useQueryParams } from '@/hooks/use-query-params'
 
 export function Playground() {
   const [code, setCode] = useState<string>('')

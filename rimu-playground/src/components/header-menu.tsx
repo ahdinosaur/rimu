@@ -38,12 +38,12 @@ import {
   PopoverHeader,
   PopoverBody,
   Input,
-  FormControl,
   FormLabel,
   VStack,
 } from '@chakra-ui/react'
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useClipboard } from 'use-clipboard-copy'
+import { usePathname, useSearchParams } from 'next/navigation'
 
 export type HeaderMenuProps = {
   height: string
@@ -161,22 +161,16 @@ function HelpButton() {
 }
 
 function SharePopover() {
-  const [url, setUrl] = useState<string | null>(null)
-  const clipboard = useClipboard()
+  const [host, setHost] = useState('')
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const url = `${host}${pathname}?${searchParams}`
 
   useEffect(() => {
-    onUrlChange()
-
-    window.addEventListener('popstate', onUrlChange)
-    return () => {
-      window.removeEventListener('popstate', onUrlChange)
-    }
-
-    function onUrlChange() {
-      console.log('url change')
-      setUrl(location.href)
-    }
+    setHost(location.host)
   }, [])
+
+  const clipboard = useClipboard()
 
   return (
     <Popover>
@@ -195,7 +189,7 @@ function SharePopover() {
                 ref={clipboard.target}
                 type="text"
                 variant="outline"
-                value={url ?? ''}
+                value={url}
                 readOnly
                 sx={{ width: '100%', borderRadius: 4, padding: 1 }}
               />
