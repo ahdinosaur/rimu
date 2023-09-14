@@ -7,7 +7,7 @@ use std::{
 
 use clap::Parser;
 use clio::*;
-use rimu::{evaluate, parse, Environment, ReportError, SourceId, Value};
+use rimu::{evaluate, parse, Environment, ErrorReport, SourceId, Value};
 
 #[derive(Debug, Clone, Copy)]
 enum Format {
@@ -65,7 +65,8 @@ fn main() -> std::result::Result<ExitCode, Box<dyn Error>> {
 
     if !errors.is_empty() {
         for error in errors {
-            error.display(input.as_str(), input_source.clone());
+            let report: ErrorReport = error.into();
+            report.display(input.as_str(), input_source.clone());
         }
         return Ok(ExitCode::FAILURE);
     }
@@ -80,7 +81,8 @@ fn main() -> std::result::Result<ExitCode, Box<dyn Error>> {
     let value = match evaluate(&block, &env) {
         Ok(value) => value,
         Err(error) => {
-            error.display(input.as_str(), input_source);
+            let report: ErrorReport = error.into();
+            report.display(input.as_str(), input_source.clone());
             return Ok(ExitCode::FAILURE);
         }
     };
