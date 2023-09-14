@@ -33,6 +33,7 @@
     "react-icons": "^4.11.0",
     "react-resplit": "^0.5.1",
     "typescript": "5.2.2",
+    "use-clipboard-copy": "^0.2.0",
     "use-debounce": "^9.0.4"
   }
 }

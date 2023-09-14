@@ -1,4 +1,11 @@
-import { FaChevronDown, FaExternalLinkAlt, FaGithub, FaMoon, FaSun } from 'react-icons/fa'
+import {
+  FaChevronDown,
+  FaClipboard,
+  FaExternalLinkAlt,
+  FaGithub,
+  FaMoon,
+  FaSun,
+} from 'react-icons/fa'
 import {
   Box,
   Button,
@@ -23,7 +30,20 @@ import {
   Text,
   Link,
   Icon,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  PopoverArrow,
+  PopoverCloseButton,
+  PopoverHeader,
+  PopoverBody,
+  Input,
+  FormControl,
+  FormLabel,
+  VStack,
 } from '@chakra-ui/react'
+import { useCallback, useEffect, useState } from 'react'
+import { useClipboard } from 'use-clipboard-copy'
 
 export type HeaderMenuProps = {
   height: string
@@ -50,6 +70,7 @@ export function HeaderMenu(props: HeaderMenuProps) {
         </Heading>
         <ExamplesMenu setCodeToLoad={setCodeToLoad} />
         <HelpButton />
+        <SharePopover />
       </HStack>
 
       <Box sx={{ flexGrow: 1 }} />
@@ -136,6 +157,60 @@ function HelpButton() {
         </ModalContent>
       </Modal>
     </>
+  )
+}
+
+function SharePopover() {
+  const [url, setUrl] = useState<string | null>(null)
+  const clipboard = useClipboard()
+
+  useEffect(() => {
+    onUrlChange()
+
+    window.addEventListener('popstate', onUrlChange)
+    return () => {
+      window.removeEventListener('popstate', onUrlChange)
+    }
+
+    function onUrlChange() {
+      console.log('url change')
+      setUrl(location.href)
+    }
+  }, [])
+
+  return (
+    <Popover>
+      <PopoverTrigger>
+        <Button size="sm">Share</Button>
+      </PopoverTrigger>
+      <PopoverContent>
+        <PopoverArrow />
+        <PopoverCloseButton />
+        <PopoverHeader>Share your code!</PopoverHeader>
+        <PopoverBody>
+          <VStack>
+            <HStack spacing={3} sx={{ alignSelf: 'stretch' }}>
+              <FormLabel>URL:</FormLabel>
+              <Input
+                ref={clipboard.target}
+                type="text"
+                variant="outline"
+                value={url ?? ''}
+                readOnly
+                sx={{ width: '100%', borderRadius: 4, padding: 1 }}
+              />
+            </HStack>
+            <Button
+              rightIcon={<Icon as={FaClipboard} />}
+              sx={{ alignSelf: 'center' }}
+              onClick={clipboard.copy}
+            >
+              Copy to clipboard
+            </Button>
+          </VStack>
+        </PopoverBody>
+      </PopoverContent>
+    </Popover>
   )
 }
 
