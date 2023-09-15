@@ -41,82 +41,14 @@ Rimu should be suitable for any situation where you want functional data or expr
 
 The "programmatic user data" case is the motivating use case for the author ([Mikey](https://mikey.nz) at [Village Kit](https://villagekit.com)), so this may inform future developments. If Rimu doesn't meet your expectations, see [related projects](./related).
 
-## Examples
+## Have a play
 
-###  Programmatic users
+Playground: [play.rimu.dev](https://play.rimu.dev)
 
-Have you ever heard of turtle geometry?
+<br />
 
-[![(1983) Talking Turtle (for PBS)](https://tube.arthack.nz/static/thumbnails/4aa0b733-971c-417e-8613-da86fb268e83.jpg)](https://tube.arthack.nz/videos/watch/d976a246-dd20-4441-82fe-d7c687a33a78)
-
-> Watch on [tube.arthack.nz](https://tube.arthack.nz/videos/watch/96ffe315-5d1d-426f-8abe-93d8ad925dee) or [archive.org](https://archive.org/details/NOVATalkingTurtle/NOVA.S10E11.Talking.Turtle.1983.VHSRip.AAC2.0.x264-rattera.mp4)
-
-We could implement a Logo-inspired turtle game using Rimu, where kids could move turtles with code.
-
-If we wanted to [make a star](https://www.turtleacademy.com/programs/40499):
-
-```yaml
-- setwidth: 10
-- setcolor: 4
-
-- right: 18
-- forward: 50
-
-- $map: range(5)
-  each:
-    - right: 144
-    - forward: 50
-    - left: 72
-    - forward: 50
-```
-
-Then the output is a list of commands for the turtle to execute.
-
-Now we might start to think about a better data model, how do we want users to describe their turtle actions?
-
-### Programmatic configuration
-
-Now let's say we wanted to make a mini [Salt Stack](https://docs.saltproject.io/en/getstarted/), similar to [Comtrya](https://github.com/comtrya/comtrya).
-
-Here's a (_contrived_) example,
-
-A user's template (input):
-
-```yaml
-$let:
-  pkgs:
-    - "zsh"
-    - "vim"
-in:
-  $map: pkgs
-  item: pkg
-  each:
-    $switch:
-      - case: os.name == "macos"
-        then:
-          $type: brew_install
-          pkg: pkg
-      - case: os.name == "linux" && os.distribution == "debian"
-        then:
-          $type: apt_install
-          pkg: pkg
-```
-
-With an environment (context):
-
-```yaml
-os:
-  name: "linux"
-  distribution: "debian"
-```
-
-Becomes the output:
-
-(Where this could be any output format: JSON, YAML, TOML, etc)
-
-```yaml
-- type: "apt_install"
-  pkg: "zsh"
-- type: "apt_install"
-  pkg: "vim"
-```
+<iframe
+  width="100%"
+  height="600"
+  src="https://play.rimu.dev/?i=bNYtLCoAwDESvMgRPUejOhTcQoZuKUQtpA40uvL3Uz2YY5r2hzGZxYxcK0AkfTwGy6uIQyLgmPS1Qm1P5aJdW9yjwvklJ5HoV4Ni5tOcU5zmif1P1xyzGDQ8sohi1yhKIbg"
+/>
