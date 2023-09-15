@@ -1,9 +1,13 @@
+import Image from 'next/image'
+import rimuTree from '../public/rimu-tree-768x1024.jpg'
+
 # Rimu
 
 <div align="center">
-  <img
-    alt="Tree"
-    src="https://i.imgur.com/edQ8A2am.png"
+  <Image
+    height={512}
+    alt="An 800-year-old giant rimu tree stretching high into the canopy at Ōtari-Wilton's Bush in Te Whanganui-a-Tara (Wellington), Aotearoa (New Zealand)."
+    src={rimuTree}
   />
 </div>
 
@@ -35,7 +39,7 @@ Rimu should be suitable for any situation where you want functional data or expr
 - Programmatic users: when you want to give users a friendly and expressive sandbox for making programmatic things, almost like [Scratch](https://scratch.mit.edu/) or [Logo](https://en.wikipedia.org/wiki/Logo_(programming_language)).
 - Programmatic configuration: when your infrastructure-as-code ([Kubernetes](https://kubernetes.io/), [Terraform](https://www.terraform.io/), [NixOps](https://github.com/NixOS/nixops)), declarative package managers ([Nix](https://nixos.org/)), or build systems ([Bazel](https://bazel.build/)) are complex enough to need functional config generation.
 
-The "programmatic user data" case is the motivating use case for the author ([Mikey](https://mikey.nz) at [Village Kit](https://villagekit.com)), so this may inform future developments. If Rimu is not suitable, see [related projects](./related)
+The "programmatic user data" case is the motivating use case for the author ([Mikey](https://mikey.nz) at [Village Kit](https://villagekit.com)), so this may inform future developments. If Rimu doesn't meet your expectations, see [related projects](./related).
 
 ## Examples
 
