@@ -2,7 +2,7 @@
   <img
     src="./docs/public/rimu-tree-768x1024.jpg"
     alt="An 800-year-old giant rimu tree stretching high into the canopy at Ōtari-Wilton's Bush in Te Whanganui-a-Tara (Wellington), Aotearoa (New Zealand)."
-    height={512}
+    height="512px"
   />
 </div>
 
