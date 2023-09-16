@@ -1,8 +1,10 @@
 {
   "scripts": {
+    "docs": "npm run dev -w rimu-docs",
     "playground": "npm run dev -w rimu-playground"
   },
   "workspaces": [
+    "docs",
     "rimu-playground"
   ]
 }

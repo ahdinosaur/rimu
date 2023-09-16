@@ -1,0 +1,60 @@
+import Image from 'next/image'
+import rimuTree from '../public/rimu-tree-768x1024.jpg'
+
+# Rimu
+
+<div align="center">
+  <Image
+    height={512}
+    alt="An 800-year-old giant rimu tree stretching high into the canopy at Ōtari-Wilton's Bush in Te Whanganui-a-Tara (Wellington), Aotearoa (New Zealand)."
+    src={rimuTree}
+  />
+</div>
+
+<br />
+
+<div align="center">
+  <strong>
+    Data structure template language.
+  </strong>
+</div>
+
+Rimu is a template language for structured data and functional expressions.
+
+Unlike other template languages, Rimu operates on data structures, not text.
+
+## Features
+
+- Structured: The good parts of [Yaml](https://en.wikipedia.org/wiki/YAML)
+- Functional: The good parts of [Lisp](https://en.wikipedia.org/wiki/Lisp_(programming_language))
+- Friendly: The good parts of [Logo](https://en.wikipedia.org/wiki/Logo_(programming_language))
+- Lightweight embed: Able to be embedded into a web or native app
+- Helpful to debug: Error messages let you know exactly what went wrong
+- Safe with untrusted input: No arbitrary code execution or unbounded iterations
+
+## Use cases
+
+Rimu should be suitable for any situation where you want functional data or expressive configurations.
+
+- Programmatic user: when you want to give users a friendly and expressive sandbox for making things with a DSL, almost like [Logo](https://en.wikipedia.org/wiki/Logo_(programming_language)) or [Scratch](https://scratch.mit.edu/).
+- Programmatic configuration: when your infrastructure-as-code ([Kubernetes](https://kubernetes.io/), [Terraform](https://www.terraform.io/), [NixOps](https://github.com/NixOS/nixops)), declarative package managers ([Nix](https://nixos.org/)), or build systems ([Bazel](https://bazel.build/)) are complex enough to need functional config generation.
+
+The author [Mikey](https://mikey.nz), for [Village Kit](https://villagekit.com), is motivated by the "programmatic user".
+
+## Stability
+
+The Rimu language is experimental.
+
+If you need stability, see [related projects](./related).
+
+## Have a play
+
+Playground: [play.rimu.dev](https://play.rimu.dev)
+
+<br />
+
+<iframe
+  width="100%"
+  height="600"
+  src="https://play.rimu.dev/?i=bNYtLCoAwDESvMgRPUejOhTcQoZuKUQtpA40uvL3Uz2YY5r2hzGZxYxcK0AkfTwGy6uIQyLgmPS1Qm1P5aJdW9yjwvklJ5HoV4Ni5tOcU5zmif1P1xyzGDQ8sohi1yhKIbg"
+/>

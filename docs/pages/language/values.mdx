@@ -1,0 +1,72 @@
+# Rimu values
+
+## Value
+
+### Null
+
+```
+null
+```
+
+### Boolean
+
+```
+true
+```
+
+```
+false
+```
+
+### Number
+
+All numbers are ["Big" Decimals](https://crates.io/crates/rust_decimal), not floats or integers.
+
+```
+10
+```
+
+```
+10.99
+```
+
+### String
+
+```
+"hello world"
+```
+
+```
+"they said \"hello world\""
+```
+
+### List
+
+```
+["hello", null, "world"]
+```
+
+### Object
+
+> Unquoted keys must conform to [Identifier](#Identifier) regex: `^[a-zA-Z_][a-zA-Z0-9_]*$`
+>
+> Quoted keys can be any valid Unicode.
+
+
+```
+{
+  a: "apple",
+  b: "bear",
+}
+```
+
+```
+{
+  "a": "apple",
+  "b": "bear",
+}
+```
+
+### Function
+
+TODO

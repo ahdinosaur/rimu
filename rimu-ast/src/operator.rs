@@ -19,20 +19,20 @@ impl Display for UnaryOperator {
 /// A binary operator.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum BinaryOperator {
+    And,
+    Or,
+    Xor,
     Add,
     Subtract,
     Multiply,
     Divide,
+    Rem,
     Greater,
     GreaterEqual,
     Less,
     LessEqual,
     Equal,
     NotEqual,
-    And,
-    Or,
-    Xor,
-    Rem,
 }
 
 impl Display for BinaryOperator {

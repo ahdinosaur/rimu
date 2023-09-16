@@ -1,0 +1,58 @@
+# Get Started with Rimu
+
+## Playground
+
+To play with Rimu: [play.rimu.dev](https://play.rimu.dev)
+
+<br />
+
+<iframe
+  width="100%"
+  height="600"
+  src="https://play.rimu.dev/?i=bU8pIzcnJt1KIUSrPL8pJiVFSAgA"
+/>
+
+
+## Library
+
+To use Rimu in your [Rust](https://www.rust-lang.org/) app, add `rimu` to your `Cargo.toml`
+
+```toml
+rimu = "*"
+```
+
+## Command-line interface
+
+To use Rimu in your terminal to render data templates,
+
+```shell
+cargo install rimu-cli
+```
+
+```shell
+rimu-cli
+```
+
+```txt
+Usage: rimu-cli [OPTIONS] --input <INPUT>
+
+Options:
+  -i, --input <INPUT>
+  -e, --env <ENV>
+  -o, --output <OUTPUT>  [default: -]
+  -f, --format <FORMAT>  [default: yaml]
+  -h, --help             Print help
+  -V, --version          Print version
+```
+
+## Expression REPL (Read-Eval-Print-Loop)
+
+To use Rimu in your terminal as a calculator,
+
+```shell
+cargo install rimu-repl
+```
+
+```shell
+rimu-repl
+```

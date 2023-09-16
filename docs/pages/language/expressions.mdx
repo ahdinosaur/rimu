@@ -1,0 +1,219 @@
+# Rimu expressions
+
+## Expression
+
+### Value
+
+The simplest expression is a [Value](./values) literal.
+
+- [Null](./values#Null)
+- [Boolean](./values#Boolean)
+- [Number](./values#Number)
+- [String](./values#String)
+- [List](./values#List)
+- [Object](./values#Object)
+- [Function](./values#Function)
+
+### Identifier
+
+> Identifiers must conform to regex: `^[a-zA-Z_][a-zA-Z0-9_]*$`
+
+```
+hello
+```
+
+### Unary operator
+
+> Operand must be a number.
+
+#### `-` (negate)
+
+```
+-10
+```
+
+#### `!` (not)
+
+> Operand must be a boolean.
+
+```
+!is_done
+```
+
+### Binary Operator
+
+#### `+` (add)
+
+> Operands must be numbers, strings, or lists.
+
+```
+10 + 2
+```
+
+```
+"hello" + "world"
+```
+
+```
+[1, 2] + [3, 4]
+```
+
+#### `-` (subtract)
+
+> Operands must be numbers.
+
+```
+10 - 2
+```
+
+#### `*` (multiply)
+
+> Operands must be numbers.
+
+```
+10 * 2
+```
+
+#### `/` (divide)
+
+> Operands must be numbers.
+
+```
+10 / 2
+```
+
+#### `>` (greater than)
+
+```
+10 / 2
+```
+
+#### `>=` (greater than or equal)
+
+```
+10 >= 2
+```
+
+#### `<` (less than)
+
+```
+10 < 2
+```
+
+#### `<=` (less than or equal)
+
+```
+10 <= 2
+```
+
+#### `==` (equal)
+
+```
+10 == 2
+```
+
+#### `!=` (not equal)
+
+```
+10 == 2
+```
+
+#### `&&` (and)
+
+```
+10 == 2
+```
+
+#### `||` (or)
+
+```
+10 == 2
+```
+
+#### `^` (xor)
+
+> Operands must be booleans.
+
+```
+true ^ false
+```
+
+#### `%` (remainder)
+
+> Operands must be numbers.
+
+```
+10 == 2
+```
+
+### Call
+
+> Value being called must be a function.
+
+```
+add(1, 2)
+```
+
+### Get Index
+
+> Container must be list or string or object.
+
+```
+list[2]
+```
+
+```
+list[-2]
+```
+
+```
+string[2]
+```
+
+```
+object["a"]
+```
+
+### Get Key
+
+> Container must be object
+
+```
+object.a
+```
+
+### Get Slice
+
+> Container must be list or string.
+
+```
+list[2:5]
+```
+
+```
+string[2:5]
+```
+
+## Notes
+
+### Truthiness
+
+Everything is truthy except `false` and `null`.
+
+### Orderedness
+
+Only numbers are ordered.
+
+### No statements
+
+Every expression is evaluated to a [value](./values).
+
+### No type coercion
+
+No implicit type coercions.
+
+For example, the following is an error:
+
+```
+2 + "pies"
+```

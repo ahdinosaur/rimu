@@ -1,0 +1,52 @@
+# A Rimu Tutorial
+
+Have you ever heard of turtle geometry?
+
+[![(1983) Talking Turtle (for PBS)](https://tube.arthack.nz/static/thumbnails/4aa0b733-971c-417e-8613-da86fb268e83.jpg)](https://tube.arthack.nz/videos/watch/d976a246-dd20-4441-82fe-d7c687a33a78)
+
+> Watch on [tube.arthack.nz](https://tube.arthack.nz/videos/watch/96ffe315-5d1d-426f-8abe-93d8ad925dee) or [archive.org](https://archive.org/details/NOVATalkingTurtle/NOVA.S10E11.Talking.Turtle.1983.VHSRip.AAC2.0.x264-rattera.mp4)
+
+We could implement a Logo-inspired turtle game using Rimu, where kids could move turtles with code.
+
+If we wanted to [make a star](https://www.turtleacademy.com/programs/40499):
+
+```yaml
+- setwidth: 10
+- setcolor: 4
+
+- right: 18
+- forward: 50
+
+- $map: range(5)
+  each:
+    - right: 144
+    - forward: 50
+    - left: 72
+    - forward: 50
+```
+
+Then the output is a list of commands for the turtle to execute.
+
+Now we might start to think about a better data model, how do we want users to describe their turtle actions?
+
+
+## Actions
+
+### Set
+
+### Rotate
+
+### Move
+
+## Example
+
+```
+- $type: "set"
+  width: 10
+  color: 4
+- $type: "rotate"
+  right: 18
+- $type: "move"
+  forward: 50
+```
+

@@ -1,0 +1,87 @@
+# Rimu roadmap
+
+- Validate the design
+
+  - [ ] Have devs made Rimu DSLs?
+  - [ ] Have non-devs made using Rimu DSLs?
+
+- Expressions
+
+  - Literals
+
+    - [x] Null
+    - [x] Boolean
+    - [x] Number
+    - [x] String
+    - [x] List
+    - [x] Object
+    - [ ] Function : [issue#18](https://github.com/ahdinosaur/rimu/issues/18)
+
+  - Identifier
+
+  - Unary operations
+
+    - [x] `-` (negate)
+    - [x] `!` (not)
+
+  - Binary operations
+
+    - [x] `+` (add)
+    - [x] `-` (subtract)
+    - [x] `*` (multiply)
+    - [x] `/` (divide)
+    - [x] `>` (greater than)
+    - [x] `>=` (greater than or equal)
+    - [x] `<` (less than)
+    - [x] `<=` (less than or equal)
+    - [x] `==` (equal)
+    - [x] `!=` (not equal)
+    - [x] `&&` (and)
+    - [x] `||` (or)
+    - [x] `^` (xor)
+    - [x] `%` (remainder)
+    - [x] Call
+    - [x] Get Index
+    - [x] Get Key
+    - [x] Get Slice
+
+- Blocks
+
+  - Operations
+
+    - [x] `$if`: [pull#7](https://github.com/ahdinosaur/rimu/pull/7)
+    - [x] `$let`: [pull#8](https://github.com/ahdinosaur/rimu/pull/8)
+    - [ ] `$type`: [issue#53](https://github.com/ahdinosaur/rimu/issues/53)
+    - [ ] `$exec`:
+    - [ ] `$fn`:
+    - [ ] `$switch`: [issue#47](https://github.com/ahdinosaur/rimu/issues/47)
+    - [ ] `$switchAll`: [issue#48](https://github.com/ahdinosaur/rimu/issues/48)
+    - [ ] `$map`: [issue#49](https://github.com/ahdinosaur/rimu/issues/49)
+    - [ ] `$mapObject`: [issue#50](https://github.com/ahdinosaur/rimu/issues/50)
+    - [ ] `$filter`: [issue#51](https://github.com/ahdinosaur/rimu/issues/51)
+    - [ ] `$flatten`
+    - [ ] `$flattenDeep`
+    - [ ] `$merge`
+    - [ ] `$mergeDeep`
+    - [ ] `$sort`
+    - [ ] `$reverse`
+
+  - Destructuring
+
+- Documentation
+
+  - [x] Playground website: [play.rimu.dev](https://play.rimu.dev)
+  - [ ] Docs website: [rimu.dev](https://rimu.dev)
+
+- Type system
+
+  - [ ] Core type system
+  - [ ] Schemas: [issue#22](https://github.com/ahdinosaur/rimu/issues/22)
+
+- Dev experience
+
+  - [ ] Code formatter: [issue#32](https://github.com/ahdinosaur/rimu/issues/32)
+  - [ ] CodeMirror Lezer grammar
+  - [ ] Tree-sitter grammar
+  - [ ] Autocomplete: [issue#43](https://github.com/ahdinosaur/rimu/issues/43)
+  - [ ] LSP (language server protocol) server
