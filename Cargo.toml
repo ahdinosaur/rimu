@@ -1,16 +1,52 @@
 [workspace]
-members = [
-    "rimu-meta",
-    "rimu-ast",
-    "rimu-parse",
-    "rimu-value",
-    "rimu-eval",
-    "rimu",
-    "rimu-repl",
-    "rimu-cli",
-    "rimu-playground/wasm",
-]
 resolver = "2"
+members = [
+    "meta",
+    "ast",
+    "parse",
+    "value",
+    "eval",
+    "rimu",
+    "repl",
+    "cli",
+    "play/wasm",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+
+description = "A data structure template system."
+readme = "README.md"
+homepage = "https://rimu.dev"
+repository = "https://github.com/ahdinosaur/rimu"
+license = "Apache-2.0"
+keywords = ["rimu", "functional", "data", "template", "config"]
+categories = ["compilers", "config", "data-structures", "template-engine"]
+
+[workspace.dependencies.rimu-meta]
+version = "0.1.0"
+path = "meta"
+
+[workspace.dependencies.rimu-ast]
+version = "0.1.0"
+path = "ast"
+
+[workspace.dependencies.rimu-parse]
+version = "0.1.0"
+path = "parse"
+
+[workspace.dependencies.rimu-value]
+version = "0.1.0"
+path = "value"
+
+[workspace.dependencies.rimu-eval]
+version = "0.1.0"
+path = "eval"
+
+[workspace.dependencies.rimu]
+version = "0.1.0"
+path = "rimu"
 
 [profile.release]
 # less code to include into binary

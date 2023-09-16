@@ -1,15 +1,22 @@
 [package]
 name = "rimu-value"
-version = "0.1.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+rimu-ast.workspace = true
 ryu = "1.0.15"
 serde = "1.0.181"
 thiserror = "1.0.44"
-rimu-ast = { path = "../rimu-ast" }
 rust_decimal = { version = "1.31.0", features = ["serde-with-float"] }
 rust_decimal_macros = "1.31.0"
 indexmap = { version = "2.0.0", features = ["serde"] }

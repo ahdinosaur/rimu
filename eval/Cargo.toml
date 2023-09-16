@@ -1,5 +1,5 @@
 [package]
-name = "rimu"
+name = "rimu-eval"
 version.workspace = true
 edition.workspace = true
 description.workspace = true
@@ -15,10 +15,12 @@ categories.workspace = true
 [dependencies]
 rimu-meta.workspace = true
 rimu-ast.workspace = true
-rimu-parse.workspace = true
 rimu-value.workspace = true
-rimu-eval.workspace = true
+rust_decimal = "1.31.0"
+rust_decimal_macros = "1.31.0"
+thiserror = "1.0.44"
+indexmap = "2.0.0"
 
 [dev-dependencies]
+rimu-parse.workspace = true
 pretty_assertions = "1.4.0"
-serde_yaml = "0.9.25"
