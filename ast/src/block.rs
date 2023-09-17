@@ -8,6 +8,10 @@ pub enum Block {
     List(Vec<SpannedBlock>),
     Expression(Expression),
     Operation(Box<BlockOperation>),
+    Function {
+        args: Vec<Spanned<String>>,
+        body: Box<SpannedBlock>,
+    },
 }
 
 pub type SpannedBlock = Spanned<Block>;

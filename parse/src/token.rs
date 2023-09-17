@@ -74,6 +74,9 @@ pub enum Token {
     Not,
     /// %
     Rem,
+
+    /// =>
+    FatArrow,
 }
 
 impl fmt::Display for Token {
@@ -115,6 +118,7 @@ impl fmt::Display for Token {
             Token::Xor => write!(f, "^"),
             Token::Not => write!(f, "!"),
             Token::Rem => write!(f, "%"),
+            Token::FatArrow => write!(f, "=>"),
         }
     }
 }

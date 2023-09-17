@@ -119,6 +119,7 @@ fn atom_parser<'a>(
     let identifier = identifier_parser();
     let list = list_parser(expr.clone());
     let object = object_parser(expr.clone());
+    let function = function_parser(expr.clone());
 
     let nested_expr = nested_parser(
         expr.clone().map(|spanned| spanned.into_inner()),
@@ -131,6 +132,7 @@ fn atom_parser<'a>(
         .or(identifier)
         .or(list)
         .or(object)
+        .or(function)
         .or(nested_expr)
         .map_with_span(Spanned::new)
         .boxed()
@@ -221,6 +223,30 @@ fn object_parser<'a>(
     .labelled("object")
 }
 
+fn function_parser<'a>(
+    expr: impl Compiler<SpannedExpression> + 'a,
+) -> impl Compiler<Expression> + 'a {
+    let arg_name = select! {
+        Token::Identifier(arg_name) => arg_name
+    }
+    .map_with_span(Spanned::new);
+    let arg_items = arg_name
+        .separated_by(just(Token::Comma))
+        .allow_trailing()
+        .boxed();
+    let args = arg_items.delimited_by(just(Token::LeftParen), just(Token::RightParen));
+    let arrow = just(Token::FatArrow);
+    let body = expr;
+
+    args.then_ignore(arrow)
+        .then(body)
+        .map(|(args, body)| Expression::Function {
+            args,
+            body: Box::new(body),
+        })
+        .boxed()
+}
+
 fn right_unary_parser<'a>(
     expr: impl Compiler<SpannedExpression> + 'a,
     atom: impl Compiler<SpannedExpression> + 'a,
@@ -242,10 +268,7 @@ fn right_unary_parser<'a>(
         .delimited_by(just(Token::LeftBrack), just(Token::RightBrack))
         .map(RightUnary::GetIndex);
     let get_key = just(Token::Dot)
-        .then(
-            select! { Token::Identifier(key) => key }
-                .map_with_span(|key, span| Spanned::new(key, span)),
-        )
+        .then(select! { Token::Identifier(key) => key }.map_with_span(Spanned::new))
         .map(|(_, key)| RightUnary::GetKey(key));
     let get_slice = expr
         .clone()

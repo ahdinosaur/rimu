@@ -100,6 +100,7 @@ fn line_parser() -> impl LineLexer<Vec<SpannedToken>> {
         just(',').to(Token::Comma),
         just(':').to(Token::Colon),
         just('.').to(Token::Dot),
+        just("=>").to(Token::FatArrow),
     ))
     .labelled("control");
 

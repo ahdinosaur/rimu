@@ -715,8 +715,7 @@ mod tests {
     #[test]
     fn simple_function_call() {
         let env = indexmap! {
-            "add".into() => Value::Function(Function {
-                name: "add".into(),
+            "add".into() => Value::Function(Function::Expression {
                 args: vec!["a".into(), "b".into()],
                 body: Spanned::new(
                     Expression::Binary {

@@ -25,6 +25,12 @@ pub enum Expression {
     /// Literal key-value object.
     Object(Vec<(Spanned<String>, SpannedExpression)>),
 
+    /// Function
+    Function {
+        args: Vec<Spanned<String>>,
+        body: Box<SpannedExpression>,
+    },
+
     /// A named local variable.
     Identifier(String),
 
@@ -86,10 +92,18 @@ impl fmt::Display for Expression {
                     .join(", ");
                 write!(f, "[{}]", keys)
             }
+            Expression::Function { args, body } => {
+                let args = args
+                    .iter()
+                    .map(ToString::to_string)
+                    .collect::<Vec<String>>()
+                    .join(", ");
+                write!(f, "({}) => {}", args, body)
+            }
             Expression::Object(object) => {
                 let entries = object
                     .iter()
-                    .map(|(key, value)| format!("\"{}\": {}", key, value.to_string()))
+                    .map(|(key, value)| format!("\"{}\": {}", key, value))
                     .collect::<Vec<String>>()
                     .join(", ");
                 write!(f, "{{{}}}", entries)
