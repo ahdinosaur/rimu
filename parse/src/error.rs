@@ -1,3 +1,4 @@
+use chumsky::error::SimpleReason;
 use rimu_meta::ErrorReport;
 
 use crate::compiler::CompilerError;
@@ -39,7 +40,11 @@ impl From<Error> for ErrorReport {
             Error::Lexer(LexerError::Line(error)) => ErrorReport {
                 message: "Lexer: Unexpected character".into(),
                 span: error.span(),
-                labels: vec![(error.span(), format!("{}", error))],
+                labels: if let SimpleReason::Custom(msg) = error.reason() {
+                    vec![(error.span(), msg.to_string())]
+                } else {
+                    vec![(error.span(), format!("{}", error))]
+                },
                 notes: if let Some(e) = error.label() {
                     vec![format!("Label is `{}`", e)]
                 } else {
@@ -49,7 +54,11 @@ impl From<Error> for ErrorReport {
             Error::Compiler(error) => ErrorReport {
                 message: "Compiler: Unexpected token".into(),
                 span: error.span(),
-                labels: vec![(error.span(), format!("{}", error))],
+                labels: if let SimpleReason::Custom(msg) = error.reason() {
+                    vec![(error.span(), msg.to_string())]
+                } else {
+                    vec![(error.span(), format!("{}", error))]
+                },
                 notes: if let Some(e) = error.label() {
                     vec![format!("Label is `{}`", e)]
                 } else {
