@@ -3,15 +3,15 @@ use std::fmt;
 use rimu_ast::{SpannedBlock, SpannedExpression};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd)]
-pub enum Function {
-    Block {
-        args: Vec<String>,
-        body: SpannedBlock,
-    },
-    Expression {
-        args: Vec<String>,
-        body: SpannedExpression,
-    },
+pub struct Function {
+    pub args: Vec<String>,
+    pub body: FunctionBody,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd)]
+pub enum FunctionBody {
+    Block(SpannedBlock),
+    Expression(SpannedExpression),
 }
 
 impl fmt::Display for Function {

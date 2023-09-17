@@ -15,7 +15,7 @@ use serde::Serialize;
 
 pub use self::convert::convert;
 pub use self::error::ValueError;
-pub use self::function::Function;
+pub use self::function::{Function, FunctionBody};
 pub use self::number::Number;
 use self::ser::Serializer;
 
