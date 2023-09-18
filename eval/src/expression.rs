@@ -3,11 +3,11 @@
 
 use rimu_ast::{BinaryOperator, Expression, SpannedExpression, UnaryOperator};
 use rimu_meta::{Span, Spanned};
-use rimu_value::{Number, Object, Value};
+use rimu_value::{Function, FunctionBody, Number, Object, Value};
 use rust_decimal::prelude::ToPrimitive;
 use std::ops::Deref;
 
-use crate::{Environment, EvalError};
+use crate::{evaluate_block, Environment, EvalError};
 
 pub fn evaluate<'a>(
     expression: &SpannedExpression,
@@ -44,6 +44,8 @@ impl<'a> Evaluator<'a> {
             Expression::List(ref items) => self.list(span, items)?,
 
             Expression::Object(ref entries) => self.object(span, entries)?,
+
+            Expression::Function { ref args, ref body } => self.function(span, args, body)?,
 
             Expression::Identifier(var) => self.variable(span, var)?,
 
@@ -87,6 +89,17 @@ impl<'a> Evaluator<'a> {
     fn string(&self, _span: Span, string: &str) -> Result<Value, EvalError> {
         // TODO handle string interpolations
         Ok(Value::String(string.to_string()))
+    }
+
+    fn function(
+        &self,
+        _span: Span,
+        args: &Vec<Spanned<String>>,
+        body: &SpannedExpression,
+    ) -> Result<Value, EvalError> {
+        let args: Vec<String> = args.into_iter().map(|a| a.inner()).cloned().collect();
+        let body = FunctionBody::Expression(body.clone());
+        Ok(Value::Function(Function { args, body }))
     }
 
     fn unary(
@@ -386,7 +399,10 @@ impl<'a> Evaluator<'a> {
             function_env.insert(arg_name, arg_value);
         }
 
-        evaluate(&function.body, &function_env)
+        match &function.body {
+            FunctionBody::Expression(expression) => evaluate(expression, &function_env),
+            FunctionBody::Block(block) => evaluate_block(block, &function_env),
+        }
     }
 
     fn get_index(
@@ -601,7 +617,7 @@ mod tests {
     use rimu_ast::{BinaryOperator, Expression, SpannedExpression};
     use rimu_meta::{SourceId, Span, Spanned};
     use rimu_parse::parse_expression;
-    use rimu_value::{Function, Value};
+    use rimu_value::{Function, FunctionBody, Value};
     use rust_decimal_macros::dec;
 
     use super::{evaluate, EvalError};
@@ -716,9 +732,8 @@ mod tests {
     fn simple_function_call() {
         let env = indexmap! {
             "add".into() => Value::Function(Function {
-                name: "add".into(),
                 args: vec!["a".into(), "b".into()],
-                body: Spanned::new(
+                body: FunctionBody::Expression(Spanned::new(
                     Expression::Binary {
                         left: Box::new(Spanned::new(
                             Expression::Identifier("a".into()),
@@ -732,7 +747,7 @@ mod tests {
                     },
                     span(0..3),
                 ),
-            }),
+            )}),
             "one".into() => Value::Number(dec!(1).into()),
             "two".into() => Value::Number(dec!(2).into()),
         };

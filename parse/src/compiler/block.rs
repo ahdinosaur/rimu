@@ -37,8 +37,9 @@ fn block_parser() -> impl Compiler<SpannedBlock> {
         }
         .map_with_span(Spanned::new)
         .then_ignore(just(Token::Colon));
-        let value_simple = expr.clone();
+        let value_simple = block.clone();
         let value_complex = eol
+            .clone()
             .ignore_then(just(Token::Indent))
             .ignore_then(block.clone())
             .then_ignore(just(Token::Dedent).to(()).or(end()));
@@ -74,7 +75,29 @@ fn block_parser() -> impl Compiler<SpannedBlock> {
             .map_with_span(Spanned::new)
             .boxed();
 
-        object.or(list).or(expr).boxed()
+        let arg_name = select! {
+            Token::Identifier(arg_name) => arg_name
+        }
+        .map_with_span(Spanned::new);
+        let arg_items = arg_name
+            .separated_by(just(Token::Comma))
+            .allow_trailing()
+            .boxed();
+        let args = arg_items.delimited_by(just(Token::LeftParen), just(Token::RightParen));
+        let function = args
+            .then_ignore(just(Token::FatArrow))
+            .then_ignore(eol.clone())
+            .then_ignore(just(Token::Indent))
+            .then(block)
+            .then_ignore(just(Token::Dedent).to(()).or(end()))
+            .map(|(args, body)| Block::Function {
+                args,
+                body: Box::new(body),
+            })
+            .map_with_span(Spanned::new)
+            .boxed();
+
+        object.or(list).or(function).or(expr).boxed()
     })
     .then_ignore(end())
 }
@@ -633,13 +656,14 @@ mod tests {
         assert_eq!(actual, expected);
     }
 
+    // TODO:
+    //
     // a:
     //   - b:
     //       d: e
     //   - f:
     //       h: i
     // j: k
-    //
 
     #[test]
     fn operation_if() {

@@ -1,8 +1,8 @@
 // https://github.com/serde-rs/json/blob/master/src/value/ser.rs
 
+use indexmap::IndexMap;
 use serde::{ser::Impossible, Serialize};
 use std::fmt::Display;
-use indexmap::IndexMap;
 
 use crate::{to_value, Object, Value, ValueError};
 
@@ -18,7 +18,8 @@ impl Serialize for Value {
             Value::String(string) => serializer.serialize_str(string),
             Value::List(list) => list.serialize(serializer),
             Value::Object(object) => object.serialize(serializer),
-            Value::Function(_) => todo!(),
+            // TODO
+            Value::Function(_) => serializer.serialize_unit(),
         }
     }
 }
