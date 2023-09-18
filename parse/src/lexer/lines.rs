@@ -191,7 +191,7 @@ impl<'src> LinesLexer<'src> {
             let dash = Spanned::new(dash_token, dash_span);
             tokens.push(dash);
 
-            if let Some(nonblank_index) = self.get_space_index(&rest[1..]) {
+            if let Some(nonblank_index) = self.get_space_index(&rest[index + 1..]) {
                 let next_index = 1 + nonblank_index;
 
                 let indent_span =
@@ -206,7 +206,7 @@ impl<'src> LinesLexer<'src> {
                 let indentation = indentation_start + index;
                 self.indentation.push(indentation);
             } else {
-                index = rest.len();
+                index = rest.len() - 1;
                 break;
             }
         }
