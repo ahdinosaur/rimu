@@ -1,9 +1,9 @@
 - title: simple let
   template: |
-    $let:
+    let
       ts: 100
       foo: 200
-    in:
+    in
       - ts + foo
       - ts - foo
       - ts * foo
@@ -12,31 +12,31 @@
 
 - title: let with evaluated values
   template: |
-    $let:
+    let
       thirty: 10 + 20
-    in: thirty + 5
+    in thirty + 5
   context: {}
   output: 35
 
 - title: context overriding
   template: |
-    $let:
+    let
       x: 20
-    in: x + y
-  context: { x: 10, "y": 1 }
+    in x + y
+  context: { x: 10, 'y': 1 }
   output: 21
 
 - title: nested let
   template: |
-    $let:
+    let
       x: 20
       "y": 10
-    in:
-      $let:
+    in
+      let
         x: 30
-      in:
+      in
         x + y + z
-  context: { x: 1, "y": 2, z: 3 }
+  context: { x: 1, 'y': 2, z: 3 }
   output: 43
 #
 #- title: let with undefined properties
@@ -130,10 +130,10 @@
 
 - title: let using values from the parent context
   template: |
-    $let:
+    let
       b:
         a + 10
-    in:
+    in
       a + b
   context: { a: 5 }
   output: 20

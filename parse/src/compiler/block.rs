@@ -1,13 +1,11 @@
-use indexmap::IndexMap;
-
 use chumsky::prelude::*;
 
-use rimu_ast::{Block, BlockOperation, SpannedBlock};
+use rimu_ast::{Block, Expression, SpannedBlock};
 use rimu_meta::{Span, Spanned};
 
 use crate::token::{SpannedToken, Token};
 
-use super::{expression::expression_parser, Compiler, CompilerError};
+use super::{expression, Compiler, CompilerError};
 
 pub(crate) fn compile_block(
     tokens: Vec<SpannedToken>,
@@ -21,187 +19,205 @@ pub(crate) fn compile_block(
 
 fn block_parser() -> impl Compiler<SpannedBlock> {
     recursive(|block| {
-        let eol = just(Token::EndOfLine);
+        let expr = expression_parser();
+        let object = object_parser(block.clone());
+        let list = list_parser(block.clone());
+        let function = function_parser(block.clone());
+        let call = call_parser(block.clone());
+        let if_ = if_parser(block.clone());
+        let let_ = let_parser(block.clone());
 
-        let expr = expression_parser()
-            .map(|expr| {
-                let (expr, span) = expr.take();
-                let block = Block::Expression(expr);
-                Spanned::new(block, span)
-            })
-            .then_ignore(eol.clone());
-
-        let key = select! {
-            Token::String(key) => key,
-            Token::Identifier(key) => key
-        }
-        .map_with_span(Spanned::new)
-        .then_ignore(just(Token::Colon));
-        let value_simple = block.clone();
-        let value_complex = eol
-            .clone()
-            .ignore_then(just(Token::Indent))
-            .ignore_then(block.clone())
-            .then_ignore(just(Token::Dedent).to(()).or(end()));
-        let value = value_simple.or(value_complex);
-        let entry = key.then(value);
-        let entries = entry.clone().repeated().at_least(1);
-        let object = entries
-            .clone()
-            .try_map(parse_object_entries)
-            .map_with_span(Spanned::new)
-            .boxed();
-
-        let list_item_object_multi = just(Token::Minus)
-            .ignore_then(entry.clone())
-            .then_ignore(just(Token::Indent))
-            .then(entries.clone())
-            .then_ignore(just(Token::Dedent).to(()).or(end()))
-            .map(|(entry, mut entries)| {
-                let mut ret = Vec::with_capacity(entries.len() + 1);
-                ret.push(entry);
-                ret.append(&mut entries);
-                ret
-            })
-            .try_map(parse_object_entries)
-            .map_with_span(Spanned::new)
-            .boxed();
-        let list_item_simple = just(Token::Minus).ignore_then(block.clone()).boxed();
-        let list_item = list_item_object_multi.or(list_item_simple);
-        let list = list_item
-            .repeated()
-            .at_least(1)
-            .map(Block::List)
-            .map_with_span(Spanned::new)
-            .boxed();
-
-        let arg_name = select! {
-            Token::Identifier(arg_name) => arg_name
-        }
-        .map_with_span(Spanned::new);
-        let arg_items = arg_name
-            .separated_by(just(Token::Comma))
-            .allow_trailing()
-            .boxed();
-        let args = arg_items.delimited_by(just(Token::LeftParen), just(Token::RightParen));
-        let function = args
-            .then_ignore(just(Token::FatArrow))
-            .then_ignore(eol.clone())
-            .then_ignore(just(Token::Indent))
-            .then(block)
-            .then_ignore(just(Token::Dedent).to(()).or(end()))
-            .map(|(args, body)| Block::Function {
-                args,
-                body: Box::new(body),
-            })
-            .map_with_span(Spanned::new)
-            .boxed();
-
-        object.or(list).or(function).or(expr).boxed()
+        object
+            .or(list)
+            .or(function)
+            .or(call)
+            .or(if_)
+            .or(let_)
+            .or(expr)
+            .boxed()
     })
     .then_ignore(end())
 }
 
-fn parse_object_entries(
-    entries: Vec<(Spanned<String>, SpannedBlock)>,
-    span: Span,
-) -> Result<Block, CompilerError> {
-    if let Some(operator) = find_block_operator(&entries) {
-        return Ok(Block::Operation(Box::new(parse_block_operation(
-            operator, entries, span,
-        )?)));
-    }
-
-    let mut next_entries = Vec::new();
-    for (key, value) in entries.into_iter() {
-        let (key, key_span) = key.take();
-        let key = unescape_non_block_operation_key(&key).to_owned();
-        next_entries.push((Spanned::new(key, key_span), value));
-    }
-    Ok(Block::Object(next_entries))
+fn expression_parser<'a>() -> impl Compiler<SpannedBlock> + 'a {
+    expression::expression_parser()
+        .map(|expr| {
+            let (expr, span) = expr.take();
+            let block = Block::Expression(expr);
+            Spanned::new(block, span)
+        })
+        .then_ignore(just(Token::EndOfLine))
+        .boxed()
 }
 
-fn find_block_operator<Value>(entries: &[(Spanned<String>, Value)]) -> Option<String> {
-    for (key, _) in entries.iter() {
-        let key = key.inner();
-        let mut chars = key.chars();
-        let is_op = chars.next() == Some('$') && chars.next() != Some('$');
-        if is_op {
-            return Some(key.clone());
-        }
-    }
-    None
+fn value_parser<'a>(block: impl Compiler<SpannedBlock> + 'a) -> impl Compiler<SpannedBlock> + 'a {
+    let value_simple = block.clone();
+    let value_complex = just(Token::EndOfLine)
+        .ignore_then(just(Token::Indent))
+        .ignore_then(block.clone())
+        .then_ignore(just(Token::Dedent).to(()).or(end()));
+    let value = value_simple.or(value_complex);
+    value.boxed()
 }
 
-fn parse_block_operation(
-    operator: String,
-    entries: Vec<(Spanned<String>, Spanned<Block>)>,
-    span: Span,
-) -> Result<BlockOperation, CompilerError> {
-    let object = IndexMap::from_iter(
-        entries
-            .into_iter()
-            .map(|(key, value)| (key.into_inner(), value)),
-    );
-    let operation = match operator.as_str() {
-        "$if" => {
-            static KEYS: [&str; 3] = ["$if", "then", "else"];
-            check_block_operation_keys(span, "$if", &KEYS, &object)?;
+fn entry_parser<'a>(
+    block: impl Compiler<SpannedBlock> + 'a,
+) -> impl Compiler<(Spanned<String>, SpannedBlock)> + 'a {
+    let key = select! {
+        Token::String(key) => key,
+        Token::Identifier(key) => key
+    }
+    .map_with_span(Spanned::new)
+    .then_ignore(just(Token::Colon));
+    let value = value_parser(block);
+    let entry = key.then(value);
+    entry.boxed()
+}
 
-            let condition = object.get("$if").unwrap().to_owned();
-            let consequent = object.get("then").cloned();
-            let alternative = object.get("else").cloned();
+fn object_parser<'a>(block: impl Compiler<SpannedBlock> + 'a) -> impl Compiler<SpannedBlock> + 'a {
+    let entry = entry_parser(block);
+    let entries = entry.clone().repeated().at_least(1);
+    let object = entries
+        .clone()
+        .map(Block::Object)
+        .map_with_span(Spanned::new);
+    object.boxed()
+}
 
-            BlockOperation::If {
-                condition,
-                consequent,
-                alternative,
-            }
-        }
-        "$let" => {
-            static KEYS: [&str; 2] = ["$let", "in"];
-            check_block_operation_keys(span.clone(), "$let", &KEYS, &object)?;
+fn list_parser<'a>(block: impl Compiler<SpannedBlock> + 'a) -> impl Compiler<SpannedBlock> + 'a {
+    let entry = entry_parser(block.clone());
+    let entries = entry.clone().repeated().at_least(1);
+    let list_item_object_multi = just(Token::Minus)
+        .ignore_then(entry.clone())
+        .then_ignore(just(Token::Indent))
+        .then(entries.clone())
+        .then_ignore(just(Token::Dedent).to(()).or(end()))
+        .map(|(entry, mut entries)| {
+            let mut ret = Vec::with_capacity(entries.len() + 1);
+            ret.push(entry);
+            ret.append(&mut entries);
+            ret
+        })
+        .map(Block::Object)
+        .map_with_span(Spanned::new)
+        .boxed();
+    let list_item_simple = just(Token::Minus).ignore_then(block.clone()).boxed();
+    let list_item = list_item_object_multi.or(list_item_simple);
+    let list = list_item
+        .repeated()
+        .at_least(1)
+        .map(Block::List)
+        .map_with_span(Spanned::new);
+    list.boxed()
+}
 
-            let variables = object.get("$let").unwrap().to_owned();
-            let body = object
-                .get("in")
-                .ok_or_else(|| CompilerError::custom(span, "$let: missing field \"in\""))?
-                .to_owned();
-            BlockOperation::Let { variables, body }
-        }
-        &_ => {
-            return Err(CompilerError::custom(
-                span,
-                format!("Unknown block operator: {}", operator.as_str()),
-            ))
-        }
+fn function_parser<'a>(
+    block: impl Compiler<SpannedBlock> + 'a,
+) -> impl Compiler<SpannedBlock> + 'a {
+    let arg_name = select! {
+        Token::Identifier(arg_name) => arg_name
+    }
+    .map_with_span(Spanned::new);
+    let arg_items = arg_name
+        .separated_by(just(Token::Comma))
+        .allow_trailing()
+        .boxed();
+    let args = arg_items.delimited_by(just(Token::LeftParen), just(Token::RightParen));
+    let function = args
+        .then_ignore(just(Token::FatArrow))
+        .then_ignore(just(Token::EndOfLine))
+        .then_ignore(just(Token::Indent))
+        .then(block)
+        .then_ignore(just(Token::Dedent).to(()).or(end()))
+        .map(|(args, body)| Block::Function {
+            args,
+            body: Box::new(body),
+        })
+        .map_with_span(Spanned::new);
+
+    function.boxed()
+}
+
+fn call_parser<'a>(block: impl Compiler<SpannedBlock> + 'a) -> impl Compiler<SpannedBlock> + 'a {
+    let function_identifier = select! {
+        Token::Identifier(key) => Expression::Identifier(key)
     };
-    Ok(operation)
+    let expr = expression::expression_parser();
+    let function_expression = expression::function_parser(expr);
+    let function = function_identifier
+        .or(function_expression)
+        .map_with_span(Spanned::new);
+
+    let args = value_parser(block);
+
+    let call = function
+        .then(args)
+        .map(|(function, args)| Block::Call {
+            function: Box::new(function),
+            args: Box::new(args),
+        })
+        .map_with_span(Spanned::new);
+
+    call.boxed()
 }
 
-fn check_block_operation_keys<Value>(
-    span: Span,
-    op: &str,
-    keys: &[&str],
-    object: &IndexMap<String, Value>,
-) -> Result<(), CompilerError> {
-    for key in object.keys() {
-        if !keys.contains(&key.as_str()) {
-            return Err(CompilerError::custom(
-                span,
-                format!("{}: unexpected field \"{}\"", op, key),
-            ));
-        }
-    }
-    Ok(())
+fn if_parser<'a>(block: impl Compiler<SpannedBlock> + 'a) -> impl Compiler<SpannedBlock> + 'a {
+    let value = value_parser(block);
+
+    let if_then = just(Token::If)
+        .ignore_then(value.clone())
+        .then_ignore(just(Token::Then))
+        .then(value.clone())
+        .map(|(condition, consequent)| Block::If {
+            condition: Box::new(condition),
+            consequent: Some(Box::new(consequent)),
+            alternative: None,
+        });
+    let if_else = just(Token::If)
+        .ignore_then(value.clone())
+        .then_ignore(just(Token::Else))
+        .then(value.clone())
+        .map(|(condition, alternative)| Block::If {
+            condition: Box::new(condition),
+            consequent: None,
+            alternative: Some(Box::new(alternative)),
+        });
+    let if_then_else = just(Token::If)
+        .ignore_then(value.clone())
+        .then_ignore(just(Token::Then))
+        .then(value.clone())
+        .then_ignore(just(Token::Else))
+        .then(value.clone())
+        .map(|((condition, consequent), alternative)| Block::If {
+            condition: Box::new(condition),
+            consequent: Some(Box::new(consequent)),
+            alternative: Some(Box::new(alternative)),
+        });
+
+    let if_ = if_then_else
+        .or(if_then)
+        .or(if_else)
+        .map_with_span(Spanned::new);
+    if_.boxed()
 }
 
-fn unescape_non_block_operation_key(key: &str) -> &str {
-    if key.starts_with("$$") {
-        &key[1..]
-    } else {
-        key
-    }
+fn let_parser<'a>(block: impl Compiler<SpannedBlock> + 'a) -> impl Compiler<SpannedBlock> + 'a {
+    let entry = entry_parser(block.clone());
+    let entries = entry.repeated().at_least(1);
+
+    let value = value_parser(block.clone());
+
+    let let_ = just(Token::Let)
+        .ignore_then(entries)
+        .then_ignore(just(Token::In))
+        .then(value)
+        .map(|(variables, body)| Block::Let {
+            variables,
+            body: Box::new(body),
+        })
+        .map_with_span(Spanned::new);
+
+    let_.boxed()
 }
 
 #[cfg(test)]
@@ -210,7 +226,7 @@ mod tests {
 
     use chumsky::Parser;
     use pretty_assertions::assert_eq;
-    use rimu_ast::{Block, BlockOperation, Expression};
+    use rimu_ast::{Block, Expression};
     use rimu_meta::{SourceId, Span, Spanned};
 
     use crate::Token;
@@ -667,36 +683,37 @@ mod tests {
 
     #[test]
     fn operation_if() {
+        // if ready
+        // then go
+        // else stay
+
         let actual = test(vec![
-            Token::Identifier("$if".into()),
-            Token::Colon,
+            Token::Identifier("if".into()),
             Token::Identifier("ready".into()),
             Token::EndOfLine,
             Token::Identifier("then".into()),
-            Token::Colon,
             Token::Identifier("go".into()),
             Token::EndOfLine,
             Token::Identifier("else".into()),
-            Token::Colon,
             Token::Identifier("stay".into()),
             Token::EndOfLine,
         ]);
 
         let expected = Ok(Spanned::new(
-            Block::Operation(Box::new(BlockOperation::If {
-                condition: Spanned::new(
+            Block::If {
+                condition: Box::new(Spanned::new(
                     Block::Expression(Expression::Identifier("ready".into())),
                     span(2..3),
-                ),
-                consequent: Some(Spanned::new(
+                )),
+                consequent: Some(Box::new(Spanned::new(
                     Block::Expression(Expression::Identifier("go".into())),
                     span(6..7),
-                )),
-                alternative: Some(Spanned::new(
+                ))),
+                alternative: Some(Box::new(Spanned::new(
                     Block::Expression(Expression::Identifier("stay".into())),
                     span(10..11),
-                )),
-            })),
+                ))),
+            },
             span(0..12),
         ));
 

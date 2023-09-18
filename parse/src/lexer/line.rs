@@ -96,6 +96,15 @@ fn line_parser() -> impl LineLexer<Vec<SpannedToken>> {
     ))
     .labelled("delimiter");
 
+    let keyword = choice((
+        just("if").to(Token::If),
+        just("then").to(Token::Then),
+        just("else").to(Token::Else),
+        just("let").to(Token::Let),
+        just("in").to(Token::In),
+    ))
+    .labelled("keyword");
+
     let control = choice((
         just(',').to(Token::Comma),
         just(':').to(Token::Colon),
@@ -126,7 +135,7 @@ fn line_parser() -> impl LineLexer<Vec<SpannedToken>> {
     let identifier = ident().map(Token::Identifier).labelled("identifier");
 
     let token = choice((
-        null, boolean, number, string, delimiter, control, operator, identifier,
+        null, boolean, number, string, delimiter, keyword, control, operator, identifier,
     ))
     .recover_with(skip_then_retry_until([]));
 

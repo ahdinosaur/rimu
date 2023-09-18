@@ -223,7 +223,7 @@ fn object_parser<'a>(
     .labelled("object")
 }
 
-fn function_parser<'a>(
+pub(crate) fn function_parser<'a>(
     expr: impl Compiler<SpannedExpression> + 'a,
 ) -> impl Compiler<Expression> + 'a {
     let arg_name = select! {
