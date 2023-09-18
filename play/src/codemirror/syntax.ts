@@ -6,7 +6,7 @@ var blockKeywordsRegex = new RegExp('\\b((' + blockKeywords.join(')|(') + '))', 
 
 export const syntax = {
   name: 'rimu',
-  token: function (stream, state) {
+  token: function (stream: any, state: any) {
     var ch = stream.peek()
     var esc = state.escaped
     state.escaped = false
