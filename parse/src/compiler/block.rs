@@ -32,10 +32,10 @@ fn block_parser() -> impl Compiler<SpannedBlock> {
             .or(list)
             .or(if_)
             .or(let_)
-            .or(expr)
-            .or(nested_block)
             .or(function)
             .or(call)
+            .or(nested_block)
+            .or(expr)
             .boxed()
     })
     .then_ignore(end())
@@ -137,10 +137,11 @@ fn call_parser<'a>(block: impl Compiler<SpannedBlock> + 'a) -> impl Compiler<Spa
         .or(function_expression)
         .map_with_span(Spanned::new);
 
-    let args = block;
-
     let call = function
-        .then(args)
+        .then_ignore(just(Token::EndOfLine))
+        .then_ignore(just(Token::Indent))
+        .then(block)
+        .then_ignore(just(Token::Dedent).to(()).or(end()))
         .map(|(function, args)| Block::Call {
             function: Box::new(function),
             args: Box::new(args),
