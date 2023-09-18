@@ -18,7 +18,7 @@ The simplest expression is a [Value](./values) literal.
 
 > Identifiers must conform to regex: `^[a-zA-Z_][a-zA-Z0-9_]*$`
 
-```
+```rimu
 hello
 ```
 
@@ -28,7 +28,7 @@ hello
 
 #### `-` (negate)
 
-```
+```rimu
 -10
 ```
 
@@ -36,7 +36,7 @@ hello
 
 > Operand must be a boolean.
 
-```
+```rimu
 !is_done
 ```
 
@@ -46,15 +46,15 @@ hello
 
 > Operands must be numbers, strings, or lists.
 
-```
+```rimu
 10 + 2
 ```
 
-```
+```rimu
 "hello" + "world"
 ```
 
-```
+```rimu
 [1, 2] + [3, 4]
 ```
 
@@ -62,7 +62,7 @@ hello
 
 > Operands must be numbers.
 
-```
+```rimu
 10 - 2
 ```
 
@@ -70,7 +70,7 @@ hello
 
 > Operands must be numbers.
 
-```
+```rimu
 10 * 2
 ```
 
@@ -78,55 +78,55 @@ hello
 
 > Operands must be numbers.
 
-```
+```rimu
 10 / 2
 ```
 
 #### `>` (greater than)
 
-```
+```rimu
 10 / 2
 ```
 
 #### `>=` (greater than or equal)
 
-```
+```rimu
 10 >= 2
 ```
 
 #### `<` (less than)
 
-```
+```rimu
 10 < 2
 ```
 
 #### `<=` (less than or equal)
 
-```
+```rimu
 10 <= 2
 ```
 
 #### `==` (equal)
 
-```
+```rimu
 10 == 2
 ```
 
 #### `!=` (not equal)
 
-```
+```rimu
 10 == 2
 ```
 
 #### `&&` (and)
 
-```
+```rimu
 10 == 2
 ```
 
 #### `||` (or)
 
-```
+```rimu
 10 == 2
 ```
 
@@ -134,7 +134,7 @@ hello
 
 > Operands must be booleans.
 
-```
+```rimu
 true ^ false
 ```
 
@@ -142,7 +142,7 @@ true ^ false
 
 > Operands must be numbers.
 
-```
+```rimu
 10 == 2
 ```
 
@@ -150,7 +150,7 @@ true ^ false
 
 > Value being called must be a function.
 
-```
+```rimu
 add(1, 2)
 ```
 
@@ -158,19 +158,19 @@ add(1, 2)
 
 > Container must be list or string or object.
 
-```
+```rimu
 list[2]
 ```
 
-```
+```rimu
 list[-2]
 ```
 
-```
+```rimu
 string[2]
 ```
 
-```
+```rimu
 object["a"]
 ```
 
@@ -178,7 +178,7 @@ object["a"]
 
 > Container must be object
 
-```
+```rimu
 object.a
 ```
 
@@ -186,11 +186,11 @@ object.a
 
 > Container must be list or string.
 
-```
+```rimu
 list[2:5]
 ```
 
-```
+```rimu
 string[2:5]
 ```
 
@@ -214,6 +214,6 @@ No implicit type coercions.
 
 For example, the following is an error:
 
-```
+```rimu
 2 + "pies"
 ```
