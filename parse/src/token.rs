@@ -61,7 +61,7 @@ pub enum Token {
     /// +
     Plus,
     /// -
-    Minus,
+    Dash,
     /// *
     Star,
     /// /
@@ -121,7 +121,7 @@ impl fmt::Display for Token {
             Token::Dot => write!(f, "."),
             Token::FatArrow => write!(f, "=>"),
             Token::Plus => write!(f, "+"),
-            Token::Minus => write!(f, "-"),
+            Token::Dash => write!(f, "-"),
             Token::Star => write!(f, "*"),
             Token::Slash => write!(f, "/"),
             Token::Greater => write!(f, ">"),

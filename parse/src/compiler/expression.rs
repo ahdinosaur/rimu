@@ -37,7 +37,7 @@ pub(crate) fn expression_parser() -> impl Compiler<SpannedExpression> {
         let right_unary = right_unary_parser(expr, atom);
 
         // Next precedence: "left unary" operators ("-", "!")
-        let op = just(Token::Minus)
+        let op = just(Token::Dash)
             .to(UnaryOperator::Negate)
             .or(just(Token::Not).to(UnaryOperator::Not))
             .map_with_span(Spanned::new)
@@ -69,7 +69,7 @@ pub(crate) fn expression_parser() -> impl Compiler<SpannedExpression> {
         // Next precedence: "term" operators: "+", "-"
         let op = just(Token::Plus)
             .to(BinaryOperator::Add)
-            .or(just(Token::Minus).to(BinaryOperator::Subtract))
+            .or(just(Token::Dash).to(BinaryOperator::Subtract))
             .labelled("binary (term) operator");
         let term = binary_operator_parser(factor, op);
 
@@ -496,7 +496,7 @@ mod tests {
     #[test]
     fn negate_number() {
         let one = Decimal::from_u8(1).unwrap();
-        let tokens = vec![Token::Minus, Token::Number(one)];
+        let tokens = vec![Token::Dash, Token::Number(one)];
         let actual = test(tokens);
 
         let expected = Ok(Spanned::new(

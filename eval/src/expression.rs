@@ -669,7 +669,7 @@ mod tests {
 
     #[test]
     fn simple_number() {
-        let number = dec!(9001).into();
+        let number = dec!(9001);
         let expr = Spanned::new(Expression::Number(number), span(0..1));
         let actual = test_expression(expr, None);
 

@@ -115,7 +115,7 @@ fn line_parser() -> impl LineLexer<Vec<SpannedToken>> {
 
     let operator = choice((
         just('+').to(Token::Plus),
-        just('-').to(Token::Minus),
+        just('-').to(Token::Dash),
         just('*').to(Token::Star),
         just('/').to(Token::Slash),
         just('>').to(Token::Greater),

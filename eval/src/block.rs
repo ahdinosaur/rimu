@@ -230,9 +230,9 @@ mod tests {
     fn op_if() {
         let code = "
 zero:
-  $if: ten > five
-  then: five
-  else: ten
+  if ten > five
+  then five
+  else ten
 ";
 
         let env = indexmap! {
@@ -252,10 +252,10 @@ zero:
     fn op_let() {
         let code = "
 zero:
-  $let:
+  let
     one: ten
     two: 2
-  in:
+  in
     three: one + two
 ";
 
