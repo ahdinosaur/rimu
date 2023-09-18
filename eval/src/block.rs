@@ -4,7 +4,7 @@
 use crate::Environment;
 use rimu_ast::{Block, BlockOperation, Expression, SpannedBlock};
 use rimu_meta::{Span, Spanned};
-use rimu_value::{List, Object, Value};
+use rimu_value::{Function, FunctionBody, List, Object, Value};
 
 use crate::{expression::evaluate as evaluate_expression, EvalError};
 
@@ -33,6 +33,7 @@ impl<'a> Evaluator<'a> {
         let value = match block.inner() {
             Block::Object(object) => self.object(span, object)?,
             Block::List(list) => self.list(span, list)?,
+            Block::Function { args, body } => self.function(span, args, body)?,
             Block::Expression(expr) => self.expression(span, expr)?,
             Block::Operation(op) => self.operation(span, op)?,
         };
@@ -63,6 +64,17 @@ impl<'a> Evaluator<'a> {
             list.push(item);
         }
         Ok(Value::List(list))
+    }
+
+    fn function(
+        &self,
+        _span: Span,
+        args: &[Spanned<String>],
+        body: &SpannedBlock,
+    ) -> Result<Value> {
+        let args: Vec<String> = args.iter().map(|a| a.inner()).cloned().collect();
+        let body = FunctionBody::Block(body.clone());
+        Ok(Value::Function(Function { args, body }))
     }
 
     fn expression(&self, span: Span, expr: &Expression) -> Result<Value> {
