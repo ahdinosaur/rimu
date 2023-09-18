@@ -1,8 +1,8 @@
 var constants = ['true', 'false', 'null']
 var constantsRegex = new RegExp('\\b((' + constants.join(')|(') + '))$', 'i')
 
-var keywords = ['if', 'then', 'else', 'let', 'in']
-var keywordsRegex = new RegExp('\\b((' + keywords.join(')|(') + '))$', 'i')
+var blockKeywords = ['if', 'then', 'else', 'let', 'in']
+var blockKeywordsRegex = new RegExp('\\b((' + blockKeywords.join(')|(') + '))', 'i')
 
 export const syntax = {
   name: 'rimu',
@@ -74,8 +74,12 @@ export const syntax = {
         state.literal = true
         return 'meta'
       }
+      /* keywords */
+      if (stream.match(constantsRegex)) {
+        return 'keyword'
+      }
       /* references */
-      if (stream.match(/^\s*(\&|\*)[a-z0-9\._-]+\b/i)) {
+      if (stream.match(/^\s*[a-z0-9\._-]+\b/i)) {
         return 'variable'
       }
       /* numbers */
@@ -84,10 +88,6 @@ export const syntax = {
       }
       if (state.inlinePairs > 0 && stream.match(/^\s*-?[0-9\.\,]+\s?(?=(,|}))/)) {
         return 'number'
-      }
-      /* keywords */
-      if (stream.match(constantsRegex)) {
-        return 'keyword'
       }
     }
 
@@ -106,7 +106,8 @@ export const syntax = {
     }
 
     /* block keywords */
-    if (stream.match(keywordsRegex)) {
+    if (stream.match(blockKeywordsRegex)) {
+      state.pairStart = true
       return 'keyword'
     }
 
