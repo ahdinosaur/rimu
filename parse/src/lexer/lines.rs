@@ -97,28 +97,43 @@ impl<'src> LinesLexer<'src> {
         Ok(tokens)
     }
 
+    fn get_space_index(&self, line: &'src str) -> Option<usize> {
+        line.char_indices()
+            .skip_while(|&(_, c)| c == ' ' || c == '\t')
+            .map(|(i, _)| i)
+            .next()
+    }
+
     fn get_space(
         &self,
         line: Spanned<&'src str>,
     ) -> Option<(Spanned<&'src str>, Spanned<&'src str>)> {
         let (line, span) = line.take();
 
-        let Some(nonblank_index) = line
-            .char_indices()
-            .skip_while(|&(_, c)| c == ' ' || c == '\t')
-            .map(|(i, _)| i)
-            .next() else {
+        let Some(nonblank_index) = self.get_space_index(line) else {
             return None;
         };
 
-        let space_str = &line[..nonblank_index];
-        let space_span = self.span(span.start(), span.start() + nonblank_index);
+        let mut space_end = nonblank_index;
+        let rest_start = nonblank_index;
+
+        // SPECIAL CASE: the start of a list
+        while line[space_end..].starts_with('-') {
+            if let Some(next_nonblank_index) = self.get_space_index(&line[(space_end + 1)..]) {
+                space_end += next_nonblank_index;
+            } else {
+                break;
+            }
+        }
+
+        let space_str = &line[..space_end];
+        let space_span = self.span(span.start(), span.start() + space_end);
+
+        let rest_str = &line[rest_start..];
+        let rest_span = self.span(span.start() + rest_start, span.end());
+
         let space = Spanned::new(space_str, space_span);
-
-        let rest_str = &line[nonblank_index..];
-        let rest_span = self.span(span.start() + nonblank_index, span.end());
         let rest = Spanned::new(rest_str, rest_span);
-
         Some((space, rest))
     }
 
@@ -247,6 +262,37 @@ a:
   b:
     c
 d: e
+        ",
+        );
+
+        let expected = Ok(vec![
+            Spanned::new(LinesToken::Line("a:"), span(1..3)),
+            Spanned::new(LinesToken::EndOfLine, span(3..4)),
+            Spanned::new(LinesToken::Indent, span(4..6)),
+            Spanned::new(LinesToken::Line("b:"), span(6..8)),
+            Spanned::new(LinesToken::EndOfLine, span(8..9)),
+            Spanned::new(LinesToken::Indent, span(11..13)),
+            Spanned::new(LinesToken::Line("c"), span(13..14)),
+            Spanned::new(LinesToken::EndOfLine, span(14..15)),
+            Spanned::new(LinesToken::Dedent, span(15..15)),
+            Spanned::new(LinesToken::Dedent, span(15..15)),
+            Spanned::new(LinesToken::Line("d: e"), span(15..19)),
+            Spanned::new(LinesToken::EndOfLine, span(19..20)),
+        ]);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn list_indents() {
+        let actual = test(
+            "
+a:
+  - b: c
+    d: e
+  - f: g
+    h: i
+j: k
         ",
         );
 

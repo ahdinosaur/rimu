@@ -84,32 +84,8 @@ fn object_parser<'a>(block: impl Compiler<SpannedBlock> + 'a) -> impl Compiler<S
     object.boxed()
 }
 
-fn object_split_parser<'a>(
-    block: impl Compiler<SpannedBlock> + 'a,
-    prefix: impl Compiler<()> + 'a,
-) -> impl Compiler<SpannedBlock> + 'a {
-    let entry = entry_parser(block.clone());
-    let entries = entry.clone().repeated().at_least(1);
-    prefix
-        .ignore_then(entry.clone())
-        .then_ignore(just(Token::Indent))
-        .then(entries.clone())
-        .then_ignore(just(Token::Dedent).to(()).or(end()))
-        .map(|(entry, mut entries)| {
-            let mut ret = Vec::with_capacity(entries.len() + 1);
-            ret.push(entry);
-            ret.append(&mut entries);
-            ret
-        })
-        .map(Block::Object)
-        .map_with_span(Spanned::new)
-        .boxed()
-}
-
 fn list_parser<'a>(block: impl Compiler<SpannedBlock> + 'a) -> impl Compiler<SpannedBlock> + 'a {
-    let list_item_object_multi = object_split_parser(block.clone(), just(Token::Minus).to(()));
-    let list_item_simple = just(Token::Minus).ignore_then(block.clone()).boxed();
-    let list_item = list_item_object_multi.or(list_item_simple);
+    let list_item = just(Token::Minus).ignore_then(block.clone()).boxed();
     let list = list_item
         .repeated()
         .at_least(1)
