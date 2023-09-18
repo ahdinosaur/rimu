@@ -86,6 +86,11 @@ impl<'src> LinesLexer<'src> {
             for dent in self.get_dents(space)? {
                 tokens.push(dent);
             }
+
+            for indent in self.get_list_indents(rest.clone())? {
+                tokens.push(indent)
+            }
+
             tokens.push(self.line(rest));
             tokens.push(Spanned::new(LinesToken::EndOfLine, ending_span))
         }
@@ -114,23 +119,11 @@ impl<'src> LinesLexer<'src> {
             return None;
         };
 
-        let mut space_end = nonblank_index;
-        let rest_start = nonblank_index;
+        let space_str = &line[..nonblank_index];
+        let space_span = self.span(span.start(), span.start() + nonblank_index);
 
-        // SPECIAL CASE: the start of a list
-        while line[space_end..].starts_with('-') {
-            if let Some(next_nonblank_index) = self.get_space_index(&line[(space_end + 1)..]) {
-                space_end += next_nonblank_index;
-            } else {
-                break;
-            }
-        }
-
-        let space_str = &line[..space_end];
-        let space_span = self.span(span.start(), span.start() + space_end);
-
-        let rest_str = &line[rest_start..];
-        let rest_span = self.span(span.start() + rest_start, span.end());
+        let rest_str = &line[nonblank_index..];
+        let rest_span = self.span(span.start() + nonblank_index, span.end());
 
         let space = Spanned::new(space_str, space_span);
         let rest = Spanned::new(rest_str, rest_span);
@@ -177,6 +170,32 @@ impl<'src> LinesLexer<'src> {
                 expected: self.indentation.clone(),
             }),
         }
+    }
+
+    // SPECIAL CASE: the start of a list adds an indent
+    fn get_list_indents(
+        &mut self,
+        rest: Spanned<&'src str>,
+    ) -> Result<Vec<SpannedLinesToken<'src>>> {
+        let mut indents = Vec::new();
+        let (rest, span) = rest.take();
+        let mut index = 0;
+        while rest[index..].starts_with('-') {
+            if let Some(nonblank_index) = self.get_space_index(&rest[1..]) {
+                let next_index = 1 + nonblank_index;
+
+                let indent_span =
+                    self.span(span.start() + index, span.start() + index + next_index);
+                let indent_token = LinesToken::Indent;
+                let indent = Spanned::new(indent_token, indent_span);
+                indents.push(indent);
+
+                index += next_index;
+            } else {
+                break;
+            }
+        }
+        Ok(indents)
     }
 
     fn line(&self, rest: Spanned<&'src str>) -> SpannedLinesToken<'src> {
