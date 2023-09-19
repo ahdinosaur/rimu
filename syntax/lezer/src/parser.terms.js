@@ -3,6 +3,7 @@ export const
   indent = 11,
   dedent = 12,
   blankLineStart = 13,
+  listItemMarker = 14,
   LineComment = 1,
   Template = 2,
   Null = 3,

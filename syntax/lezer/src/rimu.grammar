@@ -1,8 +1,12 @@
 @top Template { block }
 
+@precedence {
+  blockListItemMarker @left
+}
+
 block {
   blockExpression { expression lineEnd } |
-//!  BlockWrap { indent block dedentEnd } |
+//!  BlockWrap { endOfLine indent block dedentEnd } |
   BlockList
 //!  BlockObject |
 //!  BlockFunction |
@@ -12,7 +16,7 @@ block {
 }
 
 BlockList { blockListItem+ }
-blockListItem { "-" block }
+blockListItem { !blockListItemMarker listItemMarker block }
 
 //!BlockObject
 
@@ -34,10 +38,11 @@ dedentEnd { dedent | endOfFile }
 
 @context trackIndent from "./tokens.js"
 
-@external tokens indentation from "./tokens.js" {
+@external tokens lines from "./tokens.js" {
   indent
   dedent
   blankLineStart
+  listItemMarker
 }
 
 @tokens {
