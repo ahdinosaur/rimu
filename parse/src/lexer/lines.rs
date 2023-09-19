@@ -186,26 +186,42 @@ impl<'src> LinesLexer<'src> {
         let mut index = 0;
 
         while rest[index..].starts_with('-') {
+            let nonblank_index = self.get_space_index(&rest[index + 1..]);
+
+            // if there's a non-empty character but no empty space before,
+            // then is a negate unary operator, not a list marker.
+            if nonblank_index.is_some() && nonblank_index.unwrap() == 0 {
+                break;
+            }
+
+            // otherwise, is a list marker, so add token
             let dash_token = LinesToken::Dash;
             let dash_span = self.span(span.start() + index, span.start() + index + 1);
             let dash = Spanned::new(dash_token, dash_span);
             tokens.push(dash);
 
-            if let Some(nonblank_index) = self.get_space_index(&rest[index + 1..]) {
+            // if empty space before next non-empty character
+            if let Some(nonblank_index) = nonblank_index {
+                // get length of space before next non-empty charater
                 let next_index = 1 + nonblank_index;
 
+                // add indent token
                 let indent_span =
                     self.span(span.start() + index, span.start() + index + next_index);
                 let indent_token = LinesToken::Indent;
                 let indent = Spanned::new(indent_token, indent_span);
-
                 tokens.push(indent);
 
+                // increment our remaining string index
                 index += next_index;
 
+                // add indent marker
                 let indentation = indentation_start + index;
                 self.indentation.push(indentation);
-            } else {
+            }
+            // otherwise if no non-empty character
+            else {
+                // rest starts at the end
                 index = rest.len() - 1;
                 break;
             }
@@ -360,4 +376,8 @@ j: k
 
         assert_eq!(actual, expected);
     }
+
+    // TODO tests
+    // - list mania: lists within lists within lists
+    // - list marker vs negate unary
 }
