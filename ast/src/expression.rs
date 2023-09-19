@@ -19,6 +19,9 @@ pub enum Expression {
     /// Literal number.
     Number(Decimal),
 
+    /// A named local variable.
+    Identifier(String),
+
     /// Literal list.
     List(Vec<SpannedExpression>),
 
@@ -30,9 +33,6 @@ pub enum Expression {
         args: Vec<Spanned<String>>,
         body: Box<SpannedExpression>,
     },
-
-    /// A named local variable.
-    Identifier(String),
 
     /// An operation on a single [`Expression`] operand with an [`Operator`]
     Unary {
