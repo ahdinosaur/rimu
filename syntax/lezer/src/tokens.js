@@ -29,6 +29,7 @@ export const lines = new ExternalTokenizer((input, stack) => {
     input.acceptToken(dedent, -spaces)
   }
 
+  /*
   while (input.next == dash) {
     if (input.peek(1) != space) break
 
@@ -42,6 +43,9 @@ export const lines = new ExternalTokenizer((input, stack) => {
       input.acceptToken(indent)
     }
   }
+  */
+
+  console.log('input', input.next)
 })
 
 class IndentLevel {

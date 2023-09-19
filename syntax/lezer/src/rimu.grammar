@@ -1,26 +1,26 @@
 @top Template { block }
 
 @precedence {
-  blockListItemMarker @left
+  blockList @left
 }
 
-block {
+block[@isGroup=Block] {
   blockExpression { expression lineEnd } |
-//!  BlockWrap { endOfLine indent block dedentEnd } |
+  BlockWrap { endOfLine indent block dedentEnd } |
   BlockList
-//!  BlockObject |
-//!  BlockFunction |
-//!  BlockCall |
-//!  BlockLet |
-//!  BlockIf
+//  BlockObject |
+//  BlockFunction |
+//  BlockCall |
+//  BlockLet |
+//  BlockIf
 }
 
 BlockList { blockListItem+ }
-blockListItem { !blockListItemMarker listItemMarker block }
+blockListItem { !blockList "-" block }
 
-//!BlockObject
+//BlockObject
 
-expression {
+expression[@isGroup=Expression] {
   Null |
   Boolean |
   String |
