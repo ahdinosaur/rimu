@@ -1,7 +1,6 @@
 import { EditorState, Compartment } from '@codemirror/state'
 import { basicSetup } from 'codemirror'
 import { EditorView, keymap } from '@codemirror/view'
-import { StreamLanguage, LanguageSupport } from '@codemirror/language'
 import { indentWithTab } from '@codemirror/commands'
 import { catppuccin, Variant } from 'codemirror-theme-catppuccin'
 import { variants } from '@catppuccin/palette'
@@ -23,8 +22,6 @@ const themeCompartment = new Compartment()
 export function CodeMirror(options: CodeMirrorOptions) {
   const { parent, theme, code, setCode } = options
 
-  const yaml = new LanguageSupport(StreamLanguage.define(syntax))
-
   const idler = createIdler(
     (view) => {
       const code = view.state.sliceDoc()
@@ -45,7 +42,7 @@ export function CodeMirror(options: CodeMirrorOptions) {
         createDiagnosticTheme(variants[theme]),
         createDiagnosticGutterTheme(variants[theme]),
       ]),
-      yaml,
+      syntax(),
       idler,
       createDiagnostics(),
       createDiagnosticGutter(),

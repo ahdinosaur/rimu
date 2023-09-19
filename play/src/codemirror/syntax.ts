@@ -1,134 +1,28 @@
-var constants = ['true', 'false', 'null']
-var constantsRegex = new RegExp('\\b((' + constants.join(')|(') + '))$', 'i')
+// @ts-ignore
+import { parser, highlight } from 'rimu-lezer'
+import { LRLanguage, LanguageSupport } from '@codemirror/language'
 
-var blockKeywords = ['if', 'then', 'else', 'let', 'in']
-var blockKeywordsRegex = new RegExp('\\b((' + blockKeywords.join(')|(') + '))', 'i')
-
-export const syntax = {
-  name: 'rimu',
-  token: function (stream: any, state: any) {
-    var ch = stream.peek()
-    var esc = state.escaped
-    state.escaped = false
-
-    /* comments */
+const languageParser = parser.configure({
+  props: [
+    highlight,
     /*
-    if (ch == '#' && (stream.pos == 0 || /\s/.test(stream.string.charAt(stream.pos - 1)))) {
-      stream.skipToEnd()
-      return 'comment'
-    }
+    indentNodeProp.add({
+      Application: (context) => context.column(context.node.from) + context.unit,
+    }),
+    foldNodeProp.add({
+      Application: foldInside,
+    }),
     */
+  ],
+})
 
-    if (stream.match(/^('([^']|\\.)*'?|"([^"]|\\.)*"?)/)) return 'string'
-
-    if (state.literal && stream.indentation() > state.keyCol) {
-      stream.skipToEnd()
-      return 'string'
-    } else if (state.literal) {
-      state.literal = false
-    }
-    if (stream.sol()) {
-      state.keyCol = 0
-      state.pair = false
-      state.pairStart = false
-      /* document start */
-      if (stream.match('---')) {
-        return 'def'
-      }
-      /* document end */
-      if (stream.match('...')) {
-        return 'def'
-      }
-      /* array list item */
-      if (stream.match(/^\s*-\s+/)) {
-        return 'meta'
-      }
-    }
-    /* inline pairs/lists */
-    if (stream.match(/^(\{|\}|\[|\])/)) {
-      if (ch == '{') state.inlinePairs++
-      else if (ch == '}') state.inlinePairs--
-      else if (ch == '[') state.inlineList++
-      else state.inlineList--
-      return 'meta'
-    }
-
-    /* list separator */
-    if (state.inlineList > 0 && !esc && ch == ',') {
-      stream.next()
-      return 'meta'
-    }
-    /* pairs separator */
-    if (state.inlinePairs > 0 && !esc && ch == ',') {
-      state.keyCol = 0
-      state.pair = false
-      state.pairStart = false
-      stream.next()
-      return 'meta'
-    }
-
-    /* start of value of a pair */
-    if (state.pairStart) {
-      /* block literals */
-      if (stream.match(/^\s*(\||\>)\s*/)) {
-        state.literal = true
-        return 'meta'
-      }
-      /* keywords */
-      if (stream.match(constantsRegex)) {
-        return 'keyword'
-      }
-      /* references */
-      if (stream.match(/^\s*[a-z0-9\._-]+\b/i)) {
-        return 'variable'
-      }
-      /* numbers */
-      if (state.inlinePairs == 0 && stream.match(/^\s*-?[0-9\.\,]+\s?$/)) {
-        return 'number'
-      }
-      if (state.inlinePairs > 0 && stream.match(/^\s*-?[0-9\.\,]+\s?(?=(,|}))/)) {
-        return 'number'
-      }
-    }
-
-    /* pairs (associative arrays) -> key */
-    if (
-      !state.pair &&
-      stream.match(/^\s*(?:[,\[\]{}&*!|>'"%@`][^\s'":]|[^,\[\]{}#&*!|>'"%@`])[^#]*?(?=\s*:($|\s))/)
-    ) {
-      state.pair = true
-      state.keyCol = stream.indentation()
-      return 'atom'
-    }
-    if (state.pair && stream.match(/^:\s*/)) {
-      state.pairStart = true
-      return 'meta'
-    }
-
-    /* block keywords */
-    if (stream.match(blockKeywordsRegex)) {
-      state.pairStart = true
-      return 'keyword'
-    }
-
-    /* nothing found, continue */
-    state.pairStart = false
-    state.escaped = ch == '\\'
-    stream.next()
-    return null
-  },
-  startState: function () {
-    return {
-      pair: false,
-      pairStart: false,
-      keyCol: 0,
-      inlinePairs: 0,
-      inlineList: 0,
-      literal: false,
-      escaped: false,
-    }
-  },
+const language = LRLanguage.define({
+  parser: languageParser,
   languageData: {
     commentTokens: { line: '#' },
   },
+})
+
+export function syntax() {
+  return new LanguageSupport(language)
 }

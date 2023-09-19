@@ -4,7 +4,7 @@
 
 import { styleTags, tags as t } from '@lezer/highlight'
 
-export const jsHighlight = styleTags({
+export const highlight = styleTags({
   'if then else': t.controlKeyword,
   'let in': t.definitionKeyword,
 

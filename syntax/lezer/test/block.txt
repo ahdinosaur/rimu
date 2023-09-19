@@ -36,11 +36,11 @@ c: "d"
 Template(
   ObjectBlock(
     ObjectBlockEntry(
-      ObjectKey(Identifier),
+      ObjectKey,
       String
     ),
     ObjectBlockEntry(
-      ObjectKey(Identifier),
+      ObjectKey,
       String
     )
   )
@@ -58,7 +58,7 @@ d: "e"
 Template(
   ObjectBlock(
     ObjectBlockEntry(
-      ObjectKey(Identifier),
+      ObjectKey,
       IndentedBlock(
         ListBlock(
           String,
@@ -67,7 +67,7 @@ Template(
       )
     ),
     ObjectBlockEntry(
-      ObjectKey(Identifier),
+      ObjectKey,
       String
     )
   )

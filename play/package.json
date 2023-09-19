@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "rimu-lezer": "file:../syntax/lezer",
     "@catppuccin/palette": "^0.2.0",
     "@chakra-ui/react": "^2.8.1",
     "@codemirror/language": "^6.9.0",
