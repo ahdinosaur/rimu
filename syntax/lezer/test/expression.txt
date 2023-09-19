@@ -1,0 +1,41 @@
+# Null
+
+null
+
+==>
+
+Template(Null)
+
+# Boolean
+
+false
+
+==>
+
+Template(Boolean)
+
+# String
+
+"arst"
+
+==>
+
+Template(String)
+
+# Number
+
+0
+
+==>
+
+Template(Number)
+
+# List
+
+- "a"
+- "b"
+- "c"
+
+==>
+
+Template(BlockList(String, String, String))

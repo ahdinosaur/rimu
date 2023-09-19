@@ -1,0 +1,77 @@
+@top Template { block }
+
+block {
+  blockExpression { expression lineEnd } |
+//!  BlockWrap { indent block dedentEnd } |
+  BlockList
+//!  BlockObject |
+//!  BlockFunction |
+//!  BlockCall |
+//!  BlockLet |
+//!  BlockIf
+}
+
+BlockList { blockListItem+ }
+blockListItem { "-" block }
+
+//!BlockObject
+
+expression {
+  Null |
+  Boolean |
+  String |
+  Number
+}
+
+@skip {
+  spaces |
+  LineComment |
+  blankLineStart (spaces | LineComment)* lineEnd
+}
+
+lineEnd { endOfLine | endOfFile }
+dedentEnd { dedent | endOfFile }
+
+@context trackIndent from "./tokens.js"
+
+@external tokens indentation from "./tokens.js" {
+  indent
+  dedent
+  blankLineStart
+}
+
+@tokens {
+  spaces { $[ ]+ }
+  endOfLine { $[\r\n] }
+  endOfFile { @eof }
+
+  Null { "null" }
+  Boolean { "false" | "true" }
+
+  String { '"' (!["\\] | "\\" _)* '"' }
+
+  Number {
+    (@digit ("_" | @digit)* ("." @digit ("_" | @digit)*)? | "." @digit ("_" | @digit)*)
+      ($[eE] $[+\-]? @digit ("_" | @digit)*)? $[jJ]? |
+    "0" $[bB] $[_01]+ |
+    "0" $[oO] $[_0-7]+ |
+    "0" $[xX] $[_0-9a-fA-F]+
+  }
+//!  @precedence { Number "." }
+
+  Identifier { $[a-zA-Z_] $[a-zA-Z0-9_]* }
+
+  "(" ")"
+  "[" "]"
+  "{" "}"
+
+  "if" "then" "else"
+  "let" "in"
+  "=>"[@name=FatArrow]
+
+  ArithmeticOp<expr> { expr }
+  LogicOp<expr> { expr }
+  CompareOp<expr> { expr }
+
+  LineComment { "#" ![\n\r]* }
+}

@@ -1,10 +1,13 @@
 {
   "scripts": {
     "docs": "npm run dev -w rimu-docs",
-    "play": "npm run dev -w rimu-play"
+    "play": "npm run dev -w rimu-play",
+    "lezer:build": "npm run build -w rimu-lezer",
+    "lezer:test": "npm run test -w rimu-lezer"
   },
   "workspaces": [
     "docs",
-    "play"
+    "play",
+    "syntax/lezer"
   ]
 }
