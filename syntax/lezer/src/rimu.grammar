@@ -1,6 +1,8 @@
 @top Template { block }
 
 @precedence {
+  else
+  then
   get
   call
   unary
@@ -11,26 +13,47 @@
   xor @left
   and @left
   or @left
-  objectBlockEntry // why?
+  block // why?
 }
 
 block[@isGroup=Block] {
   ListBlock |
   ObjectBlock |
-  expressionBlock { expression lineEnd } |
-  IndentedBlock { endOfLine indent block dedentEnd }
-//  BlockFunction |
-//  BlockCall |
-//  BlockLet |
-//  BlockIf
+  expressionBlock { expression !block lineEnd } |
+  IndentedBlock |
+  FunctionBlock |
+  CallBlock |
+  LetBlock |
+  IfBlock
 }
+
+IndentedBlock { endOfLine indent block dedentEnd }
 
 ListBlock { listBlockItem+ }
 listBlockItem { listItemMarker block dedentEnd }
 
 ObjectKey { Identifier | String }
-ObjectBlockEntry { !objectBlockEntry ObjectKey ':' block }
+ObjectBlockEntry { !block ObjectKey ':' block }
 ObjectBlock { ObjectBlockEntry+ }
+
+FunctionParams { '(' commaSep<Identifier ~arrow> ')' }
+FunctionBlock { FunctionParams '=>' block }
+
+CallBlock { Identifier !call endOfLine indent block dedentEnd }
+
+LetKey { Identifier | String }
+LetBlockEntry { !block LetKey ':' block }
+LetBlock {
+  kw<'let'> endOfLine
+  indent LetBlockEntry* dedent
+  kw<'in'> block
+}
+
+IfBlock {
+  kw<'if'> block
+  (!then kw<'then'> block)?
+  (!else kw<'else'> block)?
+}
 
 expression[@isGroup=Expression] {
   Null |
@@ -48,6 +71,10 @@ expression[@isGroup=Expression] {
   BinaryExpression
 }
 
+Null { kw<'null'> }
+Boolean { kw<'true'> | kw<'false'> }
+Identifier { identifier }
+
 ParenthesizedExpression { '(' expression ')' }
 
 ListExpression { '[' commaSep<expression> ']' }
@@ -55,8 +82,7 @@ ListExpression { '[' commaSep<expression> ']' }
 ObjectExpressionEntry { ObjectKey ':' expression }
 ObjectExpression { '{' commaSep<ObjectExpressionEntry> '}' }
 
-FunctionExpressionParams { '(' commaSep<Identifier ~arrow> ')' }
-FunctionExpression { FunctionExpressionParams '=>' expression }
+FunctionExpression { FunctionParams '=>' expression }
 
 CallExpression {
   expression !call CallExpressionArgs
@@ -91,6 +117,8 @@ commaSep<content> {
   "" | content ("," content?)*
 }
 
+kw<term> { @specialize[@name={term}]<identifier, term> }
+
 lineEnd { endOfLine | endOfFile }
 dedentEnd { dedent | endOfFile }
 
@@ -120,29 +148,18 @@ dedentEnd { dedent | endOfFile }
 @tokens {
   spaces { $[ ]+ }
 
-  @precedence {
-    Null,
-    Boolean,
-    Identifier
-  }
-
-  Null { 'null' }
-  Boolean { 'false' | 'true' }
-
   String { '"' (!["\\] | '\\' _)* '"' }
 
   Number { int frac? }
   int { @digit+ }
   frac { '.' @digit+ }
 
-  Identifier { $[a-zA-Z_] $[a-zA-Z0-9_]* }
+  identifier { $[a-zA-Z_] $[a-zA-Z0-9_]* }
 
   '(' ')'
   '[' ']'
   '{' '}'
 
-  'if' 'then' 'else'
-  'let' 'in'
   '=>'[@name=FatArrow]
 
   ArithmeticOp<expr> { expr }
