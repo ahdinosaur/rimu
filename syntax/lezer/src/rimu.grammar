@@ -13,7 +13,7 @@
   xor @left
   and @left
   or @left
-  block // why?
+  block
 }
 
 block[@isGroup=Block] {
@@ -32,16 +32,17 @@ IndentedBlock { endOfLine indent block dedentEnd }
 ListBlock { listBlockItem+ }
 listBlockItem { listItemMarker block dedentEnd }
 
-ObjectKey { Identifier | String }
+ObjectKey { identifier | String }
 ObjectBlockEntry { !block ObjectKey ':' block }
 ObjectBlock { ObjectBlockEntry+ }
 
-FunctionParams { '(' commaSep<Identifier ~arrow> ')' }
+FunctionParam { identifier ~arrow }
+FunctionParams { '(' commaSep<FunctionParam> ')' }
 FunctionBlock { FunctionParams '=>' block }
 
 CallBlock { Identifier !call endOfLine indent block dedentEnd }
 
-LetKey { Identifier | String }
+LetKey { identifier | String }
 LetBlockEntry { !block LetKey ':' block }
 LetBlock {
   kw<'let'> endOfLine
@@ -90,9 +91,10 @@ CallExpression {
 
 CallExpressionArgs { '(' commaSep<expression> ')' }
 
+GetIdentifier { identifier }
 GetExpression {
   expression !get (
-    '.' Identifier |
+    '.' GetIdentifier |
     '[' expression ']' |
     '[' expression? ':' expression? ']'
   )
