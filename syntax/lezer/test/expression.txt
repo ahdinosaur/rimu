@@ -29,3 +29,32 @@ Template(String)
 ==>
 
 Template(Number)
+
+# Get Index (from identifier)
+
+a[2]
+
+==>
+
+Template(MemberExpression(Identifier, Number))
+
+# Arithmetic
+
+10 + 2 * -1
+
+==>
+
+Template(
+  BinaryExpression(
+    Number,
+    ArithmeticOp,
+    BinaryExpression(
+      Number,
+      ArithmeticOp,
+      UnaryExpression(
+        ArithmeticOp,
+        Number
+      )
+    )
+  )
+)

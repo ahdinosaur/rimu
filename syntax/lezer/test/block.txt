@@ -6,7 +6,7 @@
 
 ==>
 
-Template(BlockList(String, String, String))
+Template(ListBlock(String, String, String))
 
 # Nested List
 
@@ -17,9 +17,9 @@ Template(BlockList(String, String, String))
 ==>
 
 Template(
-  BlockList(
-    BlockList(
-      BlockList(String)
+  ListBlock(
+    ListBlock(
+      ListBlock(String)
       String,
     ),
     String
@@ -34,13 +34,13 @@ c: "d"
 ==>
 
 Template(
-  BlockObject(
-    BlockEntry(
-      BlockKey(Identifier),
+  ObjectBlock(
+    ObjectBlockEntry(
+      ObjectKey(Identifier),
       String
     ),
-    BlockEntry(
-      BlockKey(Identifier),
+    ObjectBlockEntry(
+      ObjectKey(Identifier),
       String
     )
   )
@@ -56,18 +56,18 @@ d: "e"
 ==>
 
 Template(
-  BlockObject(
-    BlockEntry(
-      BlockKey(Identifier),
-      BlockWrap(
-        BlockList(
+  ObjectBlock(
+    ObjectBlockEntry(
+      ObjectKey(Identifier),
+      IndentedBlock(
+        ListBlock(
           String,
           String
         )
       )
     ),
-    BlockEntry(
-      BlockKey(Identifier),
+    ObjectBlockEntry(
+      ObjectKey(Identifier),
       String
     )
   )

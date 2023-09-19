@@ -1,42 +1,90 @@
 @top Template { block }
 
 @precedence {
-  blockEntry
+  member
+  call
+  unary
+  factor @left
+  term @left
+  comparison @left
+  equality @left
+  xor @left
+  and @left
+  or @left
+  objectBlockEntry
 }
 
 block[@isGroup=Block] {
-  BlockList |
-  BlockObject |
-  blockExpression { expression lineEnd } |
-  BlockWrap { endOfLine indent block dedentEnd }
+  ListBlock |
+  ObjectBlock |
+  expressionBlock { expression lineEnd } |
+  IndentedBlock { endOfLine indent block dedentEnd }
 //  BlockFunction |
 //  BlockCall |
 //  BlockLet |
 //  BlockIf
 }
 
-BlockList { blockListItem+ }
-blockListItem { listItemMarker block dedentEnd }
+ListBlock { listBlockItem+ }
+listBlockItem { listItemMarker block dedentEnd }
 
-BlockKey { Identifier | String }
-BlockEntry { !blockEntry BlockKey ":" block }
-BlockObject { BlockEntry+ }
+ObjectKey { Identifier | String }
+ObjectBlockEntry { !objectBlockEntry ObjectKey ":" block }
+ObjectBlock { ObjectBlockEntry+ }
 
 expression[@isGroup=Expression] {
   Null |
   Boolean |
   String |
-  Number
+  Number |
+  Identifier |
+  CallExpression |
+  MemberExpression |
+  UnaryExpression |
+  BinaryExpression
 }
+
+CallExpression {
+  expression !call ExpressionArgs
+}
+
+MemberExpression {
+  expression !member (
+    '.' Identifier |
+    '[' expression ']' |
+    '[' expression? ':' expression? ']'
+  )
+}
+
+UnaryExpression {
+  (ArithmeticOp<'-'> | LogicOp<'!'>)
+  expression
+}
+
+BinaryExpression {
+  expression !factor ArithmeticOp<'*' | '/' | '%'> expression |
+  expression !term ArithmeticOp<'+' | '-'> expression |
+  expression !comparison CompareOp<'>' | '>=' | '<' | '<='> expression |
+  expression !equality CompareOp<'==' | '!='> expression |
+  expression !xor CompareOp<'^'> expression |
+  expression !and CompareOp<'&&'> expression |
+  expression !or CompareOp<'||'> expression
+}
+
+ExpressionArgs { "(" commaSep<"..."? expression> ")" }
+
+commaSep<content> {
+  (content ("," content)*)?
+}
+
+lineEnd { endOfLine | endOfFile }
+dedentEnd { dedent | endOfFile }
 
 @skip {
   spaces |
   LineComment |
   blankLineStart (spaces | LineComment)* lineEnd
 }
-
-lineEnd { endOfLine | endOfFile }
-dedentEnd { dedent | endOfFile }
 
 @context trackIndent from "./tokens.js"
 
@@ -69,14 +117,9 @@ dedentEnd { dedent | endOfFile }
 
   String { '"' (!["\\] | "\\" _)* '"' }
 
-  Number {
-    (@digit ("_" | @digit)* ("." @digit ("_" | @digit)*)? | "." @digit ("_" | @digit)*)
-      ($[eE] $[+\-]? @digit ("_" | @digit)*)? $[jJ]? |
-    "0" $[bB] $[_01]+ |
-    "0" $[oO] $[_0-7]+ |
-    "0" $[xX] $[_0-9a-fA-F]+
-  }
-//!  @precedence { Number "." }
+  Number { int frac? }
+  int { @digit+ }
+  frac { '.' @digit+ }
 
   Identifier { $[a-zA-Z_] $[a-zA-Z0-9_]* }
 
@@ -94,3 +137,5 @@ dedentEnd { dedent | endOfFile }
 
   LineComment { "#" ![\n\r]* }
 }
+
+@detectDelim
