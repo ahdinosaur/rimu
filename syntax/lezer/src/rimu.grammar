@@ -1,12 +1,14 @@
 @top Template { block }
 
-@precedence {}
+@precedence {
+  blockEntry
+}
 
 block[@isGroup=Block] {
   BlockList |
+  BlockObject |
   blockExpression { expression lineEnd } |
   BlockWrap { endOfLine indent block dedentEnd }
-//  BlockObject |
 //  BlockFunction |
 //  BlockCall |
 //  BlockLet |
@@ -16,7 +18,9 @@ block[@isGroup=Block] {
 BlockList { blockListItem+ }
 blockListItem { listItemMarker block dedentEnd }
 
-//BlockObject
+BlockKey { Identifier | String }
+BlockEntry { !blockEntry BlockKey ":" block }
+BlockObject { BlockEntry+ }
 
 expression[@isGroup=Expression] {
   Null |
@@ -53,6 +57,12 @@ dedentEnd { dedent | endOfFile }
 
 @tokens {
   spaces { $[ ]+ }
+
+  @precedence {
+    Null,
+    Boolean,
+    Identifier
+  }
 
   Null { "null" }
   Boolean { "false" | "true" }

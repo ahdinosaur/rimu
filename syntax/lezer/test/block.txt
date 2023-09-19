@@ -25,3 +25,50 @@ Template(
     String
   )
 )
+
+# Object (identifier keys, string values)
+
+a: "b"
+c: "d"
+
+==>
+
+Template(
+  BlockObject(
+    BlockEntry(
+      BlockKey(Identifier),
+      String
+    ),
+    BlockEntry(
+      BlockKey(Identifier),
+      String
+    )
+  )
+)
+
+# Object with a list value
+
+a:
+  - "b"
+  - "c"
+d: "e"
+
+==>
+
+Template(
+  BlockObject(
+    BlockEntry(
+      BlockKey(Identifier),
+      BlockWrap(
+        BlockList(
+          String,
+          String
+        )
+      )
+    ),
+    BlockEntry(
+      BlockKey(Identifier),
+      String
+    )
+  )
+)

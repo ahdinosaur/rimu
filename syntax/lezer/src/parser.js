@@ -3,19 +3,19 @@ import {LRParser} from "@lezer/lr"
 import {newlines, indentation, listItemMarkers, trackIndent} from "./tokens.js"
 export const parser = LRParser.deserialize({
   version: 14,
-  states: "$[O]Q]OOPqOPOOO]Q]O'#CrOOQV'#Cf'#CfOvQ_O'#C_OOQP'#Ct'#CtO!UQZO'#CdOOQR'#Cq'#CqQOQXOOO!ZQXO'#CqP!cOXO)C>dO!qQZO,59^OOQV-E6d-E6dO]Q]O,59OOOQR'#Cp'#CpOOQR,59],59]POOP'#Ce'#CeP!cOXO/'4OPOOO/'4O/'4OOOQV'#Cs'#CsOOQV1G.x1G.xO!qQZO1G.jPOOP-E6c-E6cPOOO49)j49)jOOQR7+$U7+$U",
-  stateData: "!y~OcOSPOS^PQ~OSTOTTOUTOVTO[UOaQO~O^YO~OaQOZRX]RX`RX~O_]O~O[^O]^O~OP`O[^O]^Oc`O~O]cO`cO~O",
-  goto: "!riPPPjPPPPjouPPPPPPPPP}!W!a!g!mVVOQ]QaYRfaUSOQ]R[SQ_XQbYRgaQWOQZQRe]XROQS]QdZRheVXOQ]",
-  nodeNames: "⚠ LineComment Template BlockList Null Boolean String Number BlockWrap",
-  maxTerm: 24,
+  states: "%^O]Q]OOPtOPOOO]Q]O'#CwOOQV'#Cj'#CjOyQ_O'#C_OOQP'#Cb'#CbO!_QXO'#CbO!jQXO'#CaOOQR'#Ck'#CkO!oQZO'#C`OOQP'#Cz'#CzO#QQZO'#ChOOQR'#Cv'#CvQOQXOOO#VQXO'#CvP#_OXO)C>iO#mQZO,59cOOQV-E6h-E6hO]Q]O,58{OOQR-E6i-E6iO]Q]O,59SOOQR'#Cu'#CuOOQR,59b,59bPOOP'#Ci'#CiP#_OXO/'4TPOOO/'4T/'4TOOQV'#Cx'#CxOOQV1G.}1G.}OOQR1G.g1G.gO#mQZO1G.nPOOP-E6g-E6gPOOO49)o49)oOOQR7+$Y7+$Y",
+  stateData: "#z~OhOSPOScPQ~OVTOWUOXYOYYOZYOaZOfQO~Oc_O~OfQO`RXbRXeRXVRXWRX~OanXbnXmUX~OmbO~OVTOWTO`SXbSXeSX~OddO~OaeObeO~OPgOaeObeOhgO~ObjOejO~OXYVY~",
+  goto: "#hoPPPppv}PPPPPp!U![!ePPPPPPPPP!n!w#T#[P#bX[OQbdZWOQXbdZVOQXbdQh_RnhWSOQbdRaSWXOQbdRcXQf^Qi_RohQ]OQ`QQlbRmdZROQSbdQk`RpmX^OQbd",
+  nodeNames: "⚠ LineComment Template BlockList BlockObject BlockEntry BlockKey Identifier String Null Boolean Number BlockWrap",
+  maxTerm: 30,
   context: trackIndent,
   nodeProps: [
-    ["group", -2,3,8,"Block",-4,4,5,6,7,"Block Expression"]
+    ["group", -3,3,4,12,"Block",-4,8,9,10,11,"Block Expression"]
   ],
-  skippedNodes: [0,1,9],
-  repeatNodeCount: 2,
-  tokenData: "*T~RXpqnrsvst#d!O!P$O!Q!R%g!R![&e#Y#Z(q#b#c)`#h#i)w~sPc~pqn~yVOrvrs!`s#Ov#O#P!e#P;'Sv;'S;=`#^<%lOv~!eOU~~!hRO;'Sv;'S;=`!q;=`Ov~!tWOrvrs!`s#Ov#O#P!e#P;'Sv;'S;=`#^;=`<%lv<%lOv~#aP;=`<%lv~#iTP~OY#dZ]#d^;'S#d;'S;=`#x<%lO#d~#{P;=`<%l#d~$RP!Q![$U~$ZUV~!Q![$U!g!h$m!l!m%b#R#S$U#X#Y$m#^#_%b~$pR{|$y}!O$y!Q![%P~$|P!Q![%P~%USV~!Q![%P!l!m%b#R#S%P#^#_%b~%gOV~~%l]V~!O!P$O!Q![&e!d!e'P!g!h$m!l!m%b!q!r'k!z!{(P#R#S&e#U#V'P#X#Y$m#^#_%b#c#d'k#l#m(P~&jVV~!O!P$O!Q![&e!g!h$m!l!m%b#R#S&e#X#Y$m#^#_%b~'SR!Q!R']!R!S']#R#S']~'bRV~!Q!R']!R!S']#R#S']~'nQ!Q!Y't#R#S't~'yQV~!Q!Y't#R#S't~(SS!Q![(`!c!i(`#R#S(`#T#Z(`~(eSV~!Q![(`!c!i(`#R#S(`#T#Z(`~(tP#T#U(w~(zP#`#a(}~)QP#g#h)T~)WP#X#Y)Z~)`OT~~)cP#i#j)f~)iP#`#a)l~)oP#`#a)r~)wOS~~)zP#f#g)}~*QP#i#j)T",
+  skippedNodes: [0,1,13],
+  repeatNodeCount: 3,
+  tokenData: ".z~R`pq!Trs!]st#y!O!P$e!Q!R%|!R![&z![!])W!c!})]#R#S)]#T#Y)]#Y#Z)n#Z#b)]#b#c,O#c#h)]#h#i-z#i#o)]~!YPh~pq!T~!`VOr!]rs!us#O!]#O#P!z#P;'S!];'S;=`#s<%lO!]~!zOW~~!}RO;'S!];'S;=`#W;=`O!]~#ZWOr!]rs!us#O!]#O#P!z#P;'S!];'S;=`#s;=`<%l!]<%lO!]~#vP;=`<%l!]~$OTP~OY#yZ]#y^;'S#y;'S;=`$_<%lO#y~$bP;=`<%l#y~$hP!Q![$k~$pUZ~!Q![$k!g!h%S!l!m%w#R#S$k#X#Y%S#^#_%w~%VR{|%`}!O%`!Q![%f~%cP!Q![%f~%kSZ~!Q![%f!l!m%w#R#S%f#^#_%w~%|OZ~~&R]Z~!O!P$e!Q![&z!d!e'f!g!h%S!l!m%w!q!r(Q!z!{(f#R#S&z#U#V'f#X#Y%S#^#_%w#c#d(Q#l#m(f~'PVZ~!O!P$e!Q![&z!g!h%S!l!m%w#R#S&z#X#Y%S#^#_%w~'iR!Q!R'r!R!S'r#R#S'r~'wRZ~!Q!R'r!R!S'r#R#S'r~(TQ!Q!Y(Z#R#S(Z~(`QZ~!Q!Y(Z#R#S(Z~(iS!Q![(u!c!i(u#R#S(u#T#Z(u~(zSZ~!Q![(u!c!i(u#R#S(u#T#Z(u~)]Om~~)bSV~!Q![)]!c!})]#R#S)]#T#o)]~)sTV~!Q![)]!c!})]#R#S)]#T#U*S#U#o)]~*XUV~!Q![)]!c!})]#R#S)]#T#`)]#`#a*k#a#o)]~*pUV~!Q![)]!c!})]#R#S)]#T#g)]#g#h+S#h#o)]~+XUV~!Q![)]!c!})]#R#S)]#T#X)]#X#Y+k#Y#o)]~+rSY~V~!Q![)]!c!})]#R#S)]#T#o)]~,TUV~!Q![)]!c!})]#R#S)]#T#i)]#i#j,g#j#o)]~,lUV~!Q![)]!c!})]#R#S)]#T#`)]#`#a-O#a#o)]~-TUV~!Q![)]!c!})]#R#S)]#T#`)]#`#a-g#a#o)]~-nSX~V~!Q![)]!c!})]#R#S)]#T#o)]~.PUV~!Q![)]!c!})]#R#S)]#T#f)]#f#g.c#g#o)]~.hUV~!Q![)]!c!})]#R#S)]#T#i)]#i#j+S#j#o)]",
   tokenizers: [newlines, indentation, listItemMarkers, 0],
   topRules: {"Template":[0,2]},
-  tokenPrec: 0
+  tokenPrec: 129
 })

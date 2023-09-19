@@ -65,29 +65,22 @@ export const indentation = new ExternalTokenizer((input, stack) => {
   }
 })
 
-export const listItemMarkers = new ExternalTokenizer((input, stack) => {
-  const prev = input.peek(-1)
-  if (
-    prev == -1 ||
-    prev == newline ||
-    prev == carriageReturn ||
-    stack.context.type === 'list-item'
-  ) {
-    let spacesBeforeDash = 0
-    while (input.next == space) {
-      input.advance()
-      spacesBeforeDash++
+function peek(input, n) {
+  let codes = []
+  for (let i = -1; i < n; i++) {
+    codes.push(JSON.stringify(String.fromCharCode(input.peek(i))))
+  }
+  return codes.join(', ')
+}
+
+export const listItemMarkers = new ExternalTokenizer((input, _stack) => {
+  if (input.next === dash) {
+    let spacesAfterDash = 0
+    while (input.advance() === space) {
+      spacesAfterDash++
     }
-
-    if (input.next == dash) {
-      let spacesAfterDash = 0
-      while (input.advance() == space) {
-        spacesAfterDash++
-      }
-
-      if (spacesAfterDash > 0) {
-        input.acceptToken(listItemMarker)
-      }
+    if (spacesAfterDash > 0) {
+      input.acceptToken(listItemMarker)
     }
   }
 })
@@ -104,12 +97,15 @@ class IndentLevel {
 export const trackIndent = new ContextTracker({
   start: new IndentLevel(null, 0, 'base'),
   shift(context, term, stack, input) {
-    if (term == indent) return new IndentLevel(context, stack.pos - input.pos, 'indent')
-    if (term == dedent) return context.parent
+    if (term == indent) {
+      const depth = stack.pos - input.pos
+      return new IndentLevel(context, depth, 'indent')
+    }
+    if (term == dedent) {
+      return context.parent
+    }
     if (term == listItemMarker) {
-      let depth = stack.pos - input.pos
-      // if nested list marker, add previous depth
-      if (context.type === 'list-item') depth += context.depth
+      const depth = context.depth + stack.pos - input.pos
       return new IndentLevel(context, depth, 'list-item')
     }
     return context
