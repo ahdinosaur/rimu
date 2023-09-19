@@ -97,7 +97,7 @@ impl<'a> Evaluator<'a> {
         args: &Vec<Spanned<String>>,
         body: &SpannedExpression,
     ) -> Result<Value, EvalError> {
-        let args: Vec<String> = args.into_iter().map(|a| a.inner()).cloned().collect();
+        let args: Vec<String> = args.iter().map(|a| a.inner()).cloned().collect();
         let body = FunctionBody::Expression(body.clone());
         Ok(Value::Function(Function { args, body }))
     }
@@ -138,7 +138,7 @@ impl<'a> Evaluator<'a> {
             BinaryOperator::And => self.boolean(span, left, right, true)?,
             BinaryOperator::Or => self.boolean(span, left, right, false)?,
             _ => {
-                let (right, right_span) = self.expression(&*right)?;
+                let (right, right_span) = self.expression(right)?;
                 match operator {
                     BinaryOperator::Or => unreachable!(),
                     BinaryOperator::And => unreachable!(),
@@ -347,12 +347,12 @@ impl<'a> Evaluator<'a> {
     fn object(
         &self,
         _span: Span,
-        entries: &Vec<(Spanned<String>, SpannedExpression)>,
+        entries: &[(Spanned<String>, SpannedExpression)],
     ) -> Result<Value, EvalError> {
         let mut object = Object::new();
-        for (key, value) in entries.into_iter() {
+        for (key, value) in entries.iter() {
             let key = key.clone().into_inner();
-            let (value, _value_span) = self.expression(&value)?;
+            let (value, _value_span) = self.expression(value)?;
             object.insert(key, value);
         }
         Ok(Value::Object(object))
@@ -360,7 +360,7 @@ impl<'a> Evaluator<'a> {
 
     fn variable(&self, span: Span, var: &str) -> Result<Value, EvalError> {
         self.env
-            .get(&var)
+            .get(var)
             .map(Clone::clone)
             .ok_or_else(|| EvalError::MissingVariable {
                 span,
@@ -370,13 +370,13 @@ impl<'a> Evaluator<'a> {
 
     fn call(
         &self,
-        span: Span,
+        _span: Span,
         function: &SpannedExpression,
         args: &[SpannedExpression],
     ) -> Result<Value, EvalError> {
         let (Value::Function(function), _function_span) = self.expression(function)? else {
             return Err(EvalError::CallNonFunction {
-                span,
+                span: function.span(),
                 expr: function.clone().into_inner(),
             });
         };
@@ -434,13 +434,11 @@ impl<'a> Evaluator<'a> {
                     key_span: index_span,
                     key: key.clone(),
                 }),
-            (Value::Object(_list), _) => {
-                return Err(EvalError::TypeError {
-                    span: index_span,
-                    expected: "string".into(),
-                    got: index,
-                });
-            }
+            (Value::Object(_list), _) => Err(EvalError::TypeError {
+                span: index_span,
+                expected: "string".into(),
+                got: index,
+            }),
             _ => Err(EvalError::TypeError {
                 span: container_span,
                 expected: "list | string | object".into(),
@@ -548,13 +546,11 @@ impl<'a> Evaluator<'a> {
                     }
                 }
             }
-            _ => {
-                return Err(EvalError::TypeError {
-                    span: container_span,
-                    expected: "list".into(),
-                    got: container,
-                });
-            }
+            _ => Err(EvalError::TypeError {
+                span: container_span,
+                expected: "list".into(),
+                got: container,
+            }),
         }
     }
 }
@@ -673,7 +669,7 @@ mod tests {
 
     #[test]
     fn simple_number() {
-        let number = dec!(9001).into();
+        let number = dec!(9001);
         let expr = Spanned::new(Expression::Number(number), span(0..1));
         let actual = test_expression(expr, None);
 

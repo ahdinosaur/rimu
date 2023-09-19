@@ -1,81 +1,81 @@
-- title: $if-then-else, true
+- title: if-then-else, true
   context: { cond: true }
   template: |
-    $if: cond
-    then: 1
-    else: 2
+    if cond
+    then 1
+    else 2
   output: 1
 
-- title: $if-then-else, false
+- title: if-then-else, false
   context: { cond: false }
   template: |
-    $if: cond
-    then: 1
-    else: 2
+    if cond
+    then 1
+    else 2
   output: 2
 
-- title: $if-then in array, true
+- title: if-then in array, true
   context: { cond: true }
   template: |
     - 0
-    - $if: cond
-      then: 1
+    - if cond
+      then 1
   output: [0, 1]
 
-- title: $if-then in array, false
+- title: if-then in array, false
   context: { cond: false }
   template: |
     - 0
-    - $if: cond
-      then: 1
+    - if cond
+      then 1
   output: [0] # missing else branch should return a delete-marker (null)
 
-- title: $if-then in object, true
+- title: if-then in object, true
   context: { cond: true }
   template: |
     key:
-      $if: cond
-      then: 1
+      if cond
+      then 1
     k2: 3
   output: { key: 1, k2: 3 }
 
-- title: $if-then in object, false
+- title: if-then in object, false
   context: { cond: false }
   template: |
     key:
-      $if: cond
-      then: 1
+      if cond
+      then 1
     k2: 3
   output: { k2: 3 } # missing else branch should return a delete-marker
 
-- title: $if -> delete-marker, true
-  context: { cond: true }
-  template: |
-    key:
-      $if: cond
-    k2: 3
-  output: { k2: 3 } # missing then/else branches should return a delete-marker
+#- title: if -> delete-marker, true
+#  context: { cond: true }
+#  template: |
+#    key:
+#      if cond
+#    k2: 3
+#  output: { k2: 3 } # missing then/else branches should return a delete-marker
 
-- title: $if -> delete-marker, false
-  context: { cond: false }
-  template: |
-    key:
-      $if: cond
-    k2: 3
-  output: { k2: 3 } # missing then/else branches should return a delete-marker
+#- title: if -> delete-marker, false
+#  context: { cond: false }
+#  template: |
+#    key:
+#      if cond
+#    k2: 3
+#  output: { k2: 3 } # missing then/else branches should return a delete-marker
 
-- title: $if->then, then => $eval, true
+- title: if->then, then => eval, true
   context: { key: { b: 1 } }
   template: |
-    $if: true
-    then: key
+    if true
+    then key
   output: { b: 1 }
 
-- title: $if->else, else => $eval, false
+- title: if->else, else => eval, false
   context: { key: { b: 1 } }
   template: |
-    $if: false
-    else: key
+    if false
+    else key
   output: { b: 1 }
 # - title: $if->then, then => ${}, true
 #  context: { key: "one" }

@@ -36,6 +36,17 @@ pub enum Token {
     /// }
     RightBrace,
 
+    /// if
+    If,
+    /// then
+    Then,
+    /// else
+    Else,
+    /// let
+    Let,
+    /// in
+    In,
+
     /// ,
     Comma,
     /// :
@@ -44,10 +55,13 @@ pub enum Token {
     /// .
     Dot,
 
+    /// =>
+    FatArrow,
+
     /// +
     Plus,
     /// -
-    Minus,
+    Dash,
     /// *
     Star,
     /// /
@@ -74,9 +88,6 @@ pub enum Token {
     Not,
     /// %
     Rem,
-
-    /// =>
-    FatArrow,
 }
 
 impl fmt::Display for Token {
@@ -100,11 +111,17 @@ impl fmt::Display for Token {
             Token::RightBrack => write!(f, "]"),
             Token::LeftBrace => write!(f, "{{"),
             Token::RightBrace => write!(f, "}}"),
+            Token::If => write!(f, "if"),
+            Token::Then => write!(f, "then"),
+            Token::Else => write!(f, "else"),
+            Token::Let => write!(f, "let"),
+            Token::In => write!(f, "in"),
             Token::Comma => write!(f, ","),
             Token::Colon => write!(f, ":"),
             Token::Dot => write!(f, "."),
+            Token::FatArrow => write!(f, "=>"),
             Token::Plus => write!(f, "+"),
-            Token::Minus => write!(f, "-"),
+            Token::Dash => write!(f, "-"),
             Token::Star => write!(f, "*"),
             Token::Slash => write!(f, "/"),
             Token::Greater => write!(f, ">"),
@@ -118,7 +135,6 @@ impl fmt::Display for Token {
             Token::Xor => write!(f, "^"),
             Token::Not => write!(f, "!"),
             Token::Rem => write!(f, "%"),
-            Token::FatArrow => write!(f, "=>"),
         }
     }
 }

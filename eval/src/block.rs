@@ -1,8 +1,10 @@
 // with help from
 // - https://github.com/DennisPrediger/SLAC/blob/main/src/interpreter.rs
 
+use std::ops::Deref;
+
 use crate::Environment;
-use rimu_ast::{Block, BlockOperation, Expression, SpannedBlock};
+use rimu_ast::{Block, Expression, SpannedBlock, SpannedExpression};
 use rimu_meta::{Span, Spanned};
 use rimu_value::{Function, FunctionBody, List, Object, Value};
 
@@ -31,14 +33,30 @@ impl<'a> Evaluator<'a> {
         let span_ret = span.clone();
 
         let value = match block.inner() {
+            Block::Expression(expr) => self.expression(span, expr)?,
             Block::Object(object) => self.object(span, object)?,
             Block::List(list) => self.list(span, list)?,
             Block::Function { args, body } => self.function(span, args, body)?,
-            Block::Expression(expr) => self.expression(span, expr)?,
-            Block::Operation(op) => self.operation(span, op)?,
+            Block::Call { function, args } => self.call(span, function, args)?,
+            Block::If {
+                condition,
+                consequent,
+                alternative,
+            } => self.if_(
+                span,
+                condition,
+                consequent.as_ref().map(|c| c.deref()),
+                alternative.as_ref().map(|a| a.deref()),
+            )?,
+
+            Block::Let { variables, body } => self.let_(span, variables, body.deref())?,
         };
 
         Ok((value, span_ret))
+    }
+
+    fn expression(&self, span: Span, expr: &Expression) -> Result<Value> {
+        evaluate_expression(&Spanned::new(expr.clone(), span), self.env)
     }
 
     fn object(&self, _span: Span, entries: &[(Spanned<String>, SpannedBlock)]) -> Result<Value> {
@@ -77,48 +95,94 @@ impl<'a> Evaluator<'a> {
         Ok(Value::Function(Function { args, body }))
     }
 
-    fn expression(&self, span: Span, expr: &Expression) -> Result<Value> {
-        evaluate_expression(&Spanned::new(expr.clone(), span), self.env)
+    fn call(
+        &self,
+        _span: Span,
+        function: &SpannedExpression,
+        args: &SpannedBlock,
+    ) -> Result<Value> {
+        let function_span = function.span();
+        let Value::Function(function) = evaluate_expression(function, self.env)? else {
+            return Err(EvalError::CallNonFunction {
+                span: function_span,
+                expr: function.clone().into_inner(),
+            });
+        };
+
+        let (args, _args_span) = self.block(args)?;
+        let args = match args {
+            Value::List(list) => list,
+            arg => vec![arg],
+        };
+
+        let mut function_env = self.env.child();
+
+        for index in 0..function.args.len() {
+            let arg_name = function.args[index].clone();
+            let arg_value = args
+                .get(index)
+                .map(ToOwned::to_owned)
+                // TODO missing arg error or missing context error
+                .unwrap_or_else(|| Value::Null);
+            function_env.insert(arg_name, arg_value);
+        }
+
+        match &function.body {
+            FunctionBody::Expression(expression) => evaluate_expression(expression, &function_env),
+            FunctionBody::Block(block) => evaluate(block, &function_env),
+        }
     }
 
-    fn operation(&self, span: Span, op: &BlockOperation) -> Result<Value> {
-        let value = match op {
-            BlockOperation::If {
-                condition,
-                consequent,
-                alternative,
-            } => {
-                let (value, _value_span) = self.block(condition)?;
+    fn if_(
+        &self,
+        _span: Span,
+        condition: &SpannedBlock,
+        consequent: Option<&SpannedBlock>,
+        alternative: Option<&SpannedBlock>,
+    ) -> Result<Value> {
+        let (condition, _condition_span) = self.block(condition)?;
 
-                if Into::<bool>::into(value) {
-                    if let Some(consequent) = &consequent {
-                        self.block(consequent)?.0
-                    } else {
-                        Value::Null
-                    }
-                } else {
-                    #[allow(clippy::collapsible_else_if)]
-                    if let Some(alternative) = &alternative {
-                        self.block(alternative)?.0
-                    } else {
-                        Value::Null
-                    }
-                }
+        let value = if Into::<bool>::into(condition) {
+            if let Some(consequent) = &consequent {
+                self.block(consequent)?.0
+            } else {
+                Value::Null
             }
-            BlockOperation::Let { variables, body } => {
-                let (variables, _variables_span) = self.block(variables)?;
-
-                let env = Environment::from_value(&variables, Some(self.env)).map_err(|error| {
-                    EvalError::Environment {
-                        span,
-                        source: error,
-                    }
-                })?;
-
-                evaluate(body, &env)?
+        } else {
+            #[allow(clippy::collapsible_else_if)]
+            if let Some(alternative) = &alternative {
+                self.block(alternative)?.0
+            } else {
+                Value::Null
             }
         };
         Ok(value)
+    }
+
+    fn let_(
+        &self,
+        span: Span,
+        entries: &[(Spanned<String>, SpannedBlock)],
+        body: &SpannedBlock,
+    ) -> Result<Value> {
+        let mut variables = Object::new();
+        for (key, value) in entries.iter() {
+            let key = key.clone().into_inner();
+            let (value, _value_span) = self.block(value)?;
+            if value == Value::Null {
+                continue;
+            };
+            variables.insert(key, value);
+        }
+
+        let env = Environment::from_object(&variables, Some(self.env)).map_err(|error| {
+            EvalError::Environment {
+                span,
+                source: error,
+            }
+        })?;
+
+        evaluate(body, &env)
     }
 }
 
@@ -166,9 +230,9 @@ mod tests {
     fn op_if() {
         let code = "
 zero:
-  $if: ten > five
-  then: five
-  else: ten
+  if ten > five
+  then five
+  else ten
 ";
 
         let env = indexmap! {
@@ -188,10 +252,10 @@ zero:
     fn op_let() {
         let code = "
 zero:
-  $let:
+  let
     one: ten
     two: 2
-  in:
+  in
     three: one + two
 ";
 

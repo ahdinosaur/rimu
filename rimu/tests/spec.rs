@@ -5,8 +5,8 @@ use std::error::Error;
 #[track_caller]
 fn test_spec(spec: Value) -> Result<(), Box<dyn Error>> {
     let Value::Object(spec) = spec else {
-            panic!("Spec should be object");
-        };
+        panic!("Spec should be object");
+    };
 
     let title: Value = spec.get("title").expect("Spec missing 'title'").clone();
     let template: Value = spec
@@ -22,8 +22,8 @@ fn test_spec(spec: Value) -> Result<(), Box<dyn Error>> {
 
     let mut context = Environment::new();
     let Value::Object(context_obj) = context_val else {
-            panic!("Spec 'context' must be object");
-        };
+        panic!("Spec 'context' must be object");
+    };
     for (key, value) in context_obj.into_iter() {
         context.insert(key, value);
     }
@@ -31,7 +31,9 @@ fn test_spec(spec: Value) -> Result<(), Box<dyn Error>> {
     if let Some(output) = spec.get("output") {
         let (template, errors) = parse(&template, SourceId::empty());
 
-        if errors.len() > 0 {
+        println!("template: {:?}", template);
+
+        if !errors.is_empty() {
             panic!("ParseError: {:?}", errors[0]);
         }
         let Some(template) = template else {
@@ -43,15 +45,16 @@ fn test_spec(spec: Value) -> Result<(), Box<dyn Error>> {
         assert_eq!(output.clone(), actual, "{} : output", title);
     } else if let Some(error) = spec.get("error") {
         let Value::Object(error) = error else {
-                panic!("Spec 'error' should be object");
-            };
-        let Value::String(_message) = error.get("message").expect("Spec missing 'error.message'") else {
-                panic!("Spec 'error.message' should be string");
-            };
+            panic!("Spec 'error' should be object");
+        };
+        let Value::String(_message) = error.get("message").expect("Spec missing 'error.message'")
+        else {
+            panic!("Spec 'error.message' should be string");
+        };
         let default_error_type = Value::String("RenderError".into());
         let Value::String(type_) = error.get("type").unwrap_or(&default_error_type) else {
-                panic!("Spec 'error.type' should be string");
-            };
+            panic!("Spec 'error.type' should be string");
+        };
 
         match type_.as_str() {
             "ParseError" => {

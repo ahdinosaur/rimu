@@ -1,0 +1,213 @@
+{
+  "scopeName": "source.rimu",
+  "fileTypes": ["rimu"],
+  "name": "rimu",
+  "patterns": [
+    {
+      "include": "#block"
+    }
+  ],
+  "repository": {
+    "block": {
+      "patterns": [
+        {
+          "include": "#expression"
+        },
+        {
+          "include": "#keywords"
+        },
+        {
+          "include": "#block-key"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "match": "\\b(if|then|else)\\b",
+          "name": "keyword.control.conditional.rimu"
+        },
+        {
+          "match": "\\b(let|in)\\b",
+          "name": "storage.type.variable.rimu"
+        }
+      ]
+    },
+    "block-key": {
+      "name": "string.key.rimu",
+      "patterns": [
+        {
+          "include": "#string"
+        },
+        {
+          "include": "#identifier"
+        }
+      ]
+    },
+    "expression": {
+      "patterns": [
+        {
+          "include": "#null"
+        },
+        {
+          "include": "#boolean"
+        },
+        {
+          "include": "#identifier"
+        },
+        {
+          "include": "#number"
+        },
+        {
+          "include": "#string"
+        },
+        {
+          "include": "#expression-list"
+        },
+        {
+          "include": "#expression-object"
+        }
+      ]
+    },
+    "null": {
+      "match": "\\bnull\\b",
+      "name": "constant.language.null.rimu"
+    },
+    "boolean": {
+      "patterns": [
+        {
+          "match": "\\btrue\\b",
+          "name": "constant.language.boolean.true.rimu"
+        },
+        {
+          "match": "\\bfalse\\b",
+          "name": "constant.language.boolean.false.rimu"
+        }
+      ]
+    },
+    "identifier": {
+      "match": "[a-zA-Z0-9_-]",
+      "name": "variable.parameter.rimu"
+    },
+    "number": {
+      "patterns": [
+        {
+          "match": "(?:\\d[\\d_]*(?:\\.[\\d_]*)?|\\.\\d[\\d_]*)(?:[eE][\\+\\-]?_*\\d[\\d_]*(?:\\.[\\d_]*)?)?",
+          "name": "constant.numeric.decimal.rimu"
+        }
+      ]
+    },
+    "string": {
+      "begin": "[\"]",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.begin.rimu"
+        }
+      },
+      "end": "[\"]",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.end.rimu"
+        }
+      },
+      "name": "string.quoted.double.rimu",
+      "patterns": [
+        {
+          "match": "(?x:                # turn on extended mode\n                     \\\\                # a literal backslash\n                     (?:               # ...followed by...\n                       [\"\\\\/bfnrt]     # one of these characters\n                       |               # ...or...\n                       u               # a u\n                       [0-9a-fA-F]{4}  # and four hex digits\n                     )\n                   )",
+          "name": "constant.character.escape.rimu"
+        },
+        {
+          "match": "\\\\.",
+          "name": "invalid.illegal.unrecognized-string-escape.rimu"
+        }
+      ]
+    },
+    "expression-list": {
+      "begin": "\\[",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.array.begin.rimu"
+        }
+      },
+      "end": "\\]",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.array.end.rimu"
+        }
+      },
+      "name": "meta.structure.array.rimu",
+      "patterns": [
+        {
+          "include": "#value"
+        },
+        {
+          "match": ",",
+          "name": "punctuation.separator.array.rimu"
+        },
+        {
+          "match": "[^\\s\\]]",
+          "name": "invalid.illegal.expected-array-separator.rimu"
+        }
+      ]
+    },
+    "expression-object": {
+      "begin": "\\{",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.dictionary.begin.rimu"
+        }
+      },
+      "end": "\\}",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.dictionary.end.rimu"
+        }
+      },
+      "name": "meta.structure.dictionary.rimu",
+      "patterns": [
+        {
+          "include": "#expression-key"
+        },
+        {
+          "begin": ":",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.separator.dictionary.key-value.rimu"
+            }
+          },
+          "end": "(,)|(?=\\})",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.separator.dictionary.pair.rimu"
+            }
+          },
+          "name": "meta.structure.dictionary.value.rimu",
+          "patterns": [
+            {
+              "include": "#expression"
+            },
+            {
+              "match": "[^\\s,]",
+              "name": "invalid.illegal.expected-dictionary-separator.rimu"
+            }
+          ]
+        },
+        {
+          "match": "[^\\s\\}]",
+          "name": "invalid.illegal.expected-dictionary-separator.rimu"
+        }
+      ]
+    },
+    "expression-key": {
+      "name": "string.key.rimu",
+      "patterns": [
+        {
+          "include": "#string"
+        },
+        {
+          "include": "#identifier"
+        }
+      ]
+    }
+  }
+}

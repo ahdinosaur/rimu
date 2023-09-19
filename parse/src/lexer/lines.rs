@@ -10,6 +10,7 @@ pub(crate) enum LinesToken<'src> {
     Indent,
     Dedent,
     Line(&'src str),
+    Dash,
     EndOfLine,
 }
 
@@ -83,9 +84,14 @@ impl<'src> LinesLexer<'src> {
             let Some((space, rest)) = self.get_space(line) else {
                 continue;
             };
-            for dent in self.get_dents(space)? {
-                tokens.push(dent);
-            }
+
+            let dents = self.get_dents(space.clone())?;
+            tokens.extend(dents);
+
+            let indentation_start = space.inner().len();
+            let (rest, list_tokens) = self.get_list_tokens(indentation_start, rest)?;
+            tokens.extend(list_tokens);
+
             tokens.push(self.line(rest));
             tokens.push(Spanned::new(LinesToken::EndOfLine, ending_span))
         }
@@ -97,28 +103,31 @@ impl<'src> LinesLexer<'src> {
         Ok(tokens)
     }
 
+    fn get_space_index(&self, line: &'src str) -> Option<usize> {
+        line.char_indices()
+            .skip_while(|&(_, c)| c == ' ' || c == '\t')
+            .map(|(i, _)| i)
+            .next()
+    }
+
     fn get_space(
         &self,
         line: Spanned<&'src str>,
     ) -> Option<(Spanned<&'src str>, Spanned<&'src str>)> {
         let (line, span) = line.take();
 
-        let Some(nonblank_index) = line
-            .char_indices()
-            .skip_while(|&(_, c)| c == ' ' || c == '\t')
-            .map(|(i, _)| i)
-            .next() else {
+        let Some(nonblank_index) = self.get_space_index(line) else {
             return None;
         };
 
         let space_str = &line[..nonblank_index];
         let space_span = self.span(span.start(), span.start() + nonblank_index);
-        let space = Spanned::new(space_str, space_span);
 
         let rest_str = &line[nonblank_index..];
         let rest_span = self.span(span.start() + nonblank_index, span.end());
-        let rest = Spanned::new(rest_str, rest_span);
 
+        let space = Spanned::new(space_str, space_span);
+        let rest = Spanned::new(rest_str, rest_span);
         Some((space, rest))
     }
 
@@ -162,6 +171,67 @@ impl<'src> LinesLexer<'src> {
                 expected: self.indentation.clone(),
             }),
         }
+    }
+
+    // NOTE (mw): We have to handle list markers in this lexer.
+    // - Each list marker (`-`) starts a new indentation
+    fn get_list_tokens(
+        &mut self,
+        indentation_start: usize,
+        rest: Spanned<&'src str>,
+    ) -> Result<(Spanned<&'src str>, Vec<SpannedLinesToken<'src>>)> {
+        let mut tokens = Vec::new();
+        let (rest, span) = rest.take();
+
+        let mut index = 0;
+
+        while rest[index..].starts_with('-') {
+            let nonblank_index = self.get_space_index(&rest[index + 1..]);
+
+            // if there's a non-empty character but no empty space before,
+            // then is a negate unary operator, not a list marker.
+            if nonblank_index.is_some() && nonblank_index.unwrap() == 0 {
+                break;
+            }
+
+            // otherwise, is a list marker, so add token
+            let dash_token = LinesToken::Dash;
+            let dash_span = self.span(span.start() + index, span.start() + index + 1);
+            let dash = Spanned::new(dash_token, dash_span);
+            tokens.push(dash);
+
+            // if empty space before next non-empty character
+            if let Some(nonblank_index) = nonblank_index {
+                // get length of space before next non-empty charater
+                let next_index = 1 + nonblank_index;
+
+                // add indent token
+                let indent_span =
+                    self.span(span.start() + index, span.start() + index + next_index);
+                let indent_token = LinesToken::Indent;
+                let indent = Spanned::new(indent_token, indent_span);
+                tokens.push(indent);
+
+                // increment our remaining string index
+                index += next_index;
+
+                // add indent marker
+                let indentation = indentation_start + index;
+                self.indentation.push(indentation);
+            }
+            // otherwise if no non-empty character
+            else {
+                // rest starts at the end
+                index = rest.len() - 1;
+                break;
+            }
+        }
+
+        let remainder_str = &rest[index..];
+        let remainder_span = self.span(span.start() + index, span.end());
+        let remainder = Spanned::new(remainder_str, remainder_span);
+
+        Ok((remainder, tokens))
     }
 
     fn line(&self, rest: Spanned<&'src str>) -> SpannedLinesToken<'src> {
@@ -267,4 +337,47 @@ d: e
 
         assert_eq!(actual, expected);
     }
+
+    #[test]
+    fn list_indents() {
+        let actual = test(
+            "
+a:
+  - b: c
+    d: e
+  - f: g
+    h: i
+j: k
+        ",
+        );
+
+        let expected = Ok(vec![
+            Spanned::new(LinesToken::Line("a:"), span(1..3)),
+            Spanned::new(LinesToken::EndOfLine, span(3..4)),
+            Spanned::new(LinesToken::Indent, span(4..6)),
+            Spanned::new(LinesToken::Dash, span(6..7)),
+            Spanned::new(LinesToken::Indent, span(6..8)),
+            Spanned::new(LinesToken::Line("b: c"), span(8..12)),
+            Spanned::new(LinesToken::EndOfLine, span(12..13)),
+            Spanned::new(LinesToken::Line("d: e"), span(17..21)),
+            Spanned::new(LinesToken::EndOfLine, span(21..22)),
+            Spanned::new(LinesToken::Dedent, span(24..24)),
+            Spanned::new(LinesToken::Dash, span(24..25)),
+            Spanned::new(LinesToken::Indent, span(24..26)),
+            Spanned::new(LinesToken::Line("f: g"), span(26..30)),
+            Spanned::new(LinesToken::EndOfLine, span(30..31)),
+            Spanned::new(LinesToken::Line("h: i"), span(35..39)),
+            Spanned::new(LinesToken::EndOfLine, span(39..40)),
+            Spanned::new(LinesToken::Dedent, span(40..40)),
+            Spanned::new(LinesToken::Dedent, span(40..40)),
+            Spanned::new(LinesToken::Line("j: k"), span(40..44)),
+            Spanned::new(LinesToken::EndOfLine, span(44..45)),
+        ]);
+
+        assert_eq!(actual, expected);
+    }
+
+    // TODO tests
+    // - list mania: lists within lists within lists
+    // - list marker vs negate unary
 }

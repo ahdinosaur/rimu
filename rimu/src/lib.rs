@@ -1,6 +1,5 @@
 pub use rimu_ast::{
-    BinaryOperator, Block, BlockOperation, Expression, SpannedBlock, SpannedExpression,
-    UnaryOperator,
+    BinaryOperator, Block, Expression, SpannedBlock, SpannedExpression, UnaryOperator,
 };
 pub use rimu_eval::{
     evaluate_block as evaluate, evaluate_block, evaluate_expression, Environment, EnvironmentError,

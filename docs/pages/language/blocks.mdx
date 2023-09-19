@@ -1,12 +1,12 @@
 # Rimu blocks
 
-Rimu is structured as blocks similar to [YAML](https://yaml.org/), with some important differences.
+Rimu is structured as blocks similar to [rimu](https://rimu.org/), with some important differences.
 
 ## Collections
 
 ### Objects
 
-```yaml
+```rimu
 mikey:
   name: "Mikey"
   website: "https://mikey.nz"
@@ -24,63 +24,63 @@ Unquoted keys are [identifiers](./expressions#Identifiers) and must conform to r
 
 Quoted keys can be any valid Unicode.
 
-```yaml
+```rimu
 "🙆": "okay!"
 ```
 
 ### Lists
 
-```yaml
+```rimu
 similar_projects:
-  - JSON-e
-  - Nickel
-  - Jsonnet
+  - "JSON-e"
+  - "Nickel"
+  - "Jsonnet"
 ```
 
 ## Scalars
 
-Unlike YAML, scalars are expressions.
+Unlike rimu, scalars are [expressions](./expressions).
 
 So this means Rimu is both more strict and more expressive:
 
 - Strings must be wrapped in quotes, otherwise is assumed to be an identifier.
-- No more implicit typing (aka the ["Norway Problem"](https://hitchdev.com/strictyaml/why/implicit-typing-removed/))
+- No more implicit typing (aka the ["Norway Problem"](https://hitchdev.com/strictrimu/why/implicit-typing-removed/))
 
-Before we go into expressions in more detail, here are the basic scalars, as similar to YAML.
+Before we go into expressions in more detail, here are the basic scalars, as similar to rimu.
 
 ### Null
 
-```yaml
+```rimu
 mikey: null
 ```
 
 ### Boolean
 
-```yaml
+```rimu
 nonsense: true
 ```
 
 ### Number
 
-```yaml
+```rimu
 bottles_of_beer_on_the_wall: 99
 ```
 
 ### String
 
-```yaml
+```rimu
 cat: "Charlie"
 ```
 
 ### Function
 
-```yaml
+```rimu
 add: (a, b) => a + b
 ```
 
 Or
 
-```yaml
+```rimu
 add: (a, b) =>
   a + b
 ```
@@ -88,3 +88,23 @@ add: (a, b) =>
 ## Multi-line values
 
 TODO
+
+## Operations
+
+### `if`
+
+<iframe
+  width="100%"
+  height="256"
+  style={{ marginTop: "2rem" }}
+  src="https://play.rimu.dev/?i=bRYxBCoQwDEWv8skJnFkKepJsKkRUtJE2Za5v28C4-3mPPAr3fcrIEVjUTK8-gX3Fd8CMz-C3bRLBdEiImcmZnFkqs6QlS-p4UbXcEzXAFJgwTT4abBX__e22jVWsJblqsVdpsb-lBw"
+/>
+
+### `let`
+
+<iframe
+  width="100%"
+  height="256"
+  style={{ marginTop: "2rem" }}
+  src="https://play.rimu.dev/?i=bU8pJLYnJU1BITEmxUtBI1FFI0lSwtVNIVNBWSAKJF5cmlRQlJpcgSYKEgRoUdEEqMvOQVUGkdEGmaRga6CgYGWjChIwNlAA"
+/>
