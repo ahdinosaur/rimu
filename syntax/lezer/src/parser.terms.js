@@ -6,8 +6,8 @@ export const
   listItemMarker = 15,
   LineComment = 1,
   Template = 2,
-  Null = 3,
-  Boolean = 4,
-  String = 5,
-  Number = 6,
-  BlockList = 8
+  BlockList = 3,
+  Null = 4,
+  Boolean = 5,
+  String = 6,
+  Number = 7

@@ -1,13 +1,11 @@
 @top Template { block }
 
-@precedence {
-  blockList @left
-}
+@precedence {}
 
 block[@isGroup=Block] {
+  BlockList |
   blockExpression { expression lineEnd } |
-  BlockWrap { endOfLine indent block dedentEnd } |
-  BlockList
+  BlockWrap { endOfLine indent block dedentEnd }
 //  BlockObject |
 //  BlockFunction |
 //  BlockCall |
@@ -16,7 +14,7 @@ block[@isGroup=Block] {
 }
 
 BlockList { blockListItem+ }
-blockListItem { !blockList "-" block }
+blockListItem { listItemMarker block dedentEnd }
 
 //BlockObject
 
