@@ -41,22 +41,12 @@ export const newlines = new ExternalTokenizer(
   { contextual: true },
 )
 
-export const listItemMarkers = new ExternalTokenizer((input, _stack) => {
-  // handle list item markers with a special token
-  while (input.next == dash) {
-    if (input.peek(1) != space) break
-    while (input.advance() == space) {}
-    input.acceptToken(listItemMarker)
-  }
-})
-
 export const indentation = new ExternalTokenizer((input, stack) => {
   const cDepth = stack.context.depth
-  if (cDepth < 0) return
   const prev = input.peek(-1)
-  if (prev == newline || prev == carriageReturn) {
-    const depth = 0
-    const chars = 0
+  if (prev === -1 || prev === newline || prev === carriageReturn) {
+    let depth = 0
+    let chars = 0
     for (;;) {
       if (input.next == space) depth++
       else break
@@ -75,20 +65,53 @@ export const indentation = new ExternalTokenizer((input, stack) => {
   }
 })
 
+export const listItemMarkers = new ExternalTokenizer((input, stack) => {
+  const prev = input.peek(-1)
+  if (
+    prev == -1 ||
+    prev == newline ||
+    prev == carriageReturn ||
+    stack.context.type === 'list-item'
+  ) {
+    let spacesBeforeDash = 0
+    while (input.next == space) {
+      input.advance()
+      spacesBeforeDash++
+    }
+
+    if (input.next == dash) {
+      let spacesAfterDash = 0
+      while (input.advance() == space) {
+        spacesAfterDash++
+      }
+
+      if (spacesAfterDash > 0) {
+        input.acceptToken(listItemMarker)
+      }
+    }
+  }
+})
+
 class IndentLevel {
-  constructor(parent, depth) {
+  constructor(parent, depth, type) {
     this.parent = parent
     this.depth = depth
+    this.type = type
     this.hash = (parent ? (parent.hash + parent.hash) << 8 : 0) + depth + (depth << 4)
   }
 }
 
 export const trackIndent = new ContextTracker({
-  start: new IndentLevel(null, 0),
+  start: new IndentLevel(null, 0, 'base'),
   shift(context, term, stack, input) {
-    if (term == indent) return new IndentLevel(context, stack.pos - input.pos)
+    if (term == indent) return new IndentLevel(context, stack.pos - input.pos, 'indent')
     if (term == dedent) return context.parent
-    if (term == listItemMarker) return new IndentLevel(context, stack.pos - input.pos)
+    if (term == listItemMarker) {
+      let depth = stack.pos - input.pos
+      // if nested list marker, add previous depth
+      if (context.type === 'list-item') depth += context.depth
+      return new IndentLevel(context, depth, 'list-item')
+    }
     return context
   },
   hash(context) {

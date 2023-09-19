@@ -1,0 +1,27 @@
+# List
+
+- "a"
+- "b"
+- "c"
+
+==>
+
+Template(BlockList(String, String, String))
+
+# Nested List
+
+- - - "a"
+  - "b"
+- "c"
+
+==>
+
+Template(
+  BlockList(
+    BlockList(
+      BlockList(String)
+      String,
+    ),
+    String
+  )
+)

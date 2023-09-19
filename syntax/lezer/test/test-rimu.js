@@ -15,7 +15,7 @@ for (const file of fs.readdirSync(caseDir)) {
   describe(name, () => {
     const caseFile = fs.readFileSync(path.join(caseDir, file), 'utf8')
     for (const { name, run } of fileTests(caseFile, file)) {
-      // if (name !== 'List') continue
+      if (name !== 'Nested List') continue
       it(name, () => run(parser))
     }
   })

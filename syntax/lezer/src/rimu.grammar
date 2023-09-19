@@ -42,13 +42,13 @@ dedentEnd { dedent | endOfFile }
   blankLineStart
 }
 
-@external tokens listItemMarkers from "./tokens.js" {
-  listItemMarker
-}
-
 @external tokens indentation from "./tokens.js" {
   indent
   dedent
+}
+
+@external tokens listItemMarkers from "./tokens.js" {
+  listItemMarker
 }
 
 @tokens {
