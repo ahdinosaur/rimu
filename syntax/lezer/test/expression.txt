@@ -33,6 +33,8 @@ Template(Number)
 # List
 
 - "a"
+- "b"
+- "c"
 
 ==>
 
