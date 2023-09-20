@@ -230,11 +230,11 @@ pre code {
   color: rgb(var(--ctp-peach));
 }
 .tok-variableName {
-  color: rgb(var(--ctp-mauve));
+  color: rgb(var(--ctp-flamingo));
 }
 /* special(variableName) */
 .tok-variableName2 {
-  color: rgb(var(--ctp-peach));
+  color: rgb(var(--ctp-pink));
 }
 /* local(variableName) */
 .tok-variableName.tok-local {
@@ -242,7 +242,7 @@ pre code {
 }
 /* definition(variableName) */
 .tok-variableName.tok-definition {
-  color: rgb(var(--ctp-flamingo));
+  color: rgb(var(--ctp-maroon));
 }
 .tok-typeName {
   color: rgb(var(--ctp-yellow));
@@ -264,16 +264,16 @@ pre code {
   color: rgb(var(--ctp-lavender));
 }
 .tok-operator {
-  color: rgb(var(--ctp-teal));
+  color: rgb(var(--ctp-sky));
 }
 .tok-comment {
-  color: rgb(var(--ctp-surface2));
+  color: rgb(var(--ctp-overlay0));
 }
 .tok-meta {
   color: rgb(var(--ctp-peach));
 }
 .tok-punctuation {
-  color: rgb(var(--ctp-subtext1));
+  color: rgb(var(--ctp-overlay2));
 }
 .tok-invalid {
   color: rgb(var(--ctp-red));

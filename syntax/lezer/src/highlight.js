@@ -8,8 +8,8 @@ export const highlight = styleTags({
   'if then else': t.controlKeyword,
   'let in': t.definitionKeyword,
 
-  Null: t.null,
-  Boolean: t.bool,
+  null: t.null,
+  'true false': t.bool,
   String: t.string,
   Number: t.number,
 
