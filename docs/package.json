@@ -4,6 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "postinstall": "cd ../ && npm run lezer:build",
     "dev": "next dev",
     "build": "next build",
     "start": "next start"

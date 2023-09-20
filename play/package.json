@@ -23,7 +23,7 @@
     "@wasm-tool/wasm-pack-plugin": "^1.7.0",
     "base64-compressor": "github:ahdinosaur/base64-compressor#npm/build",
     "codemirror": "^6.0.1",
-    "codemirror-theme-catppuccin": "github:ahdinosaur/codemirror-theme-catppuccin#npm/main",
+    "codemirror-theme-catppuccin": "^0.3.0",
     "eslint": "8.48.0",
     "eslint-config-next": "13.4.19",
     "framer-motion": "^10.16.4",
