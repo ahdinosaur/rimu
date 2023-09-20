@@ -55,7 +55,7 @@ function Pre(props) {
     if (!codeEl.classList.contains('language-rimu')) return
     const code = codeEl.textContent
     if (code == null) return
-    const url = `http://localhost:3001?i=u${encodeURIComponent(code)}`
+    const url = `https://play.rimu.dev?i=u${encodeURIComponent(code)}`
     setPlaygroundUrl(url)
   }, [])
 

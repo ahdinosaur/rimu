@@ -40,7 +40,8 @@ FunctionParam { identifier ~arrow }
 FunctionParams { '(' commaSep<FunctionParam> ')' }
 FunctionBlock { FunctionParams '=>' block }
 
-CallBlock { Identifier !call endOfLine indent block dedentEnd }
+CallFunction { !call expression }
+CallBlock { CallFunction endOfLine indent block dedentEnd }
 
 LetKey { identifier | String }
 LetBlockEntry { !block LetKey ':' block }
@@ -85,11 +86,10 @@ ObjectExpression { '{' commaSep<ObjectExpressionEntry> '}' }
 
 FunctionExpression { FunctionParams '=>' expression }
 
-CallExpression {
-  expression !call CallExpressionArgs
-}
-
 CallExpressionArgs { '(' commaSep<expression> ')' }
+CallExpression {
+  CallFunction CallExpressionArgs
+}
 
 GetIdentifier { identifier }
 GetExpression {
