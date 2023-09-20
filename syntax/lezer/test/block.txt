@@ -1,0 +1,234 @@
+# List
+
+- "a"
+- "b"
+- "c"
+
+==>
+
+Template(ListBlock(String, String, String))
+
+# Nested List
+
+- - - "a"
+  - "b"
+- "c"
+
+==>
+
+Template(
+  ListBlock(
+    ListBlock(
+      ListBlock(String)
+      String,
+    ),
+    String
+  )
+)
+
+# Object (single entry)
+
+a: "b"
+
+==>
+
+Template(ObjectBlock(ObjectBlockEntry(ObjectKey, String)))
+
+# Object (identifier keys, string values)
+
+a: "b"
+c: "d"
+
+==>
+
+Template(
+  ObjectBlock(
+    ObjectBlockEntry(
+      ObjectKey,
+      String
+    ),
+    ObjectBlockEntry(
+      ObjectKey,
+      String
+    )
+  )
+)
+
+# Object with a list value
+
+a:
+  - "b"
+  - "c"
+d: "e"
+
+==>
+
+Template(
+  ObjectBlock(
+    ObjectBlockEntry(
+      ObjectKey,
+      IndentedBlock(
+        ListBlock(
+          String,
+          String
+        )
+      )
+    ),
+    ObjectBlockEntry(
+      ObjectKey,
+      String
+    )
+  )
+)
+
+# Object with unicode keys
+
+"🙆": "okay!"
+
+==>
+
+Template(ObjectBlock(ObjectBlockEntry(ObjectKey(String),String)))
+
+# Function
+
+add: (a, b) =>
+  a + b
+
+==>
+
+Template(
+  ObjectBlock(
+    ObjectBlockEntry(
+      ObjectKey,
+      FunctionBlock(
+        FunctionParams(
+          "(",
+          FunctionParam,
+          FunctionParam,
+          ")"
+        ),
+        FatArrow,
+        IndentedBlock(
+          BinaryExpression(
+            Identifier,
+            ArithmeticOp,
+            Identifier
+          )
+        )
+      )
+    )
+  )
+)
+
+# Call
+
+subtract
+  - add(10, 20)
+  - 30
+
+==>
+
+Template(
+  CallBlock(
+    Identifier,
+    CallBlockArg(
+      ListBlock(
+        CallExpression(
+          Identifier,
+          CallExpressionArgs(
+            "(",
+            Number,
+            Number,
+            ")"
+          )
+        ),
+        Number
+      )
+    )
+  )
+)
+
+# Call with Get Key
+
+math.add
+  - 10
+  - 30
+
+==>
+
+Template(
+  CallBlock(
+    GetExpression(
+      Identifier,
+      GetIdentifier
+    ),
+    CallBlockArg(
+      ListBlock(
+        Number,
+        Number
+      )
+    )
+  )
+)
+
+
+# If
+
+apple:
+  bottom:
+    if 20 > 10
+    then "jeans"
+    else "trousers"
+
+==>
+
+Template(
+  ObjectBlock(
+    ObjectBlockEntry(
+      ObjectKey,
+      IndentedBlock(
+        ObjectBlock(
+          ObjectBlockEntry(
+            ObjectKey,
+            IndentedBlock(
+              IfBlock(
+                if,
+                BinaryExpression(
+                  Number,
+                  CompareOp,
+                  Number
+                ),
+                then,
+                String,
+                else,
+                String
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+)
+
+# Let
+
+let
+  a: 10
+  b: 20
+in
+  a + b
+
+==>
+
+Template(
+  LetBlock(
+    let,
+    LetBlockEntry(LetKey, Number),
+    LetBlockEntry(LetKey,Number),
+    in,
+    IndentedBlock(
+      BinaryExpression(Identifier, ArithmeticOp,Identifier)
+    )
+  )
+)

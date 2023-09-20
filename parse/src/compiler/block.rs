@@ -128,14 +128,7 @@ fn function_parser<'a>(
 }
 
 fn call_parser<'a>(block: impl Compiler<SpannedBlock> + 'a) -> impl Compiler<SpannedBlock> + 'a {
-    let function_identifier = select! {
-        Token::Identifier(key) => Expression::Identifier(key)
-    };
-    let expr = expression::expression_parser();
-    let function_expression = expression::function_parser(expr);
-    let function = function_identifier
-        .or(function_expression)
-        .map_with_span(Spanned::new);
+    let function = expression::expression_parser();
 
     let call = function
         .then_ignore(just(Token::EndOfLine))

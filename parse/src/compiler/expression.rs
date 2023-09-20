@@ -82,7 +82,7 @@ pub(crate) fn expression_parser() -> impl Compiler<SpannedExpression> {
             .labelled("binary (comparison) operator");
         let comparison = binary_operator_parser(term, op);
 
-        // Next precedence: "equality" operators: "=", "!="
+        // Next precedence: "equality" operators: "==", "!="
         let op = just(Token::Equal)
             .to(BinaryOperator::Equal)
             .or(just(Token::NotEqual).to(BinaryOperator::NotEqual))

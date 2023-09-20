@@ -1,0 +1,48 @@
+{
+  "name": "rimu-lezer",
+  "version": "0.0.0",
+  "description": "Lezer grammar for Rimu language syntax",
+  "main": "dist/index.cjs",
+  "type": "module",
+  "exports": {
+    "import": "./dist/index.js",
+    "require": "./dist/index.cjs",
+    "types": "./dist/index.d.ts"
+  },
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "lezer-generator src/rimu.grammar -o src/parser && rollup -c",
+    "build-debug": "lezer-generator src/rimu.grammar --names -o src/parser && rollup -c",
+    "prepare": "npm run build",
+    "test": "mocha test/test-*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ahdinosaur/rimu.git"
+  },
+  "keywords": [
+    "rimu",
+    "lezer",
+    "syntax",
+    "grammar",
+    "highlight",
+    "highlighting"
+  ],
+  "author": "Michael Williams",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/ahdinosaur/rimu/issues"
+  },
+  "homepage": "https://github.com/ahdinosaur/rimu#readme",
+  "dependencies": {
+    "@lezer/highlight": "^1.1.6",
+    "@lezer/lr": "^1.3.10"
+  },
+  "devDependencies": {
+    "@lezer/generator": "^1.5.1",
+    "@rollup/plugin-node-resolve": "^15.2.1",
+    "mocha": "^10.2.0",
+    "rollup": "^3.29.2"
+  }
+}

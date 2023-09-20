@@ -48,6 +48,8 @@ export function useQueryParams(options: UseQueryParamsOptions) {
 enum CodeSerializationFormat {
   // url-safe base64, `deflate-raw` compression
   Base64WithDeflateRawCompression = 'b',
+  // encoded with `encodeURIComponent`
+  EncodedUriComponent = 'u',
 }
 
 async function deserializeCode(serialized: string) {
@@ -57,6 +59,8 @@ async function deserializeCode(serialized: string) {
   switch (formatSigil) {
     case CodeSerializationFormat.Base64WithDeflateRawCompression:
       return decodeBase64WithCompression(serializedCode, 'deflate-raw')
+    case CodeSerializationFormat.EncodedUriComponent:
+      return decodeURIComponent(serializedCode)
     default:
       throw new Error('Unexpected code serialization format.')
   }
@@ -66,6 +70,10 @@ async function serializeCode(formatSigil: CodeSerializationFormat, code: string)
   switch (formatSigil) {
     case CodeSerializationFormat.Base64WithDeflateRawCompression: {
       const serializedCode = await encodeBase64WithCompression(code, 'deflate-raw')
+      return `${formatSigil}${serializedCode}`
+    }
+    case CodeSerializationFormat.EncodedUriComponent: {
+      const serializedCode = encodeURIComponent(code)
       return `${formatSigil}${serializedCode}`
     }
     default:

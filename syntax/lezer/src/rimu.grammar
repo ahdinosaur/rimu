@@ -1,0 +1,175 @@
+@top Template { block }
+
+@precedence {
+  else
+  then
+  get
+  call
+  unary
+  factor @left
+  term @left
+  comparison @left
+  equality @left
+  xor @left
+  and @left
+  or @left
+  block
+}
+
+block[@isGroup=Block] {
+  ListBlock |
+  ObjectBlock |
+  expressionBlock { expression !block lineEnd } |
+  IndentedBlock |
+  FunctionBlock |
+  CallBlock |
+  LetBlock |
+  IfBlock
+}
+
+IndentedBlock { endOfLine indent block dedentEnd }
+
+ListBlock { listBlockItem+ }
+listBlockItem { listItemMarker block dedentEnd }
+
+ObjectKey { identifier | String }
+ObjectBlockEntry { !block ObjectKey ':' block }
+ObjectBlock { ObjectBlockEntry+ }
+
+FunctionParam { identifier ~arrow }
+FunctionParams { '(' commaSep<FunctionParam> ')' }
+FunctionBlock { FunctionParams '=>' block }
+
+CallBlockArg { block }
+CallBlock { expression endOfLine indent CallBlockArg dedentEnd }
+
+LetKey { identifier | String }
+LetBlockEntry { !block LetKey ':' block }
+LetBlock {
+  kw<'let'> endOfLine
+  indent LetBlockEntry* dedent
+  kw<'in'> block
+}
+
+IfBlock {
+  kw<'if'> block
+  (!then kw<'then'> block)?
+  (!else kw<'else'> block)?
+}
+
+expression[@isGroup=Expression] {
+  Null |
+  Boolean |
+  String |
+  Number |
+  Identifier ~arrow |
+  ParenthesizedExpression |
+  ListExpression |
+  ObjectExpression |
+  FunctionExpression |
+  CallExpression |
+  GetExpression |
+  UnaryExpression |
+  BinaryExpression
+}
+
+Null { kw<'null'> }
+Boolean { kw<'true'> | kw<'false'> }
+Identifier { identifier }
+
+ParenthesizedExpression { '(' expression ')' }
+
+ListExpression { '[' commaSep<expression> ']' }
+
+ObjectExpressionEntry { ObjectKey ':' expression }
+ObjectExpression { '{' commaSep<ObjectExpressionEntry> '}' }
+
+FunctionExpression { FunctionParams '=>' expression }
+
+CallExpressionArgs { '(' commaSep<expression> ')' }
+CallExpression {
+  expression !call CallExpressionArgs
+}
+
+GetIdentifier { identifier }
+GetExpression {
+  expression !get (
+    '.' GetIdentifier |
+    '[' expression ']' |
+    '[' expression? ':' expression? ']'
+  )
+}
+
+UnaryExpression {
+  !unary (ArithmeticOp<'-'> | LogicOp<'!'>) expression
+}
+
+BinaryExpression {
+  expression !factor ArithmeticOp<'*' | '/' | '%'> expression |
+  expression !term ArithmeticOp<'+' | '-'> expression |
+  expression !comparison CompareOp<'>' | '>=' | '<' | '<='> expression |
+  expression !equality CompareOp<'==' | '!='> expression |
+  expression !xor CompareOp<'^'> expression |
+  expression !and CompareOp<'&&'> expression |
+  expression !or CompareOp<'||'> expression
+}
+
+commaSep<content> {
+  "" | content ("," content?)*
+}
+
+kw<term> { @specialize[@name={term}]<identifier, term> }
+
+lineEnd { endOfLine | endOfFile }
+dedentEnd { dedent | endOfFile }
+
+@skip {
+  spaces |
+  LineComment |
+  blankLineStart (spaces | LineComment)* lineEnd
+}
+
+@context trackIndent from './tokens.js'
+
+@external tokens newlines from './tokens.js' {
+  endOfLine
+  endOfFile
+  blankLineStart
+}
+
+@external tokens indentation from './tokens.js' {
+  indent
+  dedent
+}
+
+@external tokens listItemMarkers from './tokens.js' {
+  listItemMarker
+}
+
+@tokens {
+  spaces { $[ ]+ }
+
+  String { '"' (!["\\] | '\\' _)* '"' }
+
+  Number { int frac? }
+  int { @digit+ }
+  frac { '.' @digit+ }
+
+  identifier { $[a-zA-Z_] $[a-zA-Z0-9_]* }
+
+  '(' ')'
+  '[' ']'
+  '{' '}'
+
+  '=>'[@name=FatArrow]
+
+  ArithmeticOp<expr> { expr }
+  LogicOp<expr> { expr }
+  CompareOp<expr> { expr }
+
+  LineComment { '#' ![\n\r]* }
+}
+
+@external propSource highlight from "./highlight"
+
+@detectDelim

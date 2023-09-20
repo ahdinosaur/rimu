@@ -1,35 +1,40 @@
 /* eslint-env node */
 
-import { getHighlighter, BUNDLED_LANGUAGES } from 'shiki'
 import Nextra from 'nextra'
-import { join, dirname } from 'path'
-import { fileURLToPath } from 'url'
+import rehypeHighlightCodeBlock from '@mapbox/rehype-highlight-code-block'
+import { fromLezer } from 'hast-util-from-lezer'
+import { parser as rimuParser } from 'rimu-lezer'
+import { toHtml } from 'hast-util-to-html'
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
+const lezerParsers = {
+  rimu: rimuParser,
+}
 
 const withNextra = Nextra({
   theme: 'nextra-theme-docs',
   themeConfig: './theme.config.js',
   unstable_staticImage: true,
+  codeHighlight: false,
   mdxOptions: {
-    rehypePrettyCodeOptions: {
-      getHighlighter: (options) =>
-        getHighlighter({
-          ...options,
-          langs: [
-            ...BUNDLED_LANGUAGES,
-            {
-              id: 'rimu',
-              scopeName: 'source.rimu',
-              aliases: [],
-              path: join(__dirname, '../syntax/textmate/rimu.tmLanguage.json'),
-            },
-          ],
-        }),
-    },
+    rehypePlugins: [
+      [
+        rehypeHighlightCodeBlock,
+        {
+          highlight,
+        },
+      ],
+    ],
   },
 })
 
 const config = withNextra()
 
 export default config
+
+function highlight(code, lang) {
+  const parser = lezerParsers[lang]
+  if (parser == null) return code
+  const tree = parser.parse(code)
+  const element = fromLezer(code, tree)
+  return toHtml(element)
+}

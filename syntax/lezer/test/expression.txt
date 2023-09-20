@@ -1,0 +1,114 @@
+# Null
+
+null
+
+==>
+
+Template(Null(null))
+
+# Boolean
+
+false
+
+==>
+
+Template(Boolean(false))
+
+# String
+
+"arst"
+
+==>
+
+Template(String)
+
+# Number
+
+0
+
+==>
+
+Template(Number)
+
+# List
+
+["hello", null, "world"]
+
+==>
+
+Template(
+  ListExpression(
+    "[",
+    String,
+    Null("null"),
+    String,
+    "]"
+  )
+)
+
+# Object
+
+{ a: "apple", b: "bear" }
+
+==>
+
+Template(
+  ObjectExpression(
+    "{",
+    ObjectExpressionEntry(ObjectKey,String)
+    ObjectExpressionEntry(ObjectKey,String)
+    "}",
+  )
+)
+
+# Get Index (from identifier)
+
+a[2]
+
+==>
+
+Template(GetExpression(Identifier, Number))
+
+# Arithmetic
+
+10 + 2 * -1
+
+==>
+
+Template(
+  BinaryExpression(
+    Number,
+    ArithmeticOp,
+    BinaryExpression(
+      Number,
+      ArithmeticOp,
+      UnaryExpression(
+        ArithmeticOp,
+        Number
+      )
+    )
+  )
+)
+
+# Function
+
+(a, b) => a + b
+
+==>
+
+Template(
+  FunctionBlock(
+    FunctionParams(
+      "(",
+      FunctionParam,
+      FunctionParam,
+      ")"
+    ),
+    FatArrow,
+    BinaryExpression(
+      Identifier,
+      ArithmeticOp,
+      Identifier
+    )
+  )
+)
