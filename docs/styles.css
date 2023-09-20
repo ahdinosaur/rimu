@@ -2,6 +2,17 @@ pre code {
   display: block !important;
 }
 
+.open-play__container {
+  margin-top: -0.5rem;
+  font-size: 0.825em;
+}
+
+.open-play__link {
+  color: rgb(var(--ctp-lavender));
+  text-underline-position: from-font;
+  text-decoration-line: underline;
+}
+
 /* latte */
 :root {
   --ctp-rosewater: 220, 138, 120;

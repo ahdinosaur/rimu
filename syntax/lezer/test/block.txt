@@ -148,6 +148,30 @@ Template(
   )
 )
 
+# Call with Get Key
+
+math.add
+  - 10
+  - 30
+
+==>
+
+Template(
+  CallBlock(
+    GetExpression(
+      Identifier,
+      GetIdentifier
+    ),
+    CallBlockArg(
+      ListBlock(
+        Number,
+        Number
+      )
+    )
+  )
+)
+
+
 # If
 
 apple:

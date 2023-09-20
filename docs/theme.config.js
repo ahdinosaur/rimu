@@ -50,7 +50,7 @@ function Pre(props) {
   const [playgroundUrl, setPlaygroundUrl] = useState(null)
 
   useEffect(() => {
-    const codeEl = ref.current?.querySelector('code')
+    const codeEl = ref.current?.previousSibling?.querySelector('code')
     if (codeEl == null) return
     if (!codeEl.classList.contains('language-rimu')) return
     const code = codeEl.textContent
@@ -60,22 +60,19 @@ function Pre(props) {
   }, [])
 
   return (
-    <div ref={ref}>
+    <>
       <NextraPre {...props} />
-      {playgroundUrl && (
-        <div style={{ marginTop: '-0.5rem' }}>
-          (
-          <a
-            className="nx-underline nx-decoration-from-font [text-underline-position:from-font] nx-mb-4"
-            href={playgroundUrl}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Open in Playground
-          </a>
-          )
-        </div>
-      )}
-    </div>
+      <aside ref={ref} className="open-play open-play__container">
+        {playgroundUrl && (
+          <>
+            (
+            <a className="open-play__link" href={playgroundUrl} target="_blank" rel="noreferrer">
+              Open in Playground
+            </a>
+            )
+          </>
+        )}
+      </aside>
+    </>
   )
 }
