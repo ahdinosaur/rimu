@@ -1,4 +1,6 @@
 import { useRouter } from 'next/router'
+import { Pre as NextraPre } from 'nextra/components'
+import { useEffect, useRef, useState } from 'react'
 
 export default {
   logo: <span>Rimu</span>,
@@ -38,4 +40,42 @@ export default {
       </a>
     ),
   },
+  components: {
+    pre: Pre,
+  },
+}
+
+function Pre(props) {
+  const ref = useRef(null)
+  const [playgroundUrl, setPlaygroundUrl] = useState(null)
+
+  useEffect(() => {
+    const codeEl = ref.current?.querySelector('code')
+    if (codeEl == null) return
+    if (!codeEl.classList.contains('language-rimu')) return
+    const code = codeEl.textContent
+    if (code == null) return
+    const url = `http://localhost:3001?i=u${encodeURIComponent(code)}`
+    setPlaygroundUrl(url)
+  }, [])
+
+  return (
+    <div ref={ref}>
+      <NextraPre {...props} />
+      {playgroundUrl && (
+        <div style={{ marginTop: '-0.5rem' }}>
+          (
+          <a
+            className="nx-underline nx-decoration-from-font [text-underline-position:from-font] nx-mb-4"
+            href={playgroundUrl}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Open in Playground
+          </a>
+          )
+        </div>
+      )}
+    </div>
+  )
 }
