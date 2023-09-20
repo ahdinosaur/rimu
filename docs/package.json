@@ -9,6 +9,9 @@
     "start": "next start"
   },
   "dependencies": {
+    "@mapbox/rehype-highlight-code-block": "^1.0.0",
+    "hast-util-from-lezer": "^0.5.2",
+    "hast-util-to-html": "^9.0.0",
     "next": "13.4.19",
     "nextra": "2.11.1",
     "nextra-theme-docs": "2.11.1",

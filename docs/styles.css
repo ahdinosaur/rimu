@@ -1,0 +1,280 @@
+pre code {
+  display: block !important;
+}
+
+/* latte */
+:root {
+  --ctp-rosewater: 220, 138, 120;
+  --ctp-flamingo: 221, 120, 120;
+  --ctp-pink: 234, 118, 203;
+  --ctp-mauve: 136, 57, 239;
+  --ctp-red: 210, 15, 57;
+  --ctp-maroon: 230, 69, 83;
+  --ctp-peach: 254, 100, 11;
+  --ctp-yellow: 223, 142, 29;
+  --ctp-green: 64, 160, 43;
+  --ctp-teal: 23, 146, 153;
+  --ctp-sky: 4, 165, 229;
+  --ctp-sapphire: 32, 159, 181;
+  --ctp-blue: 30, 102, 245;
+  --ctp-lavender: 114, 135, 253;
+  --ctp-text: 76, 79, 105;
+  --ctp-subtext1: 92, 95, 119;
+  --ctp-subtext0: 108, 111, 133;
+  --ctp-overlay2: 124, 127, 147;
+  --ctp-overlay1: 140, 143, 161;
+  --ctp-overlay0: 156, 160, 176;
+  --ctp-surface2: 172, 176, 190;
+  --ctp-surface1: 188, 192, 204;
+  --ctp-surface0: 204, 208, 218;
+  --ctp-base: 239, 241, 245;
+  --ctp-mantle: 230, 233, 239;
+  --ctp-crust: 220, 224, 232;
+}
+
+/* mocha */
+.dark {
+  --ctp-rosewater: 245, 224, 220;
+  --ctp-flamingo: 242, 205, 205;
+  --ctp-pink: 245, 194, 231;
+  --ctp-mauve: 203, 166, 247;
+  --ctp-red: 243, 139, 168;
+  --ctp-maroon: 235, 160, 172;
+  --ctp-peach: 250, 179, 135;
+  --ctp-yellow: 249, 226, 175;
+  --ctp-green: 166, 227, 161;
+  --ctp-teal: 148, 226, 213;
+  --ctp-sky: 137, 220, 235;
+  --ctp-sapphire: 116, 199, 236;
+  --ctp-blue: 137, 180, 250;
+  --ctp-lavender: 180, 190, 254;
+  --ctp-text: 205, 214, 244;
+  --ctp-subtext1: 186, 194, 222;
+  --ctp-subtext0: 166, 173, 200;
+  --ctp-overlay2: 147, 153, 178;
+  --ctp-overlay1: 127, 132, 156;
+  --ctp-overlay0: 108, 112, 134;
+  --ctp-surface2: 88, 91, 112;
+  --ctp-surface1: 69, 71, 90;
+  --ctp-surface0: 49, 50, 68;
+  --ctp-base: 30, 30, 46;
+  --ctp-mantle: 24, 24, 37;
+  --ctp-crust: 17, 17, 27;
+}
+
+/*
+.ctp-latte {
+  --ctp-rosewater: 220, 138, 120;
+  --ctp-flamingo: 221, 120, 120;
+  --ctp-pink: 234, 118, 203;
+  --ctp-mauve: 136, 57, 239;
+  --ctp-red: 210, 15, 57;
+  --ctp-maroon: 230, 69, 83;
+  --ctp-peach: 254, 100, 11;
+  --ctp-yellow: 223, 142, 29;
+  --ctp-green: 64, 160, 43;
+  --ctp-teal: 23, 146, 153;
+  --ctp-sky: 4, 165, 229;
+  --ctp-sapphire: 32, 159, 181;
+  --ctp-blue: 30, 102, 245;
+  --ctp-lavender: 114, 135, 253;
+  --ctp-text: 76, 79, 105;
+  --ctp-subtext1: 92, 95, 119;
+  --ctp-subtext0: 108, 111, 133;
+  --ctp-overlay2: 124, 127, 147;
+  --ctp-overlay1: 140, 143, 161;
+  --ctp-overlay0: 156, 160, 176;
+  --ctp-surface2: 172, 176, 190;
+  --ctp-surface1: 188, 192, 204;
+  --ctp-surface0: 204, 208, 218;
+  --ctp-base: 239, 241, 245;
+  --ctp-mantle: 230, 233, 239;
+  --ctp-crust: 220, 224, 232;
+}
+.ctp-frappe {
+  --ctp-rosewater: 242, 213, 207;
+  --ctp-flamingo: 238, 190, 190;
+  --ctp-pink: 244, 184, 228;
+  --ctp-mauve: 202, 158, 230;
+  --ctp-red: 231, 130, 132;
+  --ctp-maroon: 234, 153, 156;
+  --ctp-peach: 239, 159, 118;
+  --ctp-yellow: 229, 200, 144;
+  --ctp-green: 166, 209, 137;
+  --ctp-teal: 129, 200, 190;
+  --ctp-sky: 153, 209, 219;
+  --ctp-sapphire: 133, 193, 220;
+  --ctp-blue: 140, 170, 238;
+  --ctp-lavender: 186, 187, 241;
+  --ctp-text: 198, 208, 245;
+  --ctp-subtext1: 181, 191, 226;
+  --ctp-subtext0: 165, 173, 206;
+  --ctp-overlay2: 148, 156, 187;
+  --ctp-overlay1: 131, 139, 167;
+  --ctp-overlay0: 115, 121, 148;
+  --ctp-surface2: 98, 104, 128;
+  --ctp-surface1: 81, 87, 109;
+  --ctp-surface0: 65, 69, 89;
+  --ctp-base: 48, 52, 70;
+  --ctp-mantle: 41, 44, 60;
+  --ctp-crust: 35, 38, 52;
+}
+.ctp-macchiato {
+  --ctp-rosewater: 244, 219, 214;
+  --ctp-flamingo: 240, 198, 198;
+  --ctp-pink: 245, 189, 230;
+  --ctp-mauve: 198, 160, 246;
+  --ctp-red: 237, 135, 150;
+  --ctp-maroon: 238, 153, 160;
+  --ctp-peach: 245, 169, 127;
+  --ctp-yellow: 238, 212, 159;
+  --ctp-green: 166, 218, 149;
+  --ctp-teal: 139, 213, 202;
+  --ctp-sky: 145, 215, 227;
+  --ctp-sapphire: 125, 196, 228;
+  --ctp-blue: 138, 173, 244;
+  --ctp-lavender: 183, 189, 248;
+  --ctp-text: 202, 211, 245;
+  --ctp-subtext1: 184, 192, 224;
+  --ctp-subtext0: 165, 173, 203;
+  --ctp-overlay2: 147, 154, 183;
+  --ctp-overlay1: 128, 135, 162;
+  --ctp-overlay0: 110, 115, 141;
+  --ctp-surface2: 91, 96, 120;
+  --ctp-surface1: 73, 77, 100;
+  --ctp-surface0: 54, 58, 79;
+  --ctp-base: 36, 39, 58;
+  --ctp-mantle: 30, 32, 48;
+  --ctp-crust: 24, 25, 38;
+}
+.ctp-mocha {
+  --ctp-rosewater: 245, 224, 220;
+  --ctp-flamingo: 242, 205, 205;
+  --ctp-pink: 245, 194, 231;
+  --ctp-mauve: 203, 166, 247;
+  --ctp-red: 243, 139, 168;
+  --ctp-maroon: 235, 160, 172;
+  --ctp-peach: 250, 179, 135;
+  --ctp-yellow: 249, 226, 175;
+  --ctp-green: 166, 227, 161;
+  --ctp-teal: 148, 226, 213;
+  --ctp-sky: 137, 220, 235;
+  --ctp-sapphire: 116, 199, 236;
+  --ctp-blue: 137, 180, 250;
+  --ctp-lavender: 180, 190, 254;
+  --ctp-text: 205, 214, 244;
+  --ctp-subtext1: 186, 194, 222;
+  --ctp-subtext0: 166, 173, 200;
+  --ctp-overlay2: 147, 153, 178;
+  --ctp-overlay1: 127, 132, 156;
+  --ctp-overlay0: 108, 112, 134;
+  --ctp-surface2: 88, 91, 112;
+  --ctp-surface1: 69, 71, 90;
+  --ctp-surface0: 49, 50, 68;
+  --ctp-base: 30, 30, 46;
+  --ctp-mantle: 24, 24, 37;
+  --ctp-crust: 17, 17, 27;
+}
+*/
+
+/* https://github.com/catppuccin/highlightjs/blob/main/sass/_theme.scss */
+
+.tok-link {
+  font-weight: italic;
+  color: rgb(var(--ctp-sapphire));
+}
+.tok-heading {
+  color: rgb(var(--ctp-blue));
+}
+.tok-emphasis {
+  font-weight: bold;
+  color: rgb(var(--ctp-red));
+}
+.tok-strong {
+  font-weight: bold;
+  color: rgb(var(--ctp-red));
+}
+.tok-keyword {
+  color: rgb(var(--ctp-mauve));
+}
+.tok-atom {
+  color: rgb(var(--ctp-peach));
+}
+.tok-bool {
+  color: rgb(var(--ctp-peach));
+}
+.tok-url {
+  font-weight: italic;
+  color: rgb(var(--ctp-sapphire));
+}
+.tok-labelName {
+  color: rgb(var(--ctp-blue));
+}
+.tok-inserted {
+  backgroundcolor: rgba(var(--ctp-green), 15%);
+}
+.tok-deleted {
+  backgroundcolor: rgba(var(--ctp-red), 15%);
+}
+.tok-literal {
+  color: rgb(var(--ctp-peach));
+}
+.tok-string {
+  color: rgb(var(--ctp-green));
+}
+/* regex, escape, and special(string) */
+.tok-string2 {
+  color: rgb(var(--ctp-pink));
+}
+.tok-number {
+  color: rgb(var(--ctp-peach));
+}
+.tok-variableName {
+  color: rgb(var(--ctp-mauve));
+}
+/* special(variableName) */
+.tok-variableName2 {
+  color: rgb(var(--ctp-peach));
+}
+/* local(variableName) */
+.tok-variableName.tok-local {
+  color: rgb(var(--ctp-flamingo));
+}
+/* definition(variableName) */
+.tok-variableName.tok-definition {
+  color: rgb(var(--ctp-flamingo));
+}
+.tok-typeName {
+  color: rgb(var(--ctp-yellow));
+}
+.tok-namespace {
+  color: rgb(var(--ctp-mauve));
+}
+.tok-className {
+  color: rgb(var(--ctp-yellow));
+}
+.tok-macroName {
+  color: rgb(var(--ctp-yellow));
+}
+.tok-propertyName {
+  color: rgb(var(--ctp-teal));
+}
+/* definition(propertyName) */
+.tok-propertyName.tok-definition {
+  color: rgb(var(--ctp-lavender));
+}
+.tok-operator {
+  color: rgb(var(--ctp-teal));
+}
+.tok-comment {
+  color: rgb(var(--ctp-surface2));
+}
+.tok-meta {
+  color: rgb(var(--ctp-peach));
+}
+.tok-punctuation {
+  color: rgb(var(--ctp-subtext1));
+}
+.tok-invalid {
+  color: rgb(var(--ctp-red));
+}

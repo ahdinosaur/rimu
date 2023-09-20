@@ -171,4 +171,6 @@ dedentEnd { dedent | endOfFile }
   LineComment { '#' ![\n\r]* }
 }
 
+@external propSource highlight from "./highlight"
+
 @detectDelim
