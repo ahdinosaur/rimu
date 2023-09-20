@@ -40,8 +40,8 @@ FunctionParam { identifier ~arrow }
 FunctionParams { '(' commaSep<FunctionParam> ')' }
 FunctionBlock { FunctionParams '=>' block }
 
-CallFunction { !call expression }
-CallBlock { CallFunction endOfLine indent block dedentEnd }
+CallFunction { expression ~arrow }
+CallBlock { CallFunction !block endOfLine indent block dedentEnd }
 
 LetKey { identifier | String }
 LetBlockEntry { !block LetKey ':' block }
@@ -88,7 +88,7 @@ FunctionExpression { FunctionParams '=>' expression }
 
 CallExpressionArgs { '(' commaSep<expression> ')' }
 CallExpression {
-  CallFunction CallExpressionArgs
+  CallFunction !call CallExpressionArgs
 }
 
 GetIdentifier { identifier }
@@ -102,7 +102,7 @@ GetExpression {
 
 UnaryExpression {
   (ArithmeticOp<'-'> | LogicOp<'!'>)
-  expression
+  !unary expression
 }
 
 BinaryExpression {
