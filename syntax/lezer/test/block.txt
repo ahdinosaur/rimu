@@ -26,6 +26,14 @@ Template(
   )
 )
 
+# Object (single entry)
+
+a: "b"
+
+==>
+
+Template(ObjectBlock(ObjectBlockEntry(ObjectKey, String)))
+
 # Object (identifier keys, string values)
 
 a: "b"
