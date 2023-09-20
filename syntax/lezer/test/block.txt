@@ -80,3 +80,131 @@ Template(
     )
   )
 )
+
+# Object with unicode keys
+
+"🙆": "okay!"
+
+==>
+
+Template(ObjectBlock(ObjectBlockEntry(ObjectKey(String),String)))
+
+# Function
+
+add: (a, b) =>
+  a + b
+
+==>
+
+Template(
+  ObjectBlock(
+    ObjectBlockEntry(
+      ObjectKey,
+      FunctionBlock(
+        FunctionParams(
+          "(",
+          FunctionParam,
+          FunctionParam,
+          ")"
+        ),
+        FatArrow,
+        IndentedBlock(
+          BinaryExpression(
+            Identifier,
+            ArithmeticOp,
+            Identifier
+          )
+        )
+      )
+    )
+  )
+)
+
+# Call
+
+subtract
+  - add(10, 20)
+  - 30
+
+==>
+
+Template(
+  CallBlock(
+    Identifier,
+    CallBlockArg(
+      ListBlock(
+        CallExpression(
+          Identifier,
+          CallExpressionArgs(
+            "(",
+            Number,
+            Number,
+            ")"
+          )
+        ),
+        Number
+      )
+    )
+  )
+)
+
+# If
+
+apple:
+  bottom:
+    if 20 > 10
+    then "jeans"
+    else "trousers"
+
+==>
+
+Template(
+  ObjectBlock(
+    ObjectBlockEntry(
+      ObjectKey,
+      IndentedBlock(
+        ObjectBlock(
+          ObjectBlockEntry(
+            ObjectKey,
+            IndentedBlock(
+              IfBlock(
+                if,
+                BinaryExpression(
+                  Number,
+                  CompareOp,
+                  Number
+                ),
+                then,
+                String,
+                else,
+                String
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+)
+
+# Let
+
+let
+  a: 10
+  b: 20
+in
+  a + b
+
+==>
+
+Template(
+  LetBlock(
+    let,
+    LetBlockEntry(LetKey, Number),
+    LetBlockEntry(LetKey,Number),
+    in,
+    IndentedBlock(
+      BinaryExpression(Identifier, ArithmeticOp,Identifier)
+    )
+  )
+)

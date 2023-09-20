@@ -18,8 +18,10 @@ export const highlight = styleTags({
   BitwiseOp: t.bitwiseOperator,
   CompareOp: t.compareOperator,
 
-  'CallFunction/Identifier': t.function(t.variableName),
-  'CallFunction/GetExpression/GetIdentifier': t.function(t.propertyName),
+  'CallBlock/Identifier CallExpression/Identifier': t.function(t.variableName),
+  'CallBlock/GetExpression/GetIdentifier CallExpression/GetExpression/GetIdentifier': t.function(
+    t.propertyName,
+  ),
   FatArrow: t.function(t.punctuation),
 
   Identifier: t.variableName,
