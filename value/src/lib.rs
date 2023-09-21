@@ -1,10 +1,11 @@
-pub(crate) mod convert;
-pub(crate) mod de;
-pub(crate) mod error;
-pub(crate) mod from;
-pub(crate) mod function;
-pub(crate) mod number;
-pub(crate) mod ser;
+mod convert;
+mod de;
+mod environment;
+mod error;
+mod from;
+mod function;
+mod number;
+mod ser;
 
 use indexmap::IndexMap;
 
@@ -14,6 +15,7 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 
 pub use self::convert::convert;
+pub use self::environment::{Environment, EnvironmentError};
 pub use self::error::ValueError;
 pub use self::function::{Function, FunctionBody};
 pub use self::number::Number;

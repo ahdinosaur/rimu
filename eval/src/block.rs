@@ -3,10 +3,9 @@
 
 use std::ops::Deref;
 
-use crate::Environment;
 use rimu_ast::{Block, Expression, SpannedBlock, SpannedExpression};
 use rimu_meta::{Span, Spanned};
-use rimu_value::{Function, FunctionBody, List, Object, Value};
+use rimu_value::{Environment, Function, FunctionBody, List, Object, Value};
 
 use crate::{expression::evaluate as evaluate_expression, EvalError};
 
@@ -190,13 +189,12 @@ impl<'a> Evaluator<'a> {
 mod tests {
     use indexmap::IndexMap;
 
-    use crate::Environment;
     use indexmap::indexmap;
     use pretty_assertions::assert_eq;
     use rimu_ast::SpannedBlock;
     use rimu_meta::SourceId;
     use rimu_parse::parse_block;
-    use rimu_value::Value;
+    use rimu_value::{Environment, Value};
     use rust_decimal_macros::dec;
 
     use super::{evaluate, EvalError};

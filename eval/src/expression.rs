@@ -3,11 +3,11 @@
 
 use rimu_ast::{BinaryOperator, Expression, SpannedExpression, UnaryOperator};
 use rimu_meta::{Span, Spanned};
-use rimu_value::{Function, FunctionBody, Number, Object, Value};
+use rimu_value::{Environment, Function, FunctionBody, Number, Object, Value};
 use rust_decimal::prelude::ToPrimitive;
 use std::ops::Deref;
 
-use crate::{evaluate_block, Environment, EvalError};
+use crate::{evaluate_block, EvalError};
 
 pub fn evaluate<'a>(
     expression: &SpannedExpression,
@@ -607,13 +607,12 @@ mod tests {
     use indexmap::IndexMap;
     use std::ops::Range;
 
-    use crate::Environment;
     use indexmap::indexmap;
     use pretty_assertions::assert_eq;
     use rimu_ast::{BinaryOperator, Expression, SpannedExpression};
     use rimu_meta::{SourceId, Span, Spanned};
     use rimu_parse::parse_expression;
-    use rimu_value::{Function, FunctionBody, Value};
+    use rimu_value::{Environment, Function, FunctionBody, Value};
     use rust_decimal_macros::dec;
 
     use super::{evaluate, EvalError};

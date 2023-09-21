@@ -1,7 +1,7 @@
 use indexmap::IndexMap;
 use std::iter::empty;
 
-use rimu_value::{value_get_in, Object, Value};
+use crate::{value_get_in, Object, Value};
 
 #[derive(Debug, Clone)]
 pub struct Environment<'a> {
