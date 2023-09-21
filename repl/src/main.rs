@@ -1,3 +1,6 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result};
 
@@ -11,6 +14,7 @@ fn main() -> Result<()> {
     }
 
     let env = Environment::new();
+    let env = Rc::new(RefCell::new(env));
 
     loop {
         let readline = rl.readline(">> ");
@@ -28,13 +32,13 @@ fn main() -> Result<()> {
                     continue;
                 }
                 let Some(expr) = expr else {
-                        println!("No expression.");
-                        continue;
-                    };
+                    println!("No expression.");
+                    continue;
+                };
 
                 // println!("Expression: {}", expr);
 
-                let value = match evaluate_expression(&expr, &env) {
+                let value = match evaluate_expression(&expr, env.clone()) {
                     Ok(value) => value,
                     Err(error) => {
                         let report: ErrorReport = error.into();

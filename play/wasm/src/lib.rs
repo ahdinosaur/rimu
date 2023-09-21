@@ -1,3 +1,5 @@
+use std::{cell::RefCell, rc::Rc};
+
 use rimu::{evaluate, Environment, ErrorReport, ErrorReports};
 use serde::Serialize;
 use serde_wasm_bindgen::{Error as SerdeWasmError, Serializer as WasmSerializer};
@@ -35,8 +37,8 @@ pub fn render(code: &str, source_id: &str, format: Format) -> Result<String, JsV
     };
 
     let env = Environment::new();
-
-    let value = match evaluate(&block, &env) {
+    let env = Rc::new(RefCell::new(env));
+    let value = match evaluate(&block, env) {
         Ok(value) => value,
         Err(error) => {
             let reports: Vec<ErrorReport> = vec![error.into()];

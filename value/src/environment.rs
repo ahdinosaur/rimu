@@ -1,33 +1,33 @@
 use indexmap::IndexMap;
-use std::iter::empty;
+use std::{cell::RefCell, iter::empty, rc::Rc};
 
 use crate::{value_get_in, Object, Value};
 
 #[derive(Debug, Clone)]
-pub struct Environment<'a> {
+pub struct Environment {
     content: Object,
-    parent: Option<&'a Environment<'a>>,
+    parent: Option<Rc<RefCell<Environment>>>,
 }
 
-impl<'a> Environment<'a> {
-    pub fn new() -> Environment<'a> {
+impl Environment {
+    pub fn new() -> Environment {
         Environment {
             content: IndexMap::new(),
             parent: None,
         }
     }
 
-    pub fn child(&'a self) -> Environment<'a> {
+    pub fn new_with_parent(parent: Rc<RefCell<Environment>>) -> Environment {
         Environment {
             content: IndexMap::new(),
-            parent: Some(self),
+            parent: Some(parent),
         }
     }
 
     pub fn from_value(
-        value: &'_ Value,
-        parent: Option<&'a Environment>,
-    ) -> Result<Environment<'a>, EnvironmentError> {
+        value: &Value,
+        parent: Option<Rc<RefCell<Environment>>>,
+    ) -> Result<Environment, EnvironmentError> {
         if let Value::Object(object) = value {
             Self::from_object(object, parent)
         } else {
@@ -38,9 +38,9 @@ impl<'a> Environment<'a> {
     }
 
     pub fn from_object(
-        object: &'_ Object,
-        parent: Option<&'a Environment>,
-    ) -> Result<Environment<'a>, EnvironmentError> {
+        object: &Object,
+        parent: Option<Rc<RefCell<Environment>>>,
+    ) -> Result<Environment, EnvironmentError> {
         let mut context = Environment {
             content: IndexMap::new(),
             parent,
@@ -58,44 +58,35 @@ impl<'a> Environment<'a> {
         K: Into<String>,
         V: Into<Value>,
     {
-        // TODO check is_identifier
-        // ... or key should be a separate struct
-
         self.content.insert(k.into(), v.into());
     }
 
-    pub fn get<'b>(&'b self, key: &str) -> Option<&'b Value> {
-        // TODO check is_identifier
-        // ... or key should be a separate struct
-
+    pub fn get(&self, key: &str) -> Option<Value> {
         match self.content.get(key) {
-            Some(value) => Some(value),
-            None => match self.parent {
-                Some(parent) => parent.get(key),
+            Some(value) => Some(value.clone()),
+            None => match &self.parent {
+                Some(parent) => parent.borrow().get(key),
                 None => None,
             },
         }
     }
 
-    pub fn get_in<'b>(&'b self, keys: Vec<&str>) -> Option<&'b Value> {
-        // TODO check is_identifier
-        // ... or key should be a separate struct
-
+    pub fn get_in(&self, keys: Vec<&str>) -> Option<Value> {
         let Some((first, rest)) = keys.split_first() else {
             return None;
         };
         match self.get(first) {
-            Some(value) => value_get_in(value, rest),
+            Some(value) => value_get_in(&value, rest).cloned(),
             None => None,
         }
     }
 
-    pub fn iter(&'a self) -> Box<dyn 'a + Iterator<Item = (&String, &Value)>> {
-        let parent_iter = match self.parent {
-            Some(parent) => parent.iter(),
+    pub fn iter(&self) -> Box<dyn Iterator<Item = (String, Value)>> {
+        let parent_iter = match &self.parent {
+            Some(parent) => parent.borrow().iter(),
             None => Box::new(empty()),
         };
-        let self_iter = self.content.iter();
+        let self_iter = self.content.clone().into_iter();
         Box::new(parent_iter.chain(self_iter))
     }
 }
