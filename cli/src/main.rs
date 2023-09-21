@@ -1,7 +1,9 @@
 use std::{
+    cell::RefCell,
     error::Error,
     io::{Read, Write},
     process::ExitCode,
+    rc::Rc,
     str::FromStr,
 };
 
@@ -78,7 +80,8 @@ fn main() -> std::result::Result<ExitCode, Box<dyn Error>> {
 
     // println!("Block: {}", block);
 
-    let value = match evaluate(&block, &env) {
+    let env = Rc::new(RefCell::new(env));
+    let value = match evaluate(&block, env) {
         Ok(value) => value,
         Err(error) => {
             let report: ErrorReport = error.into();

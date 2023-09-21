@@ -1,6 +1,6 @@
 use chumsky::prelude::*;
 
-use rimu_ast::{Block, Expression, SpannedBlock};
+use rimu_ast::{Block, SpannedBlock};
 use rimu_meta::{Span, Spanned};
 
 use crate::token::{SpannedToken, Token};

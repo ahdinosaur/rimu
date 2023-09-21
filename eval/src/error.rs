@@ -1,8 +1,6 @@
 use rimu_ast::Expression;
 use rimu_meta::{ErrorReport, Span};
-use rimu_value::{Object, Value};
-
-use crate::EnvironmentError;
+use rimu_value::{EnvironmentError, Object, Value};
 
 #[derive(Debug, thiserror::Error, Clone, PartialEq)]
 pub enum EvalError {

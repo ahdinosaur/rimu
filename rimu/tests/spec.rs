@@ -1,6 +1,6 @@
 use pretty_assertions::assert_eq;
 use rimu::{evaluate, from_value, parse, Environment, SourceId, Value /*ValueError*/};
-use std::error::Error;
+use std::{cell::RefCell, error::Error, rc::Rc};
 
 #[track_caller]
 fn test_spec(spec: Value) -> Result<(), Box<dyn Error>> {
@@ -16,17 +16,19 @@ fn test_spec(spec: Value) -> Result<(), Box<dyn Error>> {
     let Value::String(template) = template else {
         panic!("Spec 'template' must be (folded) string");
     };
-    let context_val: Value = spec.get("context").expect("Spec missing 'context'").clone();
+    let env_val: Value = spec.get("context").expect("Spec missing 'context'").clone();
 
     let title: String = from_value(title)?;
 
-    let mut context = Environment::new();
-    let Value::Object(context_obj) = context_val else {
+    let mut env = Environment::new();
+    let Value::Object(env_obj) = env_val else {
         panic!("Spec 'context' must be object");
     };
-    for (key, value) in context_obj.into_iter() {
-        context.insert(key, value);
+    for (key, value) in env_obj.into_iter() {
+        env.insert(key, value);
     }
+
+    let env = Rc::new(RefCell::new(env));
 
     if let Some(output) = spec.get("output") {
         let (template, errors) = parse(&template, SourceId::empty());
@@ -40,7 +42,7 @@ fn test_spec(spec: Value) -> Result<(), Box<dyn Error>> {
             panic!("Failed to parse template");
         };
 
-        let actual = evaluate(&template, &context)?;
+        let actual = evaluate(&template, env)?;
 
         assert_eq!(output.clone(), actual, "{} : output", title);
     } else if let Some(error) = spec.get("error") {
@@ -76,7 +78,7 @@ fn test_spec(spec: Value) -> Result<(), Box<dyn Error>> {
                 /*
                 let template: Template = from_value(template)?;
                 let actual = engine
-                    .render(&template, &context)
+                    .render(&template, &env)
                     .expect_err("Expected render error");
 
                 assert_eq!(message, &actual.to_string(), "{} : error name", title);

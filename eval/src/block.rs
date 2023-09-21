@@ -1,30 +1,29 @@
 // with help from
 // - https://github.com/DennisPrediger/SLAC/blob/main/src/interpreter.rs
 
-use std::ops::Deref;
+use std::{cell::RefCell, ops::Deref, rc::Rc};
 
-use crate::Environment;
 use rimu_ast::{Block, Expression, SpannedBlock, SpannedExpression};
 use rimu_meta::{Span, Spanned};
-use rimu_value::{Function, FunctionBody, List, Object, Value};
+use rimu_value::{Environment, Function, FunctionBody, List, Object, Value};
 
 use crate::{expression::evaluate as evaluate_expression, EvalError};
 
 type Result<Value> = std::result::Result<Value, EvalError>;
 
-pub fn evaluate<'a>(expression: &SpannedBlock, env: &'a Environment<'a>) -> Result<Value> {
+pub fn evaluate(expression: &SpannedBlock, env: Rc<RefCell<Environment>>) -> Result<Value> {
     let (value, _span) = Evaluator::new(env).block(expression)?;
     Ok(value)
 }
 
 /// A tree walking interpreter which given an [`Environment`] and an [`Block`]
 /// recursivly walks the tree and computes a single [`Value`].
-struct Evaluator<'a> {
-    env: &'a Environment<'a>,
+struct Evaluator {
+    env: Rc<RefCell<Environment>>,
 }
 
-impl<'a> Evaluator<'a> {
-    fn new(env: &'a Environment) -> Self {
+impl Evaluator {
+    fn new(env: Rc<RefCell<Environment>>) -> Self {
         Self { env }
     }
 
@@ -56,7 +55,7 @@ impl<'a> Evaluator<'a> {
     }
 
     fn expression(&self, span: Span, expr: &Expression) -> Result<Value> {
-        evaluate_expression(&Spanned::new(expr.clone(), span), self.env)
+        evaluate_expression(&Spanned::new(expr.clone(), span), self.env.clone())
     }
 
     fn object(&self, _span: Span, entries: &[(Spanned<String>, SpannedBlock)]) -> Result<Value> {
@@ -92,7 +91,8 @@ impl<'a> Evaluator<'a> {
     ) -> Result<Value> {
         let args: Vec<String> = args.iter().map(|a| a.inner()).cloned().collect();
         let body = FunctionBody::Block(body.clone());
-        Ok(Value::Function(Function { args, body }))
+        let env = self.env.clone();
+        Ok(Value::Function(Function { args, body, env }))
     }
 
     fn call(
@@ -102,7 +102,7 @@ impl<'a> Evaluator<'a> {
         args: &SpannedBlock,
     ) -> Result<Value> {
         let function_span = function.span();
-        let Value::Function(function) = evaluate_expression(function, self.env)? else {
+        let Value::Function(function) = evaluate_expression(function, self.env.clone())? else {
             return Err(EvalError::CallNonFunction {
                 span: function_span,
                 expr: function.clone().into_inner(),
@@ -115,7 +115,8 @@ impl<'a> Evaluator<'a> {
             arg => vec![arg],
         };
 
-        let mut function_env = self.env.child();
+        let function_env = function.env.clone();
+        let mut body_env = Environment::new_with_parent(function_env);
 
         for index in 0..function.args.len() {
             let arg_name = function.args[index].clone();
@@ -124,12 +125,14 @@ impl<'a> Evaluator<'a> {
                 .map(ToOwned::to_owned)
                 // TODO missing arg error or missing context error
                 .unwrap_or_else(|| Value::Null);
-            function_env.insert(arg_name, arg_value);
+            body_env.insert(arg_name, arg_value);
         }
 
         match &function.body {
-            FunctionBody::Expression(expression) => evaluate_expression(expression, &function_env),
-            FunctionBody::Block(block) => evaluate(block, &function_env),
+            FunctionBody::Expression(expression) => {
+                evaluate_expression(expression, Rc::new(RefCell::new(body_env)))
+            }
+            FunctionBody::Block(block) => evaluate(block, Rc::new(RefCell::new(body_env))),
         }
     }
 
@@ -175,28 +178,31 @@ impl<'a> Evaluator<'a> {
             variables.insert(key, value);
         }
 
-        let env = Environment::from_object(&variables, Some(self.env)).map_err(|error| {
+        let parent_env = self.env.clone();
+        let let_env = Environment::from_object(&variables, Some(parent_env)).map_err(|error| {
             EvalError::Environment {
                 span,
                 source: error,
             }
         })?;
 
-        evaluate(body, &env)
+        evaluate(body, Rc::new(RefCell::new(let_env)))
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::cell::RefCell;
+    use std::rc::Rc;
+
     use indexmap::IndexMap;
 
-    use crate::Environment;
     use indexmap::indexmap;
     use pretty_assertions::assert_eq;
     use rimu_ast::SpannedBlock;
     use rimu_meta::SourceId;
     use rimu_parse::parse_block;
-    use rimu_value::Value;
+    use rimu_value::{Environment, Value};
     use rust_decimal_macros::dec;
 
     use super::{evaluate, EvalError};
@@ -212,7 +218,7 @@ mod tests {
             }
         }
 
-        evaluate(&expr, &env)
+        evaluate(&expr, Rc::new(RefCell::new(env)))
     }
 
     fn test_code(

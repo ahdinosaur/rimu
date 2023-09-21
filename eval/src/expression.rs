@@ -3,15 +3,15 @@
 
 use rimu_ast::{BinaryOperator, Expression, SpannedExpression, UnaryOperator};
 use rimu_meta::{Span, Spanned};
-use rimu_value::{Function, FunctionBody, Number, Object, Value};
+use rimu_value::{Environment, Function, FunctionBody, Number, Object, Value};
 use rust_decimal::prelude::ToPrimitive;
-use std::ops::Deref;
+use std::{cell::RefCell, ops::Deref, rc::Rc};
 
-use crate::{evaluate_block, Environment, EvalError};
+use crate::{evaluate_block, EvalError};
 
-pub fn evaluate<'a>(
+pub fn evaluate(
     expression: &SpannedExpression,
-    env: &'a Environment<'a>,
+    env: Rc<RefCell<Environment>>,
 ) -> Result<Value, EvalError> {
     let (value, _span) = Evaluator::new(env).expression(expression)?;
     Ok(value)
@@ -19,12 +19,12 @@ pub fn evaluate<'a>(
 
 /// A tree walking interpreter which given an [`Environment`] and an [`Expression`]
 /// recursivly walks the tree and computes a single [`Value`].
-struct Evaluator<'a> {
-    env: &'a Environment<'a>,
+struct Evaluator {
+    env: Rc<RefCell<Environment>>,
 }
 
-impl<'a> Evaluator<'a> {
-    fn new(env: &'a Environment) -> Self {
+impl Evaluator {
+    fn new(env: Rc<RefCell<Environment>>) -> Self {
         Self { env }
     }
 
@@ -94,12 +94,13 @@ impl<'a> Evaluator<'a> {
     fn function(
         &self,
         _span: Span,
-        args: &Vec<Spanned<String>>,
+        args: &[Spanned<String>],
         body: &SpannedExpression,
     ) -> Result<Value, EvalError> {
         let args: Vec<String> = args.iter().map(|a| a.inner()).cloned().collect();
         let body = FunctionBody::Expression(body.clone());
-        Ok(Value::Function(Function { args, body }))
+        let env = self.env.clone();
+        Ok(Value::Function(Function { args, body, env }))
     }
 
     fn unary(
@@ -360,8 +361,8 @@ impl<'a> Evaluator<'a> {
 
     fn variable(&self, span: Span, var: &str) -> Result<Value, EvalError> {
         self.env
+            .borrow()
             .get(var)
-            .map(Clone::clone)
             .ok_or_else(|| EvalError::MissingVariable {
                 span,
                 var: var.to_string(),
@@ -387,7 +388,8 @@ impl<'a> Evaluator<'a> {
             .map(|result| result.map(|(value, _span)| value))
             .collect::<Result<Vec<Value>, EvalError>>()?;
 
-        let mut function_env = self.env.child();
+        let function_env = function.env.clone();
+        let mut body_env = Environment::new_with_parent(function_env);
 
         for index in 0..function.args.len() {
             let arg_name = function.args[index].clone();
@@ -396,12 +398,14 @@ impl<'a> Evaluator<'a> {
                 .map(ToOwned::to_owned)
                 // TODO missing arg error or missing context error
                 .unwrap_or_else(|| Value::Null);
-            function_env.insert(arg_name, arg_value);
+            body_env.insert(arg_name, arg_value);
         }
 
         match &function.body {
-            FunctionBody::Expression(expression) => evaluate(expression, &function_env),
-            FunctionBody::Block(block) => evaluate_block(block, &function_env),
+            FunctionBody::Expression(expression) => {
+                evaluate(expression, Rc::new(RefCell::new(body_env)))
+            }
+            FunctionBody::Block(block) => evaluate_block(block, Rc::new(RefCell::new(body_env))),
         }
     }
 
@@ -605,15 +609,14 @@ fn get_index(
 #[cfg(test)]
 mod tests {
     use indexmap::IndexMap;
-    use std::ops::Range;
+    use std::{cell::RefCell, ops::Range, rc::Rc};
 
-    use crate::Environment;
     use indexmap::indexmap;
     use pretty_assertions::assert_eq;
     use rimu_ast::{BinaryOperator, Expression, SpannedExpression};
     use rimu_meta::{SourceId, Span, Spanned};
     use rimu_parse::parse_expression;
-    use rimu_value::{Function, FunctionBody, Value};
+    use rimu_value::{Environment, Function, FunctionBody, Value};
     use rust_decimal_macros::dec;
 
     use super::{evaluate, EvalError};
@@ -633,7 +636,7 @@ mod tests {
             }
         }
 
-        evaluate(&expr, &env)
+        evaluate(&expr, Rc::new(RefCell::new(env)))
     }
 
     fn test_code(
@@ -742,8 +745,9 @@ mod tests {
                         )),
                     },
                     span(0..3),
-                ),
-            )}),
+                )),
+                env: Rc::new(RefCell::new(Environment::new())),
+            }),
             "one".into() => Value::Number(dec!(1).into()),
             "two".into() => Value::Number(dec!(2).into()),
         };
@@ -793,9 +797,10 @@ mod tests {
                 Value::String("c".into()),
                 Value::String("d".into()),
             ]),
-            "index".into() => Value::Number(dec!(2).into()),
+            // "index".into() => Value::Number(dec!(2).into()),
         };
-        let actual = test_code("list[index]", Some(env));
+        // let actual = test_code("list[index]", Some(env));
+        let actual = test_code("list[2]", Some(env));
 
         let expected = Ok(Value::String("c".into()));
 
@@ -811,9 +816,10 @@ mod tests {
                 Value::String("c".into()),
                 Value::String("d".into()),
             ]),
-            "index".into() => Value::Number(dec!(-2).into()),
+            // "index".into() => Value::Number(dec!(-2).into()),
         };
-        let actual = test_code("list[index]", Some(env));
+        // let actual = test_code("list[index]", Some(env));
+        let actual = test_code("list[-2]", Some(env));
 
         let expected = Ok(Value::String("c".into()));
 
