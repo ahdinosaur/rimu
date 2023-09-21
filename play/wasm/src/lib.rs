@@ -3,9 +3,6 @@ use serde::Serialize;
 use serde_wasm_bindgen::{Error as SerdeWasmError, Serializer as WasmSerializer};
 use wasm_bindgen::prelude::*;
 
-#[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
-
 #[wasm_bindgen]
 pub fn init() {
     // When the `console_error_panic_hook` feature is enabled, we can call the
