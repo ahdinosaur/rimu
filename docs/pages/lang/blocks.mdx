@@ -1,0 +1,114 @@
+# Rimu blocks
+
+Rimu is structured as blocks similar to [Yaml](https://yaml.org/), with some important differences.
+
+## Expressions
+
+Unlike Yaml, scalars (values) are [Rimu expressions](./expressions).
+
+So this means Rimu is both more strict and more expressive:
+
+- Strings must be wrapped in quotes, otherwise is assumed to be an identifier.
+- No more implicit typing (aka the ["Norway Problem"](https://hitchdev.com/strictyaml/why/implicit-typing-removed/))
+
+### Null
+
+```rimu
+mikey: null
+```
+
+### Boolean
+
+```rimu
+nonsense: true
+```
+
+### Number
+
+```rimu
+bottles_of_beer_on_the_wall: 99
+```
+
+### String
+
+```rimu
+cat: "Charlie"
+```
+
+### Function
+
+```rimu
+add: (a, b) =>
+  a + b
+```
+
+## Collections
+
+### Objects
+
+```rimu
+mikey:
+  name: "Mikey"
+  website: "https://mikey.nz"
+```
+
+#### Keys
+
+Keys must either be:
+
+##### Unquoted Key
+
+Unquoted keys are [identifiers](./expressions#Identifiers) and must conform to regex: `^[a-zA-Z_][a-zA-Z0-9_]*$`.
+
+##### Quoted Key
+
+Quoted keys can be any valid Unicode.
+
+```rimu
+"🙆": "okay!"
+```
+
+### Lists
+
+```rimu
+similar_projects:
+  - "JSON-e"
+  - "Nickel"
+  - "Jsonnet"
+```
+
+
+## Multi-line values
+
+TODO
+
+## Operations
+
+### `if`
+
+```rimu
+apple:
+  bottom:
+    if 20 > 10
+    then "jeans"
+    else "trousers"
+boots:
+  if "a" == "a"
+  then
+    with: "fur"
+  else
+    without: "fur"
+```
+
+### `let`
+
+```rimu
+let
+  add: (a, b) => a + b
+  subtract: (a, b) =>
+    a - b
+in
+  subtract
+    - add(10, 20)
+    - 30
+```
