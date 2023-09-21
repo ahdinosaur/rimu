@@ -91,7 +91,8 @@ impl Evaluator {
     ) -> Result<Value> {
         let args: Vec<String> = args.iter().map(|a| a.inner()).cloned().collect();
         let body = FunctionBody::Block(body.clone());
-        Ok(Value::Function(Function { args, body }))
+        let env = self.env.clone();
+        Ok(Value::Function(Function { args, body, env }))
     }
 
     fn call(
@@ -114,7 +115,8 @@ impl Evaluator {
             arg => vec![arg],
         };
 
-        let mut function_env = Environment::new_with_parent(self.env.clone());
+        let function_env = function.env.clone();
+        let mut body_env = Environment::new_with_parent(function_env);
 
         for index in 0..function.args.len() {
             let arg_name = function.args[index].clone();
@@ -123,14 +125,14 @@ impl Evaluator {
                 .map(ToOwned::to_owned)
                 // TODO missing arg error or missing context error
                 .unwrap_or_else(|| Value::Null);
-            function_env.insert(arg_name, arg_value);
+            body_env.insert(arg_name, arg_value);
         }
 
         match &function.body {
             FunctionBody::Expression(expression) => {
-                evaluate_expression(expression, Rc::new(RefCell::new(function_env)))
+                evaluate_expression(expression, Rc::new(RefCell::new(body_env)))
             }
-            FunctionBody::Block(block) => evaluate(block, Rc::new(RefCell::new(function_env))),
+            FunctionBody::Block(block) => evaluate(block, Rc::new(RefCell::new(body_env))),
         }
     }
 

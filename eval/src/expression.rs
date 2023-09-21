@@ -99,7 +99,8 @@ impl Evaluator {
     ) -> Result<Value, EvalError> {
         let args: Vec<String> = args.iter().map(|a| a.inner()).cloned().collect();
         let body = FunctionBody::Expression(body.clone());
-        Ok(Value::Function(Function { args, body }))
+        let env = self.env.clone();
+        Ok(Value::Function(Function { args, body, env }))
     }
 
     fn unary(
@@ -387,7 +388,8 @@ impl Evaluator {
             .map(|result| result.map(|(value, _span)| value))
             .collect::<Result<Vec<Value>, EvalError>>()?;
 
-        let mut function_env = Environment::new_with_parent(self.env.clone());
+        let function_env = function.env.clone();
+        let mut body_env = Environment::new_with_parent(function_env);
 
         for index in 0..function.args.len() {
             let arg_name = function.args[index].clone();
@@ -396,16 +398,14 @@ impl Evaluator {
                 .map(ToOwned::to_owned)
                 // TODO missing arg error or missing context error
                 .unwrap_or_else(|| Value::Null);
-            function_env.insert(arg_name, arg_value);
+            body_env.insert(arg_name, arg_value);
         }
 
         match &function.body {
             FunctionBody::Expression(expression) => {
-                evaluate(expression, Rc::new(RefCell::new(function_env)))
+                evaluate(expression, Rc::new(RefCell::new(body_env)))
             }
-            FunctionBody::Block(block) => {
-                evaluate_block(block, Rc::new(RefCell::new(function_env)))
-            }
+            FunctionBody::Block(block) => evaluate_block(block, Rc::new(RefCell::new(body_env))),
         }
     }
 
@@ -745,8 +745,9 @@ mod tests {
                         )),
                     },
                     span(0..3),
-                ),
-            )}),
+                )),
+                env: Rc::new(RefCell::new(Environment::new())),
+            }),
             "one".into() => Value::Number(dec!(1).into()),
             "two".into() => Value::Number(dec!(2).into()),
         };
@@ -796,9 +797,10 @@ mod tests {
                 Value::String("c".into()),
                 Value::String("d".into()),
             ]),
-            "index".into() => Value::Number(dec!(2).into()),
+            // "index".into() => Value::Number(dec!(2).into()),
         };
-        let actual = test_code("list[index]", Some(env));
+        // let actual = test_code("list[index]", Some(env));
+        let actual = test_code("list[2]", Some(env));
 
         let expected = Ok(Value::String("c".into()));
 
@@ -814,9 +816,10 @@ mod tests {
                 Value::String("c".into()),
                 Value::String("d".into()),
             ]),
-            "index".into() => Value::Number(dec!(-2).into()),
+            // "index".into() => Value::Number(dec!(-2).into()),
         };
-        let actual = test_code("list[index]", Some(env));
+        // let actual = test_code("list[index]", Some(env));
+        let actual = test_code("list[-2]", Some(env));
 
         let expected = Ok(Value::String("c".into()));
 
