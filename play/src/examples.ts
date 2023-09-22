@@ -1,5 +1,8 @@
+// @ts-ignore
 import helloWorldCode from '../../examples/hello-world.rimu'
+// @ts-ignore
 import ifCode from '../../examples/if.rimu'
+// @ts-ignore
 import letCode from '../../examples/let.rimu'
 
 export type Example = {
