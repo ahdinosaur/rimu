@@ -12,7 +12,7 @@ export default {
     const { asPath } = useRouter()
     if (asPath !== '/') {
       return {
-        titleTemplate: '%s – Rimu',
+        titleTemplate: 'Rimu – %s',
       }
     }
   },
@@ -29,14 +29,17 @@ export default {
       <meta name="theme-color" content="#dffdff" />
 
       <meta property="og:title" content="Rimu" />
-      <meta property="og:description" content="Functional templates for config data strutures 🌱" />
+      <meta
+        property="og:description"
+        content="Rimu is a template language for structured data and functional expressions. 🌱"
+      />
     </>
   ),
   banner: {
     key: 'star-on-github',
     text: (
       <a href="https://github.com/ahdinosaur/rimu" target="_blank">
-        ⭐ Like what you see? Star on Github! ⭐
+        ⭐Like this project? Star on Github! ⭐
       </a>
     ),
   },
