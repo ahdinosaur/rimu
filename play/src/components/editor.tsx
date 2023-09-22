@@ -14,7 +14,7 @@ export type EditorProps = {
   codeToLoad: string | null
   resetCodeToLoad: () => void
   reports: Array<Report>
-  editorState: EditorState
+  editorState: EditorState | null
   setEditorState: (state: EditorState) => void
 }
 
