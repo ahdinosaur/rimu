@@ -127,11 +127,8 @@ function HelpButton() {
           <ModalCloseButton />
           <ModalBody>
             <Text>
-              <Link
-                href="https://rimu.dev"
-                sx={{ color: { _light: 'teal.600', _dark: 'teal.50' } }}
-                isExternal
-              >
+              Learn about Rimu:{' '}
+              <Link href="https://rimu.dev" sx={{ color: 'ctp.teal' }} isExternal>
                 rimu.dev
                 <Icon sx={{ marginX: 1 }} as={FaExternalLinkAlt} />
               </Link>
