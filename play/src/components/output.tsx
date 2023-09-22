@@ -56,7 +56,7 @@ export function FormatSelect(props: FormatSelectProps) {
         padding: 1,
       }}
     >
-      <Text sx={{ fontSize: 12, fontWeight: 'bold' }}>Output:</Text>
+      <Text sx={{ fontSize: 12, fontWeight: 'bold' }}>Format:</Text>
 
       <Box>
         <Select
