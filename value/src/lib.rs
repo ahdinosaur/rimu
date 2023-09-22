@@ -4,6 +4,7 @@ mod environment;
 mod error;
 mod from;
 mod function;
+mod native;
 mod number;
 mod ser;
 
@@ -18,6 +19,7 @@ pub use self::convert::convert;
 pub use self::environment::{Environment, EnvironmentError};
 pub use self::error::ValueError;
 pub use self::function::{Function, FunctionBody};
+pub use self::native::{NativeFunction, NativeFunctionError};
 pub use self::number::Number;
 use self::ser::Serializer;
 

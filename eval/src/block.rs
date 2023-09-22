@@ -5,7 +5,7 @@ use std::{cell::RefCell, ops::Deref, rc::Rc};
 
 use rimu_ast::{Block, Expression, SpannedBlock, SpannedExpression};
 use rimu_meta::{Span, Spanned};
-use rimu_value::{Environment, Function, FunctionBody, List, Object, Value};
+use rimu_value::{Environment, Function, FunctionBody, List, NativeFunctionError, Object, Value};
 
 use crate::{expression::evaluate as evaluate_expression, EvalError};
 
@@ -115,6 +115,19 @@ impl Evaluator {
             arg => vec![arg],
         };
 
+        if let FunctionBody::Native(native) = function.body {
+            return match native.call(&args) {
+                Ok(value) => Ok(value),
+                Err(error) => match error {
+                    NativeFunctionError::TypeError { got, expected } => Err(EvalError::TypeError {
+                        span: function_span,
+                        expected,
+                        got: *got,
+                    }),
+                },
+            };
+        }
+
         let function_env = function.env.clone();
         let mut body_env = Environment::new_with_parent(function_env);
 
@@ -133,6 +146,7 @@ impl Evaluator {
                 evaluate_expression(expression, Rc::new(RefCell::new(body_env)))
             }
             FunctionBody::Block(block) => evaluate(block, Rc::new(RefCell::new(body_env))),
+            _ => unreachable!(),
         }
     }
 

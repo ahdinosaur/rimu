@@ -3,7 +3,7 @@
 
 use rimu_ast::{BinaryOperator, Expression, SpannedExpression, UnaryOperator};
 use rimu_meta::{Span, Spanned};
-use rimu_value::{Environment, Function, FunctionBody, Number, Object, Value};
+use rimu_value::{Environment, Function, FunctionBody, NativeFunctionError, Number, Object, Value};
 use rust_decimal::prelude::ToPrimitive;
 use std::{cell::RefCell, ops::Deref, rc::Rc};
 
@@ -375,7 +375,7 @@ impl Evaluator {
         function: &SpannedExpression,
         args: &[SpannedExpression],
     ) -> Result<Value, EvalError> {
-        let (Value::Function(function), _function_span) = self.expression(function)? else {
+        let (Value::Function(function), function_span) = self.expression(function)? else {
             return Err(EvalError::CallNonFunction {
                 span: function.span(),
                 expr: function.clone().into_inner(),
@@ -387,6 +387,19 @@ impl Evaluator {
             .map(|expression| self.expression(expression))
             .map(|result| result.map(|(value, _span)| value))
             .collect::<Result<Vec<Value>, EvalError>>()?;
+
+        if let FunctionBody::Native(native) = function.body {
+            return match native.call(&args) {
+                Ok(value) => Ok(value),
+                Err(error) => match error {
+                    NativeFunctionError::TypeError { got, expected } => Err(EvalError::TypeError {
+                        span: function_span,
+                        expected,
+                        got: *got,
+                    }),
+                },
+            };
+        }
 
         let function_env = function.env.clone();
         let mut body_env = Environment::new_with_parent(function_env);
@@ -406,6 +419,7 @@ impl Evaluator {
                 evaluate(expression, Rc::new(RefCell::new(body_env)))
             }
             FunctionBody::Block(block) => evaluate_block(block, Rc::new(RefCell::new(body_env))),
+            _ => unreachable!(),
         }
     }
 

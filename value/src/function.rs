@@ -2,7 +2,7 @@ use std::{cell::RefCell, fmt, rc::Rc};
 
 use rimu_ast::{SpannedBlock, SpannedExpression};
 
-use crate::Environment;
+use crate::{native::NativeFunction, Environment};
 
 #[derive(Debug, Clone)]
 pub struct Function {
@@ -21,6 +21,7 @@ impl PartialEq for Function {
 pub enum FunctionBody {
     Block(SpannedBlock),
     Expression(SpannedExpression),
+    Native(NativeFunction),
 }
 
 impl fmt::Display for Function {
