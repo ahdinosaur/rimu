@@ -45,6 +45,8 @@ import { useEffect, useState } from 'react'
 import { useClipboard } from 'use-clipboard-copy'
 import { usePathname, useSearchParams } from 'next/navigation'
 
+import { Example, examples } from '@/examples'
+
 export type HeaderMenuProps = {
   height: string
   setCodeToLoad: (code: string) => void
@@ -82,17 +84,6 @@ export function HeaderMenu(props: HeaderMenuProps) {
     </Flex>
   )
 }
-
-type Example = {
-  name: string
-  code: string
-}
-const examples: Array<Example> = [
-  {
-    name: 'Hello world',
-    code: 'hello: "world"',
-  },
-]
 
 type ExamplesMenuProps = {
   setCodeToLoad: (code: string) => void

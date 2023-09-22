@@ -1,0 +1,11 @@
+apple:
+  bottom:
+    if 20 > 10
+    then "jeans"
+    else "trousers"
+boots:
+  if "a" == "a"
+  then
+    with: "fur"
+  else
+    without: "fur"
