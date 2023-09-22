@@ -1,7 +1,16 @@
 'use client'
 
 import { useCallback, useState } from 'react'
-import { Box, Flex } from '@chakra-ui/react'
+import {
+  Box,
+  Flex,
+  Tab,
+  TabList,
+  TabPanel,
+  TabPanels,
+  Tabs,
+  useBreakpointValue,
+} from '@chakra-ui/react'
 // @ts-ignore
 import { useResplit } from 'react-resplit'
 
@@ -21,10 +30,6 @@ export function Playground() {
   const [format, setFormat] = useState<Format>('json')
   const [reports, setReports] = useState<Array<Report>>([])
 
-  const { getContainerProps, getSplitterProps, getPaneProps } = useResplit({
-    direction: 'horizontal',
-  })
-
   useRimu({
     code,
     format,
@@ -38,31 +43,72 @@ export function Playground() {
   })
 
   const headerHeight = '2.5rem'
-  const bodyHeight = 'calc(100dvh - 2.5rem)'
+  const bodyHeight = `calc(100dvh - ${headerHeight})`
+
+  const isMobile = useBreakpointValue({ base: true, md: false })
+
+  const editorElement = (
+    <Editor
+      height={bodyHeight}
+      code={code}
+      setCode={setCode}
+      codeToLoad={codeToLoad}
+      resetCodeToLoad={resetCodeToLoad}
+      reports={reports}
+    />
+  )
+  const outputElement = (
+    <Output height={bodyHeight} output={output} format={format} setFormat={setFormat} />
+  )
+
+  const Panels = isMobile ? PlaygroundPanesMobile : PlaygroundPanesDesktop
 
   return (
     <Flex sx={{ flexDirection: 'column', height: '100dvh', alignItems: 'stretch' }}>
       <HeaderMenu height={headerHeight} setCodeToLoad={setCodeToLoad} />
-
-      <Box {...getContainerProps()} sx={{ flexGrow: 1 }}>
-        <Box {...getPaneProps(0, { initialSize: '0.5fr' })}>
-          <Editor
-            height={bodyHeight}
-            code={code}
-            setCode={setCode}
-            codeToLoad={codeToLoad}
-            resetCodeToLoad={resetCodeToLoad}
-            reports={reports}
-          />
-        </Box>
-        <Box
-          {...getSplitterProps(1, { size: '12px' })}
-          sx={{ backgroundColor: 'rimu.splitter.background' }}
-        />
-        <Box {...getPaneProps(2, { initialSize: '0.5fr' })}>
-          <Output height={bodyHeight} output={output} format={format} setFormat={setFormat} />
-        </Box>
-      </Box>
+      <Panels editorElement={editorElement} outputElement={outputElement} />
     </Flex>
+  )
+}
+
+type PlaygroundPanesProps = {
+  editorElement: React.ReactElement
+  outputElement: React.ReactElement
+}
+
+function PlaygroundPanesDesktop(props: PlaygroundPanesProps) {
+  const { editorElement, outputElement } = props
+
+  const { getContainerProps, getSplitterProps, getPaneProps } = useResplit({
+    direction: 'horizontal',
+  })
+
+  return (
+    <Box {...getContainerProps()} sx={{ flexGrow: 1 }}>
+      <Box {...getPaneProps(0, { initialSize: '0.5fr' })}>{editorElement}</Box>
+      <Box
+        {...getSplitterProps(1, { size: '12px' })}
+        sx={{ backgroundColor: 'rimu.splitter.background' }}
+      />
+      <Box {...getPaneProps(2, { initialSize: '0.5fr' })}>{outputElement}</Box>
+    </Box>
+  )
+}
+
+function PlaygroundPanesMobile(props: PlaygroundPanesProps) {
+  const { editorElement, outputElement } = props
+
+  return (
+    <Tabs variant="enclosed" colorScheme="green" isFitted>
+      <TabList>
+        <Tab>Template</Tab>
+        <Tab>Output</Tab>
+      </TabList>
+
+      <TabPanels>
+        <TabPanel>{editorElement}</TabPanel>
+        <TabPanel>{outputElement}</TabPanel>
+      </TabPanels>
+    </Tabs>
   )
 }
