@@ -49,21 +49,17 @@ export function FormatSelect(props: FormatSelectProps) {
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'baseline',
-        borderBottomColor: 'ctp.crust',
-        borderBottomWidth: '2px',
-        borderBottomStyle: 'solid',
         backgroundColor: 'ctp.mantle',
         padding: 1,
       }}
     >
-      <Text sx={{ fontSize: 12, fontWeight: 'bold' }}>Format:</Text>
-
       <Box>
         <Select
           size="xs"
           variant="outline"
           value={format}
           onChange={handleChange}
+          aria-label="Format"
           sx={{
             flexGrow: 1,
             color: 'ctp.base',

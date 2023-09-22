@@ -11,6 +11,7 @@ import {
   TabList,
   TabPanel,
   TabPanels,
+  TabProps,
   Tabs,
   TabsProps,
   useBreakpointValue,
@@ -48,7 +49,7 @@ export function Playground() {
   })
 
   const headerHeight = '2.5rem'
-  const bodyHeight = `calc(100dvh - ${headerHeight})`
+  const bodyHeight = `calc(100dvh - ${headerHeight} - var(--chakra-sizes-8))`
 
   const isMobile = useBreakpointValue({ base: true, md: false })
 
@@ -94,7 +95,8 @@ function PlaygroundPanesDesktop(props: PlaygroundPanesProps) {
     <Box {...getContainerProps()} sx={{ flexGrow: 1 }}>
       <Box {...getPaneProps(0, { initialSize: '0.5fr' })}>
         <PanelTabs
-          tabProps={{
+          tabsProps={{
+            height: 8,
             colorScheme: 'gray',
             variant: 'unstyled',
           }}
@@ -109,7 +111,8 @@ function PlaygroundPanesDesktop(props: PlaygroundPanesProps) {
       <Box {...getSplitterProps(1, { size: '12px' })} sx={{ backgroundColor: 'ctp.surface0' }} />
       <Box {...getPaneProps(2, { initialSize: '0.5fr' })}>
         <PanelTabs
-          tabProps={{
+          tabsProps={{
+            height: 8,
             colorScheme: 'gray',
             variant: 'unstyled',
           }}
@@ -130,8 +133,8 @@ function PlaygroundPanesMobile(props: PlaygroundPanesProps) {
 
   return (
     <PanelTabs
-      tabProps={{
-        colorScheme: 'green',
+      tabsProps={{
+        colorScheme: 'purple',
       }}
       tabs={[
         {
@@ -154,18 +157,21 @@ type PanelTab = {
 
 type PanelTabsProps = {
   tabs: Array<PanelTab>
-  tabProps?: Omit<TabsProps, 'children'>
+  tabsProps?: Omit<TabsProps, 'children'>
+  tabProps?: Omit<TabProps, 'children'>
   tabIndicatorProps?: TabIndicatorProps
 }
 
 function PanelTabs(props: PanelTabsProps) {
-  const { tabs, tabProps = {}, tabIndicatorProps } = props
+  const { tabs, tabsProps = {}, tabProps = {}, tabIndicatorProps } = props
 
   return (
-    <Tabs variant="enclosed" isFitted size="sm" {...tabProps}>
+    <Tabs variant="enclosed" isFitted size="sm" {...tabsProps}>
       <TabList>
         {tabs.map((t, i) => (
-          <Tab key={i}>{t.label}</Tab>
+          <Tab key={i} {...tabProps}>
+            {t.label}
+          </Tab>
         ))}
       </TabList>
 
