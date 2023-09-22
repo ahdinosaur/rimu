@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useState } from 'react'
+import { EditorState } from '@codemirror/state'
 import {
   Box,
   Flex,
@@ -29,6 +30,7 @@ export function Playground() {
   const [output, setOutput] = useState<string>('')
   const [format, setFormat] = useState<Format>('json')
   const [reports, setReports] = useState<Array<Report>>([])
+  const [editorState, setEditorState] = useState<EditorState | null>(null)
 
   useRimu({
     code,
@@ -55,6 +57,8 @@ export function Playground() {
       codeToLoad={codeToLoad}
       resetCodeToLoad={resetCodeToLoad}
       reports={reports}
+      editorState={editorState}
+      setEditorState={setEditorState}
     />
   )
   const outputElement = (

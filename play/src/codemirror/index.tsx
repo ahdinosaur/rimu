@@ -11,16 +11,16 @@ import { createIdler } from './idle'
 import { createDiagnosticTheme, createDiagnosticGutterTheme } from './theme'
 
 export type CodeMirrorOptions = {
-  parent: HTMLDivElement
   theme: Variant
   code: string
   setCode: (code: string) => void
+  setState: (state: EditorState) => void
 }
 
 const themeCompartment = new Compartment()
 
 export function CodeMirror(options: CodeMirrorOptions) {
-  const { parent, theme, code, setCode } = options
+  const { theme, code, setCode, setState } = options
 
   const idler = createIdler(
     (view) => {
@@ -32,10 +32,13 @@ export function CodeMirror(options: CodeMirrorOptions) {
     },
   )
 
-  const startState = EditorState.create({
+  return EditorState.create({
     doc: code,
     extensions: [
       basicSetup,
+      EditorView.updateListener.of((ev) => {
+        setState(ev.state)
+      }),
       keymap.of([indentWithTab]),
       themeCompartment.of([
         catppuccin(theme),
@@ -48,10 +51,6 @@ export function CodeMirror(options: CodeMirrorOptions) {
       createDiagnosticGutter(),
     ],
   })
-
-  const view = new EditorView({ state: startState, parent })
-
-  return view
 }
 
 export function updateTheme(view: EditorView, theme: Variant) {
