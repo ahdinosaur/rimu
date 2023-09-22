@@ -7,6 +7,7 @@ import {
   Flex,
   Tab,
   TabIndicator,
+  TabIndicatorProps,
   TabList,
   TabPanel,
   TabPanels,
@@ -93,10 +94,6 @@ function PlaygroundPanesDesktop(props: PlaygroundPanesProps) {
     <Box {...getContainerProps()} sx={{ flexGrow: 1 }}>
       <Box {...getPaneProps(0, { initialSize: '0.5fr' })}>
         <PanelTabs
-          tabIndicatorProps={{
-            height: '1px',
-            backgroundColor: 'rimu.splitter.background',
-          }}
           tabProps={{
             colorScheme: 'gray',
             variant: 'unstyled',
@@ -109,16 +106,9 @@ function PlaygroundPanesDesktop(props: PlaygroundPanesProps) {
           ]}
         />
       </Box>
-      <Box
-        {...getSplitterProps(1, { size: '12px' })}
-        sx={{ backgroundColor: 'rimu.splitter.background' }}
-      />
+      <Box {...getSplitterProps(1, { size: '12px' })} sx={{ backgroundColor: 'ctp.surface0' }} />
       <Box {...getPaneProps(2, { initialSize: '0.5fr' })}>
         <PanelTabs
-          tabIndicatorProps={{
-            height: '1px',
-            backgroundColor: 'rimu.splitter.background',
-          }}
           tabProps={{
             colorScheme: 'gray',
             variant: 'unstyled',

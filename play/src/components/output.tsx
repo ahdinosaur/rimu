@@ -20,7 +20,7 @@ export function Output(props: OutputProps) {
   return (
     <Flex sx={{ height, flexDirection: 'column', width: '100%' }}>
       <FormatSelect format={format} setFormat={setFormat} />
-      <Code sx={{ width: '100%', flexGrow: 1, backgroundColor: 'rimu.output.background' }}>
+      <Code sx={{ width: '100%', flexGrow: 1, backgroundColor: 'ctp.mantle' }}>
         <pre>{output}</pre>
       </Code>
     </Flex>
@@ -49,10 +49,10 @@ export function FormatSelect(props: FormatSelectProps) {
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'baseline',
-        borderBottomColor: 'rimu.output.border',
+        borderBottomColor: 'ctp.crust',
         borderBottomWidth: '2px',
         borderBottomStyle: 'solid',
-        backgroundColor: 'rimu.output.background',
+        backgroundColor: 'ctp.mantle',
         padding: 1,
       }}
     >
@@ -66,9 +66,9 @@ export function FormatSelect(props: FormatSelectProps) {
           onChange={handleChange}
           sx={{
             flexGrow: 1,
-            color: 'rimu.format.text',
-            borderColor: 'rimu.format.border',
-            backgroundColor: 'rimu.format.background',
+            color: 'ctp.base',
+            borderColor: 'ctp.text',
+            backgroundColor: 'ctp.lavender',
           }}
         >
           <option value="json">JSON</option>

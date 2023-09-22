@@ -62,7 +62,7 @@ export function HeaderMenu(props: HeaderMenuProps) {
         flexDirection: 'row',
         alignItems: 'center',
         width: '100%',
-        backgroundColor: 'rimu.header.background',
+        backgroundColor: 'ctp.crust',
         paddingX: 1,
       }}
     >
