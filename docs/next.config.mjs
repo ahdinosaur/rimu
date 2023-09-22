@@ -33,8 +33,15 @@ export default config
 
 function highlight(code, lang) {
   const parser = lezerParsers[lang]
-  if (parser == null) return code
+  if (parser == null) return null
   const tree = parser.parse(code)
   const element = fromLezer(code, tree)
-  return toHtml(element)
+  const html = toHtml(element)
+  return html
+    .split('\n')
+    .map((line) => {
+      if (line.length == 0) line = ' '
+      return `<span class="line">${line}</span>`
+    })
+    .join('\n')
 }

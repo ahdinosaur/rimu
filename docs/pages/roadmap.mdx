@@ -7,17 +7,19 @@
 
 - Expressions
 
-  - Literals
+  - Atoms
 
     - [x] Null
     - [x] Boolean
     - [x] Number
     - [x] String
+    - [x] Function : [pull#57](https://github.com/ahdinosaur/rimu/pull/57)
+    - [x] Identifier
+
+  - Collections
+
     - [x] List
     - [x] Object
-    - [x] Function : [pull#57](https://github.com/ahdinosaur/rimu/pull/57)
-
-  - Identifier
 
   - Unary operations
 
@@ -40,48 +42,67 @@
     - [x] `||` (or)
     - [x] `^` (xor)
     - [x] `%` (remainder)
-    - [x] Call
+
+  - Other operations
+
+    - [x] Call Function
     - [x] Get Index
     - [x] Get Key
     - [x] Get Slice
 
+  - Other features
+
+    - [ ] Destructuring
+
 - Blocks
+
+  - Collections
+
+    - [x] List
+    - [x] Object
 
   - Operations
 
-    - [x] `$if`: [pull#7](https://github.com/ahdinosaur/rimu/pull/7)
-    - [x] `$let`: [pull#8](https://github.com/ahdinosaur/rimu/pull/8)
-    - [ ] `$type`: [issue#53](https://github.com/ahdinosaur/rimu/issues/53)
-    - [ ] `$exec`:
-    - [ ] `$fn`:
-    - [ ] `$switch`: [issue#47](https://github.com/ahdinosaur/rimu/issues/47)
-    - [ ] `$switchAll`: [issue#48](https://github.com/ahdinosaur/rimu/issues/48)
-    - [ ] `$map`: [issue#49](https://github.com/ahdinosaur/rimu/issues/49)
-    - [ ] `$mapObject`: [issue#50](https://github.com/ahdinosaur/rimu/issues/50)
-    - [ ] `$filter`: [issue#51](https://github.com/ahdinosaur/rimu/issues/51)
-    - [ ] `$flatten`
-    - [ ] `$flattenDeep`
-    - [ ] `$merge`
-    - [ ] `$mergeDeep`
-    - [ ] `$sort`
-    - [ ] `$reverse`
+    - [x] `let`: [pull#8](https://github.com/ahdinosaur/rimu/pull/8)
+    - [x] `if`: [pull#7](https://github.com/ahdinosaur/rimu/pull/7)
+    - [ ] `switch`: [issue#47](https://github.com/ahdinosaur/rimu/issues/47)
+    - [ ] `switchAll`: [issue#48](https://github.com/ahdinosaur/rimu/issues/48)
+    - [ ] `type`: [issue#53](https://github.com/ahdinosaur/rimu/issues/53)
+    - [ ] `apply`
+    - [ ] `fn`
 
-  - Destructuring
+  - Other features
+
+    - [ ] Multi-line strings
+    - [ ] Destructuring
+
+- Standard Library
+
+    - [ ] `map`: [issue#49](https://github.com/ahdinosaur/rimu/issues/49)
+    - [ ] `mapValues`: [issue#50](https://github.com/ahdinosaur/rimu/issues/50)
+    - [ ] `filter`: [issue#51](https://github.com/ahdinosaur/rimu/issues/51)
+    - [ ] `flatten`
+    - [ ] `flattenDeep`
+    - [ ] `merge`
+    - [ ] `mergeDeep`
+    - [ ] `sort`
+    - [ ] `reverse`
 
 - Documentation
 
   - [x] Playground website: [play.rimu.dev](https://play.rimu.dev)
-  - [ ] Docs website: [rimu.dev](https://rimu.dev)
+  - [x] Docs website: [rimu.dev](https://rimu.dev)
 
 - Type system
 
-  - [ ] Core type system
+  - [ ] [Gradual typing](https://en.m.wikipedia.org/wiki/Gradual_typing) system
+  - [ ] [Type inference](https://en.m.wikipedia.org/wiki/Type_inference)
   - [ ] Schemas: [issue#22](https://github.com/ahdinosaur/rimu/issues/22)
 
 - Dev experience
 
   - [ ] Code formatter: [issue#32](https://github.com/ahdinosaur/rimu/issues/32)
-  - [ ] CodeMirror Lezer grammar
+  - [x] CodeMirror Lezer grammar: [pull#59](https://github.com/ahdinosaur/rimu/pull/59)
   - [ ] Tree-sitter grammar
   - [ ] Autocomplete: [issue#43](https://github.com/ahdinosaur/rimu/issues/43)
   - [ ] LSP (language server protocol) server
