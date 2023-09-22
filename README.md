@@ -6,19 +6,23 @@
   />
 </div>
 
-<h1 align="center">Rimu 🌱</h1>
+<h1 align="center">
+  <a href="https://rimu.dev">
+    Rimu 🌱
+  </a>
+</h1>
 
 <div align="center">
   <strong>
-    Data structure template language.
+    A data structure template language.
   </strong>
 </div>
 
 <br />
 
-Rimu is a template language for structured data and functional expressions.
+Rimu is a friendly template language for structured data and functional expressions.
 
-Unlike other template languages, Rimu operates on data structures, not text.
+Create parametric data using the best of Yaml structures and Lisp functions.
 
 Learn more at [rimu.dev](https://rimu.dev)
 
