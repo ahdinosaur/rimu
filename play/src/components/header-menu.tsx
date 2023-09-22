@@ -67,7 +67,7 @@ export function HeaderMenu(props: HeaderMenuProps) {
       }}
     >
       <HStack spacing={4} sx={{ alignItems: 'center' }}>
-        <Heading as="h1" size="lg" sx={{ lineHeight: 'normal' }}>
+        <Heading as="h1" size={{ base: 'md', md: 'lg' }} sx={{ lineHeight: 'normal' }}>
           Rimu
         </Heading>
         <ExamplesMenu setCodeToLoad={setCodeToLoad} />
@@ -94,7 +94,7 @@ function ExamplesMenu(props: ExamplesMenuProps) {
 
   return (
     <Menu>
-      <MenuButton as={Button} size="sm" rightIcon={<FaChevronDown />}>
+      <MenuButton as={Button} size={{ base: 'xs', md: 'sm' }} rightIcon={<FaChevronDown />}>
         Examples
       </MenuButton>
       <MenuList>
@@ -116,7 +116,7 @@ function HelpButton() {
 
   return (
     <>
-      <Button size="sm" onClick={onOpen}>
+      <Button size={{ base: 'xs', md: 'sm' }} onClick={onOpen}>
         Help
       </Button>
 
@@ -169,7 +169,7 @@ function SharePopover() {
   return (
     <Popover>
       <PopoverTrigger>
-        <Button size="sm">Share</Button>
+        <Button size={{ base: 'xs', md: 'sm' }}>Share</Button>
       </PopoverTrigger>
       <PopoverContent>
         <PopoverArrow />

@@ -103,7 +103,7 @@ function PlaygroundPanesMobile(props: PlaygroundPanesProps) {
   const { editorElement, outputElement } = props
 
   return (
-    <Tabs variant="enclosed" colorScheme="green" isFitted>
+    <Tabs variant="enclosed" colorScheme="green" isFitted size={{ base: 'sm', md: 'md' }}>
       <TabList>
         <Tab>Template</Tab>
         <Tab>Output</Tab>
