@@ -1,18 +1,52 @@
-# Rimu expressions
+# Expressions
 
-## Expression
+## Atoms
 
-### Value
+### Null
 
-The simplest expression is a [Value](./values) literal.
+```rimu
+null
+```
 
-- [Null](./values#Null)
-- [Boolean](./values#Boolean)
-- [Number](./values#Number)
-- [String](./values#String)
-- [List](./values#List)
-- [Object](./values#Object)
-- [Function](./values#Function)
+### Boolean
+
+```rimu
+true
+```
+
+```rimu
+false
+```
+
+### Number
+
+> All numbers in Rimu are ["Big" Decimals](https://crates.io/crates/rust_decimal), not floats or integers.
+
+```rimu
+10
+```
+
+```rimu
+10.99
+```
+
+### String
+
+```rimu
+"hello world"
+```
+
+> Escape quotes within strings to represent them literally.
+
+```rimu
+"they said \"hello world\""
+```
+
+### Function
+
+```rimu
+(a, b) => a + b
+```
 
 ### Identifier
 
@@ -22,7 +56,33 @@ The simplest expression is a [Value](./values) literal.
 hello
 ```
 
-### Unary operator
+
+## Collections
+
+### List
+
+```rimu
+["hello", null, "world"]
+```
+
+### Object
+
+> Unquoted keys must conform to [Identifier](#Identifier) regex: `^[a-zA-Z_][a-zA-Z0-9_]*$`
+>
+> Quoted keys can be any valid Unicode.
+
+
+```rimu
+{ a: "apple", b: "bear" }
+```
+
+```rimu
+{ "a": "apple", "b": "bear" }
+```
+
+## Operators
+
+### Unary
 
 > Operand must be a number.
 
@@ -40,7 +100,7 @@ hello
 !is_done
 ```
 
-### Binary Operator
+### Binary
 
 #### `+` (add)
 
@@ -84,11 +144,15 @@ hello
 
 #### `>` (greater than)
 
+> Operands must be numbers.
+
 ```rimu
-10 / 2
+10 > 2
 ```
 
 #### `>=` (greater than or equal)
+
+> Operands must be numbers.
 
 ```rimu
 10 >= 2
@@ -96,11 +160,15 @@ hello
 
 #### `<` (less than)
 
+> Operands must be numbers.
+
 ```rimu
 10 < 2
 ```
 
 #### `<=` (less than or equal)
+
+> Operands must be numbers.
 
 ```rimu
 10 <= 2
@@ -109,25 +177,25 @@ hello
 #### `==` (equal)
 
 ```rimu
-10 == 2
+true == false
 ```
 
 #### `!=` (not equal)
 
 ```rimu
-10 == 2
+true != false
 ```
 
 #### `&&` (and)
 
 ```rimu
-10 == 2
+true && false
 ```
 
 #### `||` (or)
 
 ```rimu
-10 == 2
+true || false
 ```
 
 #### `^` (xor)
@@ -143,7 +211,7 @@ true ^ false
 > Operands must be numbers.
 
 ```rimu
-10 == 2
+10 % 2
 ```
 
 ### Call

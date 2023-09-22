@@ -12,6 +12,8 @@ const nextConfig = {
       }),
     )
 
+    config.module.rules.push({ test: /\.rimu$/, type: 'asset/source' })
+
     return config
   },
 }

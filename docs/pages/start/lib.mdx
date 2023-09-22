@@ -1,0 +1,38 @@
+# Start: Library
+
+To use Rimu in your [Rust](https://www.rust-lang.org/) app, add `rimu` to your `Cargo.toml`
+
+```toml
+rimu = "*"
+```
+
+## Rust
+
+Rimu values can be serialized into any Rust struct, using `serde`.
+
+Here's an example:
+
+```rust
+// populate your pre-defined environment (context where variables are defined)
+let env = Rc::new(RefCell::new(Environment::new()));
+
+// parse code into Rimu ast
+let (block, errors) = rimu::parse(code, source_id);
+let Some(block) = block else {
+    panic!("parse error")
+}
+
+// evaluate Rimu ast into Rimu value
+let Ok(value) = rimu::evaluate(&block, env) else {
+    panic!("eval error")
+}
+
+// serialize Rimu value into your Rust struct
+let thing: YourThing = rimu::from_value(value).unwrap();
+```
+
+## Wasm
+
+Rimu can also be compiled into a Wasm module with [`wasm-pack`](https://rustwasm.github.io/wasm-pack/book/), to be used in a web app.
+
+See the playground code for ideas: [`rimu/play/wasm/src/lib.rs`](https://github.com/ahdinosaur/rimu/blob/main/play/wasm/src/lib.rs)

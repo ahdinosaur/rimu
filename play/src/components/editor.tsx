@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react'
 import { Box, useColorModeValue } from '@chakra-ui/react'
+import { EditorState } from '@codemirror/state'
 import { EditorView } from 'codemirror'
 import { Variant } from 'codemirror-theme-catppuccin'
 
@@ -13,10 +14,21 @@ export type EditorProps = {
   codeToLoad: string | null
   resetCodeToLoad: () => void
   reports: Array<Report>
+  editorState: EditorState | null
+  setEditorState: (state: EditorState) => void
 }
 
 export function Editor(props: EditorProps) {
-  const { height, code, setCode, codeToLoad, resetCodeToLoad, reports } = props
+  const {
+    height,
+    code,
+    setCode,
+    codeToLoad,
+    resetCodeToLoad,
+    reports,
+    editorState,
+    setEditorState,
+  } = props
 
   const parentRef = useRef(null)
   const [view, setView] = useState<EditorView | null>(null)
@@ -27,12 +39,17 @@ export function Editor(props: EditorProps) {
     if (parentRef.current == null) return
     const parent = parentRef.current
 
-    const view = CodeMirror({
-      parent,
-      setCode,
-      theme,
-      code,
-    })
+    const state =
+      editorState != null
+        ? editorState
+        : CodeMirror({
+            setCode,
+            theme,
+            code,
+            setState: setEditorState,
+          })
+
+    const view = new EditorView({ state, parent })
     setView(view)
 
     return () => {
@@ -40,6 +57,8 @@ export function Editor(props: EditorProps) {
       setView(null)
     }
   }, [parentRef, setCode])
+
+  // on state change
 
   // on reports change
   useEffect(() => {

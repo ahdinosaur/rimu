@@ -1,4 +1,5 @@
 {
+  "// note(mw)": "This language file is incomplete, see Lezer grammar for a complete language highlighter. Contributions welcome!",
   "scopeName": "source.rimu",
   "fileTypes": ["rimu"],
   "name": "rimu",

@@ -1,5 +1,7 @@
-pre code {
-  display: block !important;
+/* override Nextra default, since our code highlighting doesn't add `data-theme`. */
+pre:not([data-theme]) {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 .open-play__container {

@@ -1,0 +1,8 @@
+let
+  add: (a, b) => a + b
+  subtract: (a, b) =>
+    a - b
+in
+  subtract
+    - add(10, 20)
+    - 30

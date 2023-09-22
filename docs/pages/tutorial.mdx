@@ -1,4 +1,4 @@
-# A Rimu Tutorial
+# Tutorial: Turtle Geometry
 
 Have you ever heard of turtle geometry?
 
@@ -6,47 +6,101 @@ Have you ever heard of turtle geometry?
 
 > Watch on [tube.arthack.nz](https://tube.arthack.nz/videos/watch/96ffe315-5d1d-426f-8abe-93d8ad925dee) or [archive.org](https://archive.org/details/NOVATalkingTurtle/NOVA.S10E11.Talking.Turtle.1983.VHSRip.AAC2.0.x264-rattera.mp4)
 
-We could implement a Logo-inspired turtle game using Rimu, where kids could move turtles with code.
+We could implement Logo-inspired turtle geometry using Rimu, where kids could move turtles with code.
 
 If we wanted to [make a star](https://www.turtleacademy.com/programs/40499):
 
-```yaml
+```rimu
 - setwidth: 10
-- setcolor: 4
+- setcolor: "red"
 
 - right: 18
 - forward: 50
 
-- $map: range(5)
-  each:
-    - right: 144
-    - forward: 50
-    - left: 72
-    - forward: 50
+- map
+    list: range(5)
+    each:
+      - right: 144
+      - forward: 50
+      - left: 72
+      - forward: 50
 ```
 
 Then the output is a list of commands for the turtle to execute.
 
 Now we might start to think about a better data model, how do we want users to describe their turtle actions?
 
+Let's say we create 3 types of actions:
 
-## Actions
+- `set`: set the width or color of the pen
+- `rotate`: rotate the turtle by some degrees
+- `move`: move the turtle by some distance
 
-### Set
+We code our actions in Rust:
 
-### Rotate
+```rust
+#[derive(Debug, serde::Deserialize)]
+#[serde(tag = "type")]
+enum Action {
+    #[serde(rename = "set")]
+    Set {
+        width: Option<u32>
+        color: Option<Color>
+    },
+    #[serde(rename = "rotate")]
+    Rotate(Rotation)
+    #[serde(rename = "move")]
+    Move(Movement)
+}
 
-### Move
+#[derive(Debug, serde::Deserialize)]
+#[serde(untagged)]
+enum Rotation {
+    Left {
+        left: u32
+    },
+    Right {
+        right: u32
+    },
+}
 
-## Example
-
+#[derive(Debug, serde::Deserialize)]
+#[serde(untagged)]
+enum Movement {
+    Forward {
+        forward: u32
+    },
+    Backward {
+        backward: u32
+    },
+}
 ```
-- $type: "set"
+
+Now to describe our star:
+
+```rimu
+- action: "set"
   width: 10
   color: 4
-- $type: "rotate"
+
+- action: "rotate"
   right: 18
-- $type: "move"
+- action: "move"
   forward: 50
+
+- map
+    list: range(5)
+    each:
+      - action: "rotate"
+        right: 144
+      - action: "move"
+        forward: 50
+      - action: "rotate"
+        left: 72
+      - action: "move"
+        forward: 50
 ```
 
+TODO: Make a demo to show this in action.
+
+For now, see [`Start: Library`](./start/lib) for how to parse, evaluate, and convert Rimu code into Rust data types.

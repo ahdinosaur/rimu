@@ -45,6 +45,8 @@ import { useEffect, useState } from 'react'
 import { useClipboard } from 'use-clipboard-copy'
 import { usePathname, useSearchParams } from 'next/navigation'
 
+import { Example, examples } from '@/examples'
+
 export type HeaderMenuProps = {
   height: string
   setCodeToLoad: (code: string) => void
@@ -60,12 +62,12 @@ export function HeaderMenu(props: HeaderMenuProps) {
         flexDirection: 'row',
         alignItems: 'center',
         width: '100%',
-        backgroundColor: 'rimu.header.background',
+        backgroundColor: 'ctp.crust',
         paddingX: 1,
       }}
     >
       <HStack spacing={4} sx={{ alignItems: 'center' }}>
-        <Heading as="h1" size="lg" sx={{ lineHeight: 'normal' }}>
+        <Heading as="h1" size={{ base: 'md', md: 'lg' }} sx={{ lineHeight: 'normal' }}>
           Rimu
         </Heading>
         <ExamplesMenu setCodeToLoad={setCodeToLoad} />
@@ -83,17 +85,6 @@ export function HeaderMenu(props: HeaderMenuProps) {
   )
 }
 
-type Example = {
-  name: string
-  code: string
-}
-const examples: Array<Example> = [
-  {
-    name: 'Hello world',
-    code: 'hello: "world"',
-  },
-]
-
 type ExamplesMenuProps = {
   setCodeToLoad: (code: string) => void
 }
@@ -103,7 +94,7 @@ function ExamplesMenu(props: ExamplesMenuProps) {
 
   return (
     <Menu>
-      <MenuButton as={Button} size="sm" rightIcon={<FaChevronDown />}>
+      <MenuButton as={Button} size={{ base: 'xs', md: 'sm' }} rightIcon={<FaChevronDown />}>
         Examples
       </MenuButton>
       <MenuList>
@@ -125,7 +116,7 @@ function HelpButton() {
 
   return (
     <>
-      <Button size="sm" onClick={onOpen}>
+      <Button size={{ base: 'xs', md: 'sm' }} onClick={onOpen}>
         Help
       </Button>
 
@@ -136,11 +127,8 @@ function HelpButton() {
           <ModalCloseButton />
           <ModalBody>
             <Text>
-              <Link
-                href="https://rimu.dev"
-                sx={{ color: { _light: 'teal.600', _dark: 'teal.50' } }}
-                isExternal
-              >
+              Learn about Rimu:{' '}
+              <Link href="https://rimu.dev" sx={{ color: 'ctp.teal' }} isExternal>
                 rimu.dev
                 <Icon sx={{ marginX: 1 }} as={FaExternalLinkAlt} />
               </Link>
@@ -178,7 +166,7 @@ function SharePopover() {
   return (
     <Popover>
       <PopoverTrigger>
-        <Button size="sm">Share</Button>
+        <Button size={{ base: 'xs', md: 'sm' }}>Share</Button>
       </PopoverTrigger>
       <PopoverContent>
         <PopoverArrow />
