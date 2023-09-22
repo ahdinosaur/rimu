@@ -6,10 +6,12 @@ import {
   Box,
   Flex,
   Tab,
+  TabIndicator,
   TabList,
   TabPanel,
   TabPanels,
   Tabs,
+  TabsProps,
   useBreakpointValue,
 } from '@chakra-ui/react'
 // @ts-ignore
@@ -89,12 +91,46 @@ function PlaygroundPanesDesktop(props: PlaygroundPanesProps) {
 
   return (
     <Box {...getContainerProps()} sx={{ flexGrow: 1 }}>
-      <Box {...getPaneProps(0, { initialSize: '0.5fr' })}>{editorElement}</Box>
+      <Box {...getPaneProps(0, { initialSize: '0.5fr' })}>
+        <PanelTabs
+          tabIndicatorProps={{
+            height: '1px',
+            backgroundColor: 'rimu.splitter.background',
+          }}
+          tabProps={{
+            colorScheme: 'gray',
+            variant: 'unstyled',
+          }}
+          tabs={[
+            {
+              label: 'Template',
+              element: editorElement,
+            },
+          ]}
+        />
+      </Box>
       <Box
         {...getSplitterProps(1, { size: '12px' })}
         sx={{ backgroundColor: 'rimu.splitter.background' }}
       />
-      <Box {...getPaneProps(2, { initialSize: '0.5fr' })}>{outputElement}</Box>
+      <Box {...getPaneProps(2, { initialSize: '0.5fr' })}>
+        <PanelTabs
+          tabIndicatorProps={{
+            height: '1px',
+            backgroundColor: 'rimu.splitter.background',
+          }}
+          tabProps={{
+            colorScheme: 'gray',
+            variant: 'unstyled',
+          }}
+          tabs={[
+            {
+              label: 'Output',
+              element: outputElement,
+            },
+          ]}
+        />
+      </Box>
     </Box>
   )
 }
@@ -103,15 +139,54 @@ function PlaygroundPanesMobile(props: PlaygroundPanesProps) {
   const { editorElement, outputElement } = props
 
   return (
-    <Tabs variant="enclosed" colorScheme="green" isFitted size={{ base: 'sm', md: 'md' }}>
+    <PanelTabs
+      tabProps={{
+        colorScheme: 'green',
+      }}
+      tabs={[
+        {
+          label: 'Template',
+          element: editorElement,
+        },
+        {
+          label: 'Output',
+          element: outputElement,
+        },
+      ]}
+    />
+  )
+}
+
+type PanelTab = {
+  label: string
+  element: React.ReactElement
+}
+
+type PanelTabsProps = {
+  tabs: Array<PanelTab>
+  tabProps?: Omit<TabsProps, 'children'>
+  tabIndicatorProps?: TabIndicatorProps
+}
+
+function PanelTabs(props: PanelTabsProps) {
+  const { tabs, tabProps = {}, tabIndicatorProps } = props
+
+  return (
+    <Tabs variant="enclosed" isFitted size="sm" {...tabProps}>
       <TabList>
-        <Tab>Template</Tab>
-        <Tab>Output</Tab>
+        {tabs.map((t, i) => (
+          <Tab key={i}>{t.label}</Tab>
+        ))}
       </TabList>
 
+      {tabIndicatorProps && <TabIndicator {...tabIndicatorProps} />}
+
       <TabPanels>
-        <TabPanel>{editorElement}</TabPanel>
-        <TabPanel>{outputElement}</TabPanel>
+        {tabs.map((t, i) => (
+          <TabPanel key={i} sx={{ padding: 0 }}>
+            {t.element}
+          </TabPanel>
+        ))}
       </TabPanels>
     </Tabs>
   )
