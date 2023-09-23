@@ -7,7 +7,7 @@ use rimu_value::{Environment, Function, FunctionBody, NativeFunctionError, Numbe
 use rust_decimal::prelude::ToPrimitive;
 use std::{cell::RefCell, ops::Deref, rc::Rc};
 
-use crate::{evaluate_block, EvalError};
+use crate::{common, evaluate_block, EvalError};
 
 pub fn evaluate(
     expression: &SpannedExpression,
@@ -388,45 +388,7 @@ impl Evaluator {
             .map(|result| result.map(|(value, _span)| value))
             .collect::<Result<Vec<Value>, EvalError>>()?;
 
-        if let FunctionBody::Native(native) = function.body {
-            return match native.call(&args) {
-                Ok(value) => Ok(value),
-                Err(error) => match error {
-                    NativeFunctionError::MissingArgument { index } => {
-                        Err(EvalError::MissingArgument {
-                            span: function_span,
-                            index,
-                        })
-                    }
-                    NativeFunctionError::TypeError { got, expected } => Err(EvalError::TypeError {
-                        span: function_span,
-                        expected,
-                        got: *got,
-                    }),
-                },
-            };
-        }
-
-        let function_env = function.env.clone();
-        let mut body_env = Environment::new_with_parent(function_env);
-
-        for index in 0..function.args.len() {
-            let arg_name = function.args[index].clone();
-            let arg_value = args
-                .get(index)
-                .map(ToOwned::to_owned)
-                // TODO missing arg error or missing context error
-                .unwrap_or_else(|| Value::Null);
-            body_env.insert(arg_name, arg_value);
-        }
-
-        match &function.body {
-            FunctionBody::Expression(expression) => {
-                evaluate(expression, Rc::new(RefCell::new(body_env)))
-            }
-            FunctionBody::Block(block) => evaluate_block(block, Rc::new(RefCell::new(body_env))),
-            _ => unreachable!(),
-        }
+        common::call(function, function_span, &args)
     }
 
     fn get_index(

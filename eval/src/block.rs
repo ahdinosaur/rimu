@@ -5,11 +5,9 @@ use std::{cell::RefCell, ops::Deref, rc::Rc};
 
 use rimu_ast::{Block, Expression, SpannedBlock, SpannedExpression};
 use rimu_meta::{Span, Spanned};
-use rimu_value::{Environment, Function, FunctionBody, List, NativeFunctionError, Object, Value};
+use rimu_value::{Environment, Function, FunctionBody, List, Object, Value};
 
-use crate::{expression::evaluate as evaluate_expression, EvalError};
-
-type Result<Value> = std::result::Result<Value, EvalError>;
+use crate::{common, expression::evaluate as evaluate_expression, EvalError, Result};
 
 pub fn evaluate(expression: &SpannedBlock, env: Rc<RefCell<Environment>>) -> Result<Value> {
     let (value, _span) = Evaluator::new(env).block(expression)?;
@@ -115,45 +113,7 @@ impl Evaluator {
             arg => vec![arg],
         };
 
-        if let FunctionBody::Native(native) = function.body {
-            return match native.call(&args) {
-                Ok(value) => Ok(value),
-                Err(error) => match error {
-                    NativeFunctionError::MissingArgument { index } => {
-                        Err(EvalError::MissingArgument {
-                            span: function_span,
-                            index,
-                        })
-                    }
-                    NativeFunctionError::TypeError { got, expected } => Err(EvalError::TypeError {
-                        span: function_span,
-                        expected,
-                        got: *got,
-                    }),
-                },
-            };
-        }
-
-        let function_env = function.env.clone();
-        let mut body_env = Environment::new_with_parent(function_env);
-
-        for index in 0..function.args.len() {
-            let arg_name = function.args[index].clone();
-            let arg_value = args
-                .get(index)
-                .map(ToOwned::to_owned)
-                // TODO missing arg error or missing context error
-                .unwrap_or_else(|| Value::Null);
-            body_env.insert(arg_name, arg_value);
-        }
-
-        match &function.body {
-            FunctionBody::Expression(expression) => {
-                evaluate_expression(expression, Rc::new(RefCell::new(body_env)))
-            }
-            FunctionBody::Block(block) => evaluate(block, Rc::new(RefCell::new(body_env))),
-            _ => unreachable!(),
-        }
+        common::call(function, function_span, &args)
     }
 
     fn if_(
