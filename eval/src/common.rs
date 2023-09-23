@@ -5,17 +5,13 @@ use rimu_value::{Environment, Function, FunctionBody, NativeFunctionError, Value
 
 use crate::{evaluate_block, evaluate_expression, EvalError, Result};
 
-pub(crate) fn call(function: Function, function_span: Span, args: &[Value]) -> Result<Value> {
+pub(crate) fn call(span: Span, function: Function, args: &[Value]) -> Result<Value> {
     if let FunctionBody::Native(native) = function.body {
         return match native.call(&args) {
             Ok(value) => Ok(value),
             Err(error) => match error {
-                NativeFunctionError::MissingArgument { index } => Err(EvalError::MissingArgument {
-                    span: function_span,
-                    index,
-                }),
                 NativeFunctionError::TypeError { got, expected } => Err(EvalError::TypeError {
-                    span: function_span,
+                    span,
                     expected,
                     got: *got,
                 }),
@@ -32,7 +28,7 @@ pub(crate) fn call(function: Function, function_span: Span, args: &[Value]) -> R
             .get(index)
             .map(ToOwned::to_owned)
             // TODO missing arg error or missing context error
-            .unwrap_or_else(|| Value::Null);
+            .map_or_else(|| Err(EvalError::MissingArgument { span, index }), Ok)?;
         body_env.insert(arg_name, arg_value);
     }
 

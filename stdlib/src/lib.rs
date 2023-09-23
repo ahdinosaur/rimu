@@ -10,30 +10,47 @@ pub fn create_stdlib() -> Object {
     lib
 }
 
-fn env() -> Rc<RefCell<Environment>> {
+fn empty_env() -> Rc<RefCell<Environment>> {
     Rc::new(RefCell::new(Environment::new()))
 }
 
+pub fn length_function(args: &[Value]) -> Result<Value, NativeFunctionError> {
+    let arg = &args[0];
+    match arg {
+        Value::List(list) => Ok(list.len().into()),
+        Value::String(string) => Ok(string.len().into()),
+        _ => Err(NativeFunctionError::TypeError {
+            expected: "list | string".into(),
+            got: Box::new(arg.clone()),
+        }),
+    }
+}
+
 pub fn length() -> Function {
-    let args = vec!["value".into()];
-    let function = |args: &[Value]| -> Result<Value, NativeFunctionError> {
-        let Some(arg) = args.get(0) else {
-            return Err(NativeFunctionError::MissingArgument { index: 0 });
-        };
-
-        match arg {
-            Value::List(list) => Ok(list.len().into()),
-            Value::String(string) => Ok(string.len().into()),
-            _ => Err(NativeFunctionError::TypeError {
-                expected: "list | string".into(),
-                got: Box::new(arg.clone()),
-            }),
-        }
-    };
-
     Function {
-        args,
-        env: env(),
-        body: FunctionBody::Native(NativeFunction::new(function)),
+        args: vec!["arg".into()],
+        env: empty_env(),
+        body: FunctionBody::Native(NativeFunction::new(length_function)),
+    }
+}
+
+pub fn map_function(args: &[Value]) -> Result<Value, NativeFunctionError> {
+    let arg = &args[0];
+    match arg {
+        Value::Object(object) => {
+            // TODO validate object shape
+        }
+        _ => Err(NativeFunctionError::TypeError {
+            expected: "object".into(),
+            got: Box::new(arg.clone()),
+        }),
+    }
+}
+
+pub fn map() -> Function {
+    Function {
+        args: vec!["arg".into()],
+        env: empty_env(),
+        body: FunctionBody::Native(NativeFunction::new(map_function)),
     }
 }

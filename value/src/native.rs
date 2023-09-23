@@ -17,6 +17,5 @@ impl NativeFunction {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum NativeFunctionError {
-    MissingArgument { index: usize },
     TypeError { expected: String, got: Box<Value> },
 }

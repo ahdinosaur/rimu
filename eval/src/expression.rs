@@ -371,11 +371,11 @@ impl Evaluator {
 
     fn call(
         &self,
-        _span: Span,
+        span: Span,
         function: &SpannedExpression,
         args: &[SpannedExpression],
     ) -> Result<Value, EvalError> {
-        let (Value::Function(function), function_span) = self.expression(function)? else {
+        let (Value::Function(function), _function_span) = self.expression(function)? else {
             return Err(EvalError::CallNonFunction {
                 span: function.span(),
                 expr: function.clone().into_inner(),
@@ -388,7 +388,7 @@ impl Evaluator {
             .map(|result| result.map(|(value, _span)| value))
             .collect::<Result<Vec<Value>, EvalError>>()?;
 
-        common::call(function, function_span, &args)
+        common::call(span, function, &args)
     }
 
     fn get_index(

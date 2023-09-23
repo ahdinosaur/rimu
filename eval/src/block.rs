@@ -93,16 +93,10 @@ impl Evaluator {
         Ok(Value::Function(Function { args, body, env }))
     }
 
-    fn call(
-        &self,
-        _span: Span,
-        function: &SpannedExpression,
-        args: &SpannedBlock,
-    ) -> Result<Value> {
-        let function_span = function.span();
+    fn call(&self, span: Span, function: &SpannedExpression, args: &SpannedBlock) -> Result<Value> {
         let Value::Function(function) = evaluate_expression(function, self.env.clone())? else {
             return Err(EvalError::CallNonFunction {
-                span: function_span,
+                span: function.span(),
                 expr: function.clone().into_inner(),
             });
         };
@@ -113,7 +107,7 @@ impl Evaluator {
             arg => vec![arg],
         };
 
-        common::call(function, function_span, &args)
+        common::call(span, function, &args)
     }
 
     fn if_(
