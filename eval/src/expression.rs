@@ -382,11 +382,11 @@ impl Evaluator {
             });
         };
 
-        let args: Vec<Value> = args
+        let args: Vec<Spanned<Value>> = args
             .iter()
             .map(|expression| self.expression(expression))
-            .map(|result| result.map(|(value, _span)| value))
-            .collect::<Result<Vec<Value>, EvalError>>()?;
+            .map(|result| result.map(|(value, span)| Spanned::new(value, span)))
+            .collect::<Result<Vec<Spanned<Value>>, EvalError>>()?;
 
         common::call(span, function, &args)
     }

@@ -101,12 +101,12 @@ impl Evaluator {
             });
         };
 
-        let (args, _args_span) = self.block(args)?;
-        let args = match args {
-            Value::List(list) => list,
-            arg => vec![arg],
-        };
+        let (arg, arg_span) = self.block(args)?;
 
+        // TODO if arg is a list, then becomes args
+        // - HOWEVER, we need span info, so we need eval to return spans for this to work.
+
+        let args = vec![Spanned::new(arg, arg_span)];
         common::call(span, function, &args)
     }
 

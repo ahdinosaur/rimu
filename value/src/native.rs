@@ -14,8 +14,11 @@ impl NativeFunction {
         (self.function)(args)
     }
 }
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum NativeFunctionError {
-    TypeError { expected: String, got: Box<Value> },
+    ArgTypeError {
+        index: usize,
+        expected: String,
+        got: Box<Value>,
+    },
 }

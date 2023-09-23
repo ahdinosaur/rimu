@@ -14,6 +14,7 @@ categories.workspace = true
 
 [dependencies]
 rimu-value.workspace = true
+rimu-eval.workspace = true
 
 [dev-dependencies]
 pretty_assertions = "1.4.0"
