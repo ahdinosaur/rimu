@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use rimu::{evaluate, Environment, ErrorReport, ErrorReports};
+use rimu::{create_stdlib, evaluate, Environment, ErrorReport, ErrorReports};
 use serde::Serialize;
 use serde_wasm_bindgen::{Error as SerdeWasmError, Serializer as WasmSerializer};
 use wasm_bindgen::prelude::*;
@@ -36,7 +36,8 @@ pub fn render(code: &str, source_id: &str, format: Format) -> Result<String, JsV
         return Err(to_js_value(&reports)?);
     };
 
-    let env = Environment::new();
+    let stdlib = create_stdlib();
+    let env = Environment::from_object(&stdlib, None).unwrap();
     let env = Rc::new(RefCell::new(env));
     let value = match evaluate(&block, env) {
         Ok(value) => value,

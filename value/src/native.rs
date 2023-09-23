@@ -6,6 +6,10 @@ pub struct NativeFunction {
 }
 
 impl NativeFunction {
+    pub fn new(function: fn(&[Value]) -> Result<Value, NativeFunctionError>) -> Self {
+        Self { function }
+    }
+
     pub fn call(&self, args: &[Value]) -> Result<Value, NativeFunctionError> {
         (self.function)(args)
     }
@@ -13,5 +17,6 @@ impl NativeFunction {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum NativeFunctionError {
+    MissingArgument { index: usize },
     TypeError { expected: String, got: Box<Value> },
 }

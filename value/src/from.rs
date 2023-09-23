@@ -1,12 +1,12 @@
+use indexmap::IndexMap;
 use std::{
     borrow::Cow,
     path::Path,
     string::{String, ToString},
 };
 use std::{ffi::OsString, path::PathBuf};
-use indexmap::IndexMap;
 
-use crate::{Number, Value};
+use crate::{Function, Number, Value};
 
 macro_rules! from_integer {
     ($($ty:ident)*) => {
@@ -105,6 +105,12 @@ impl<K: Into<String>, V: Into<Value>> FromIterator<(K, V)> for Value {
                 .map(|(k, v)| (k.into(), v.into()))
                 .collect(),
         )
+    }
+}
+
+impl From<Function> for Value {
+    fn from(function: Function) -> Self {
+        Value::Function(function)
     }
 }
 

@@ -392,6 +392,12 @@ impl Evaluator {
             return match native.call(&args) {
                 Ok(value) => Ok(value),
                 Err(error) => match error {
+                    NativeFunctionError::MissingArgument { index } => {
+                        Err(EvalError::MissingArgument {
+                            span: function_span,
+                            index,
+                        })
+                    }
                     NativeFunctionError::TypeError { got, expected } => Err(EvalError::TypeError {
                         span: function_span,
                         expected,

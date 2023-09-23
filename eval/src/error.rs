@@ -14,6 +14,8 @@ pub enum EvalError {
     MissingVariable { span: Span, var: String },
     #[error("tried to call non-function: {expr}")]
     CallNonFunction { span: Span, expr: Expression },
+    #[error("missing argument: {index}")]
+    MissingArgument { span: Span, index: usize },
     #[error("type error, expected: {expected}, got: {got}")]
     TypeError {
         span: Span,
@@ -68,6 +70,12 @@ impl From<EvalError> for ErrorReport {
                 span.clone(),
                 "Eval: Tried to call non-function",
                 vec![(span.clone(), format!("Not a function: {}", expr))],
+                vec![],
+            ),
+            EvalError::MissingArgument { span, index } => (
+                span.clone(),
+                "Eval: Tried to call function without required argument",
+                vec![(span.clone(), format!("Argument index: {}", index))],
                 vec![],
             ),
             EvalError::TypeError {
