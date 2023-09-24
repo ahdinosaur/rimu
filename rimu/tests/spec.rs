@@ -43,6 +43,7 @@ fn test_spec(spec: Value) -> Result<(), Box<dyn Error>> {
         };
 
         let actual = evaluate(&template, env)?;
+        let actual = actual.into_inner();
 
         assert_eq!(output.clone(), actual, "{} : output", title);
     } else if let Some(error) = spec.get("error") {

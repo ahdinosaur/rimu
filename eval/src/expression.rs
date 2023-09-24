@@ -12,9 +12,8 @@ use crate::{common, EvalError};
 pub fn evaluate(
     expression: &SpannedExpression,
     env: Rc<RefCell<Environment>>,
-) -> Result<Value, EvalError> {
-    let (value, _span) = Evaluator::new(env).expression(expression)?;
-    Ok(value)
+) -> Result<Spanned<Value>, EvalError> {
+    Evaluator::new(env).expression(expression)
 }
 
 /// A tree walking interpreter which given an [`Environment`] and an [`Expression`]
@@ -28,7 +27,7 @@ impl Evaluator {
         Self { env }
     }
 
-    fn expression(&self, expr: &SpannedExpression) -> Result<(Value, Span), EvalError> {
+    fn expression(&self, expr: &SpannedExpression) -> Result<Spanned<Value>, EvalError> {
         let span = expr.span();
         let span_ret = span.clone();
 
@@ -83,7 +82,7 @@ impl Evaluator {
             Expression::Error => Err(EvalError::ErrorExpression { span })?,
         };
 
-        Ok((value, span_ret))
+        Ok(Spanned::new(value, span_ret))
     }
 
     fn string(&self, _span: Span, string: &str) -> Result<Value, EvalError> {
@@ -109,7 +108,7 @@ impl Evaluator {
         right: &SpannedExpression,
         operator: &UnaryOperator,
     ) -> Result<Value, EvalError> {
-        let (right, right_span) = self.expression(right)?;
+        let (right, right_span) = self.expression(right)?.take();
         let value = match operator {
             UnaryOperator::Negate => match right.clone() {
                 Value::Number(number) => Ok(Value::Number(-number)),
@@ -134,12 +133,12 @@ impl Evaluator {
         operator: &BinaryOperator,
         right: &SpannedExpression,
     ) -> Result<Value, EvalError> {
-        let (left, left_span) = self.expression(left)?;
+        let (left, left_span) = self.expression(left)?.take();
         let value = match operator {
             BinaryOperator::And => self.boolean(span, left, right, true)?,
             BinaryOperator::Or => self.boolean(span, left, right, false)?,
             _ => {
-                let (right, right_span) = self.expression(right)?;
+                let (right, right_span) = self.expression(right)?.take();
                 match operator {
                     BinaryOperator::Or => unreachable!(),
                     BinaryOperator::And => unreachable!(),
@@ -327,7 +326,7 @@ impl Evaluator {
         let left: bool = left.into();
         let value = if left == full_evaluate_on {
             // if `left` is not the result we need, evaluate `right`
-            let (right, _right_span) = self.expression(right)?;
+            let (right, _right_span) = self.expression(right)?.take();
             let right: bool = right.into();
             Value::Boolean(right)
         } else {
@@ -339,7 +338,7 @@ impl Evaluator {
     fn list(&self, _span: Span, items: &Vec<SpannedExpression>) -> Result<Value, EvalError> {
         let mut next_items = Vec::with_capacity(items.len());
         for item in items {
-            let (next_item, _next_item_span) = self.expression(item)?;
+            let (next_item, _next_item_span) = self.expression(item)?.take();
             next_items.push(next_item);
         }
         Ok(Value::List(next_items))
@@ -353,7 +352,7 @@ impl Evaluator {
         let mut object = Object::new();
         for (key, value) in entries.iter() {
             let key = key.clone().into_inner();
-            let (value, _value_span) = self.expression(value)?;
+            let (value, _value_span) = self.expression(value)?.take();
             object.insert(key, value);
         }
         Ok(Value::Object(object))
@@ -375,7 +374,7 @@ impl Evaluator {
         function: &SpannedExpression,
         args: &[SpannedExpression],
     ) -> Result<Value, EvalError> {
-        let (Value::Function(function), _function_span) = self.expression(function)? else {
+        let (Value::Function(function), _function_span) = self.expression(function)?.take() else {
             return Err(EvalError::CallNonFunction {
                 span: function.span(),
                 expr: function.clone().into_inner(),
@@ -385,7 +384,6 @@ impl Evaluator {
         let args: Vec<Spanned<Value>> = args
             .iter()
             .map(|expression| self.expression(expression))
-            .map(|result| result.map(|(value, span)| Spanned::new(value, span)))
             .collect::<Result<Vec<Spanned<Value>>, EvalError>>()?;
 
         common::call(span, function, &args)
@@ -397,8 +395,8 @@ impl Evaluator {
         container: &SpannedExpression,
         index: &SpannedExpression,
     ) -> Result<Value, EvalError> {
-        let (container, container_span) = self.expression(container)?;
-        let (index, index_span) = self.expression(index)?;
+        let (container, container_span) = self.expression(container)?.take();
+        let (index, index_span) = self.expression(index)?.take();
 
         match (container.clone(), index.clone()) {
             (Value::List(list), index_value) => {
@@ -439,7 +437,7 @@ impl Evaluator {
         container: &SpannedExpression,
         key: &Spanned<String>,
     ) -> Result<Value, EvalError> {
-        let (container, container_span) = self.expression(container)?;
+        let (container, container_span) = self.expression(container)?.take();
 
         let Value::Object(object) = container.clone() else {
             return Err(EvalError::TypeError {
@@ -467,13 +465,13 @@ impl Evaluator {
         start: Option<&SpannedExpression>,
         end: Option<&SpannedExpression>,
     ) -> Result<Value, EvalError> {
-        let (container, container_span) = self.expression(container)?;
+        let (container, container_span) = self.expression(container)?.take();
         let start = match start {
-            Some(start) => Some(self.expression(start)?),
+            Some(start) => Some(self.expression(start)?.take()),
             None => None,
         };
         let end = match end {
-            Some(end) => Some(self.expression(end)?),
+            Some(end) => Some(self.expression(end)?.take()),
             None => None,
         };
 
@@ -618,7 +616,8 @@ mod tests {
             }
         }
 
-        evaluate(&expr, Rc::new(RefCell::new(env)))
+        let value = evaluate(&expr, Rc::new(RefCell::new(env)))?.into_inner();
+        Ok(value)
     }
 
     fn test_code(

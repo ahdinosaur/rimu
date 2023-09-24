@@ -46,6 +46,7 @@ fn main() -> Result<()> {
                         continue;
                     }
                 };
+                let value = value.into_inner();
 
                 println!("{}", value)
             }

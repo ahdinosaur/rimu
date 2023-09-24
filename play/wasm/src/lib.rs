@@ -47,6 +47,7 @@ pub fn render(code: &str, source_id: &str, format: Format) -> Result<String, JsV
             return Err(to_js_value(&reports)?);
         }
     };
+    let value = value.into_inner();
 
     let output: Result<String, OutputFormatError> = match format {
         Format::Json => serde_json::to_string_pretty(&value).map_err(OutputFormatError::new),

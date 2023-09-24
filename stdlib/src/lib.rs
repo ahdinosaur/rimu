@@ -1,6 +1,5 @@
 use std::{cell::RefCell, rc::Rc};
 
-use rimu_eval::call;
 use rimu_value::{
     Environment, Function, FunctionBody, NativeFunction, NativeFunctionError, Object, Value,
 };

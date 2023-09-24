@@ -89,6 +89,7 @@ fn main() -> std::result::Result<ExitCode, Box<dyn Error>> {
             return Ok(ExitCode::FAILURE);
         }
     };
+    let value = value.into_inner();
 
     let output: String = match args.format {
         Format::Yaml => serde_yaml::to_string(&value)?,

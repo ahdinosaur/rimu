@@ -9,9 +9,11 @@ use rimu_value::{Environment, Function, FunctionBody, List, Object, Value};
 
 use crate::{common, expression::evaluate as evaluate_expression, EvalError, Result};
 
-pub fn evaluate(expression: &SpannedBlock, env: Rc<RefCell<Environment>>) -> Result<Value> {
-    let (value, _span) = Evaluator::new(env).block(expression)?;
-    Ok(value)
+pub fn evaluate(
+    expression: &SpannedBlock,
+    env: Rc<RefCell<Environment>>,
+) -> Result<Spanned<Value>> {
+    Evaluator::new(env).block(expression)
 }
 
 /// A tree walking interpreter which given an [`Environment`] and an [`Block`]
@@ -25,7 +27,7 @@ impl Evaluator {
         Self { env }
     }
 
-    fn block(&self, block: &SpannedBlock) -> Result<(Value, Span)> {
+    fn block(&self, block: &SpannedBlock) -> Result<Spanned<Value>> {
         let span = block.span();
         let span_ret = span.clone();
 
@@ -49,18 +51,20 @@ impl Evaluator {
             Block::Let { variables, body } => self.let_(span, variables, body.deref())?,
         };
 
-        Ok((value, span_ret))
+        Ok(Spanned::new(value, span_ret))
     }
 
     fn expression(&self, span: Span, expr: &Expression) -> Result<Value> {
-        evaluate_expression(&Spanned::new(expr.clone(), span), self.env.clone())
+        let spanned_value =
+            evaluate_expression(&Spanned::new(expr.clone(), span), self.env.clone())?;
+        Ok(spanned_value.into_inner())
     }
 
     fn object(&self, _span: Span, entries: &[(Spanned<String>, SpannedBlock)]) -> Result<Value> {
         let mut object = Object::new();
         for (key, value) in entries.iter() {
             let key = key.clone().into_inner();
-            let (value, _value_span) = self.block(value)?;
+            let (value, _value_span) = self.block(value)?.take();
             if value == Value::Null {
                 continue;
             };
@@ -72,7 +76,7 @@ impl Evaluator {
     fn list(&self, _span: Span, items: &[SpannedBlock]) -> Result<Value> {
         let mut list = List::with_capacity(items.len());
         for item in items.iter() {
-            let (item, _item_span) = self.block(item)?;
+            let (item, _item_span) = self.block(item)?.take();
             if item == Value::Null {
                 continue;
             };
@@ -94,14 +98,16 @@ impl Evaluator {
     }
 
     fn call(&self, span: Span, function: &SpannedExpression, args: &SpannedBlock) -> Result<Value> {
-        let Value::Function(function) = evaluate_expression(function, self.env.clone())? else {
+        let Value::Function(function) =
+            evaluate_expression(function, self.env.clone())?.into_inner()
+        else {
             return Err(EvalError::CallNonFunction {
                 span: function.span(),
                 expr: function.clone().into_inner(),
             });
         };
 
-        let (arg, arg_span) = self.block(args)?;
+        let (arg, arg_span) = self.block(args)?.take();
 
         // TODO if arg is a list, then becomes args
         // - HOWEVER, we need span info, so we need eval to return spans for this to work.
@@ -117,18 +123,18 @@ impl Evaluator {
         consequent: Option<&SpannedBlock>,
         alternative: Option<&SpannedBlock>,
     ) -> Result<Value> {
-        let (condition, _condition_span) = self.block(condition)?;
+        let (condition, _condition_span) = self.block(condition)?.take();
 
         let value = if Into::<bool>::into(condition) {
             if let Some(consequent) = &consequent {
-                self.block(consequent)?.0
+                self.block(consequent)?.into_inner()
             } else {
                 Value::Null
             }
         } else {
             #[allow(clippy::collapsible_else_if)]
             if let Some(alternative) = &alternative {
-                self.block(alternative)?.0
+                self.block(alternative)?.into_inner()
             } else {
                 Value::Null
             }
@@ -145,7 +151,7 @@ impl Evaluator {
         let mut variables = Object::new();
         for (key, value) in entries.iter() {
             let key = key.clone().into_inner();
-            let (value, _value_span) = self.block(value)?;
+            let (value, _value_span) = self.block(value)?.take();
             if value == Value::Null {
                 continue;
             };
@@ -159,8 +165,10 @@ impl Evaluator {
                 source: error,
             }
         })?;
+        let let_env = Rc::new(RefCell::new(let_env));
 
-        evaluate(body, Rc::new(RefCell::new(let_env)))
+        let value = evaluate(body, let_env)?.into_inner();
+        Ok(value)
     }
 }
 
@@ -191,8 +199,10 @@ mod tests {
                 env.insert(key, value);
             }
         }
+        let env = Rc::new(RefCell::new(env));
 
-        evaluate(&expr, Rc::new(RefCell::new(env)))
+        let value = evaluate(&expr, env)?.into_inner();
+        Ok(value)
     }
 
     fn test_code(

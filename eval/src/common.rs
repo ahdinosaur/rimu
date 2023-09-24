@@ -45,9 +45,10 @@ pub fn call(span: Span, function: Function, args: &[Spanned<Value>]) -> Result<V
 
     let body_env = Rc::new(RefCell::new(body_env));
 
-    match &function.body {
-        FunctionBody::Expression(expression) => evaluate_expression(expression, body_env),
-        FunctionBody::Block(block) => evaluate_block(block, body_env),
+    let spanned_value = match &function.body {
+        FunctionBody::Expression(expression) => evaluate_expression(expression, body_env)?,
+        FunctionBody::Block(block) => evaluate_block(block, body_env)?,
         _ => unreachable!(),
-    }
+    };
+    Ok(spanned_value.into_inner())
 }
