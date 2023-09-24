@@ -1,5 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
+use rimu_eval::call;
 use rimu_value::{
     Environment, Function, FunctionBody, NativeFunction, NativeFunctionError, Object, Value,
 };
@@ -42,11 +43,10 @@ pub fn map_function(args: &[Value]) -> Result<Value, NativeFunctionError> {
             let list = object.get("list");
             let mapper = object.get("item");
             match (list, mapper) {
-                // NOTE: uh oh, we need to evaluate the given function.
-                // - which means we need to be able to return an EvalError
-                // - which means a NativeFunction needs to be able to return an EvalError
-                // - which means `rimu-value` depends on `rimu-eval` which depends on `rimu-value`
-                (Some(Value::List(list)), Some(Value::Function(mapper))) => eval,
+                (Some(Value::List(list)), Some(Value::Function(mapper))) => {
+                    // call(span, function, args).map_err(NativeFunctionError::Eval)
+                    Ok(Value::Null)
+                }
                 _ => Err(NativeFunctionError::ArgTypeError {
                     index: 0,
                     expected: "{ list: list, item: (item) => next }".into(),

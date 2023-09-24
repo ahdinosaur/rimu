@@ -1,4 +1,4 @@
-use crate::Value;
+use crate::{EvalError, Value};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd)]
 pub struct NativeFunction {
@@ -21,4 +21,5 @@ pub enum NativeFunctionError {
         expected: String,
         got: Box<Value>,
     },
+    Eval(EvalError),
 }

@@ -3,11 +3,11 @@
 
 use rimu_ast::{BinaryOperator, Expression, SpannedExpression, UnaryOperator};
 use rimu_meta::{Span, Spanned};
-use rimu_value::{Environment, Function, FunctionBody, NativeFunctionError, Number, Object, Value};
+use rimu_value::{Environment, Function, FunctionBody, Number, Object, Value};
 use rust_decimal::prelude::ToPrimitive;
 use std::{cell::RefCell, ops::Deref, rc::Rc};
 
-use crate::{common, evaluate_block, EvalError};
+use crate::{common, EvalError};
 
 pub fn evaluate(
     expression: &SpannedExpression,
