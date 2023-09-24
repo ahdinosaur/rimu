@@ -21,7 +21,7 @@ pub use self::environment::{Environment, EnvironmentError};
 pub use self::error::ValueError;
 pub use self::eval::EvalError;
 pub use self::function::{Function, FunctionBody};
-pub use self::native::{NativeFunction, NativeFunctionError};
+pub use self::native::NativeFunction;
 pub use self::number::Number;
 use self::ser::Serializer;
 

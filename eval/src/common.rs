@@ -1,28 +1,13 @@
 use std::{cell::RefCell, rc::Rc};
 
 use rimu_meta::{Span, Spanned};
-use rimu_value::{Environment, Function, FunctionBody, NativeFunctionError, Value};
+use rimu_value::{Environment, Function, FunctionBody, Value};
 
 use crate::{evaluate_block, evaluate_expression, EvalError, Result};
 
 pub fn call(span: Span, function: Function, args: &[Spanned<Value>]) -> Result<Value> {
     if let FunctionBody::Native(native) = function.body {
-        let (args, arg_spans): (Vec<_>, Vec<_>) = args.iter().map(|a| a.clone().take()).unzip();
-        return match native.call(&args) {
-            Ok(value) => Ok(value),
-            Err(error) => match error {
-                NativeFunctionError::ArgTypeError {
-                    index,
-                    got,
-                    expected,
-                } => Err(EvalError::TypeError {
-                    span: arg_spans[index].clone(),
-                    expected,
-                    got: *got,
-                }),
-                NativeFunctionError::Eval(error) => Err(error),
-            },
-        };
+        return native.call(&args);
     }
 
     let function_env = function.env.clone();

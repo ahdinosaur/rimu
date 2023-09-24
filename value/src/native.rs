@@ -1,25 +1,18 @@
+use rimu_meta::Spanned;
+
 use crate::{EvalError, Value};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd)]
 pub struct NativeFunction {
-    function: fn(&[Value]) -> Result<Value, NativeFunctionError>,
+    function: fn(&[Spanned<Value>]) -> Result<Value, EvalError>,
 }
 
 impl NativeFunction {
-    pub fn new(function: fn(&[Value]) -> Result<Value, NativeFunctionError>) -> Self {
+    pub fn new(function: fn(&[Spanned<Value>]) -> Result<Value, EvalError>) -> Self {
         Self { function }
     }
 
-    pub fn call(&self, args: &[Value]) -> Result<Value, NativeFunctionError> {
+    pub fn call(&self, args: &[Spanned<Value>]) -> Result<Value, EvalError> {
         (self.function)(args)
     }
-}
-#[derive(Debug, Clone, PartialEq)]
-pub enum NativeFunctionError {
-    ArgTypeError {
-        index: usize,
-        expected: String,
-        got: Box<Value>,
-    },
-    Eval(EvalError),
 }
