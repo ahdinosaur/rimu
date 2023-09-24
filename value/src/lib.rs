@@ -8,6 +8,7 @@ mod function;
 mod native;
 mod number;
 mod ser;
+mod spanned;
 
 use indexmap::IndexMap;
 
@@ -24,6 +25,7 @@ pub use self::function::{Function, FunctionBody};
 pub use self::native::NativeFunction;
 pub use self::number::Number;
 use self::ser::Serializer;
+pub use self::spanned::{SpannedValue, SpannedValueInner};
 
 pub type List = Vec<Value>;
 pub type Object = IndexMap<String, Value>;
@@ -35,9 +37,9 @@ pub enum Value {
     Boolean(bool),
     String(String),
     Number(Number),
+    Function(Function),
     List(List),
     Object(Object),
-    Function(Function),
 }
 
 pub fn to_value<T>(value: T) -> Result<Value, ValueError>
@@ -64,6 +66,9 @@ impl Debug for Value {
             },
             Value::String(string) => write!(formatter, "String({:?})", string),
             Value::Number(number) => write!(formatter, "Number({})", number),
+            Value::Function(function) => {
+                write!(formatter, "Function({:?})", function)
+            }
             Value::List(list) => {
                 formatter.write_str("List ")?;
                 formatter.debug_list().entries(list).finish()
@@ -71,9 +76,6 @@ impl Debug for Value {
             Value::Object(object) => {
                 formatter.write_str("Object ")?;
                 formatter.debug_map().entries(object).finish()
-            }
-            Value::Function(function) => {
-                write!(formatter, "Function({:?})", function)
             }
         }
     }
@@ -86,23 +88,23 @@ impl Display for Value {
             Value::Boolean(boolean) => write!(f, "{}", boolean),
             Value::String(string) => write!(f, "{}", string),
             Value::Number(number) => write!(f, "{}", number),
+            Value::Function(function) => write!(f, "{}", function),
             Value::List(list) => {
-                let keys = list
+                let items = list
                     .iter()
                     .map(|value| value.to_string())
                     .collect::<Vec<String>>()
                     .join(", ");
-                write!(f, "[{}]", keys)
+                write!(f, "[{}]", items)
             }
             Value::Object(object) => {
                 let entries = object
                     .iter()
-                    .map(|(key, value)| format!("\"{}\": {}", key, value.to_string()))
+                    .map(|(key, value)| format!("\"{}\": {}", key, value))
                     .collect::<Vec<String>>()
                     .join(", ");
                 write!(f, "{{{}}}", entries)
             }
-            Value::Function(function) => write!(f, "{}", function),
         }
     }
 }

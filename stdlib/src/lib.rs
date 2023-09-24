@@ -42,7 +42,7 @@ pub fn map_function(args: &[Spanned<Value>]) -> Result<Value, EvalError> {
             let mapper = object.get("item");
             match (list, mapper) {
                 (Some(Value::List(list)), Some(Value::Function(mapper))) => {
-                    call(span, function, args).map_err(NativeFunctionError::Eval)
+                    // call(span, function, args).map_err(NativeFunctionError::Eval)
                     Ok(Value::Null)
                 }
                 _ => Err(EvalError::TypeError {

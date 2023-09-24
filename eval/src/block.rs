@@ -5,14 +5,11 @@ use std::{cell::RefCell, ops::Deref, rc::Rc};
 
 use rimu_ast::{Block, Expression, SpannedBlock, SpannedExpression};
 use rimu_meta::{Span, Spanned};
-use rimu_value::{Environment, Function, FunctionBody, List, Object, Value};
+use rimu_value::{Environment, Function, FunctionBody, List, Object, SpannedValue, Value};
 
 use crate::{common, expression::evaluate as evaluate_expression, EvalError, Result};
 
-pub fn evaluate(
-    expression: &SpannedBlock,
-    env: Rc<RefCell<Environment>>,
-) -> Result<Spanned<Value>> {
+pub fn evaluate(expression: &SpannedBlock, env: Rc<RefCell<Environment>>) -> Result<SpannedValue> {
     Evaluator::new(env).block(expression)
 }
 
@@ -27,16 +24,14 @@ impl Evaluator {
         Self { env }
     }
 
-    fn block(&self, block: &SpannedBlock) -> Result<Spanned<Value>> {
+    fn block(&self, block: &SpannedBlock) -> Result<SpannedValue> {
         let span = block.span();
-        let span_ret = span.clone();
-
-        let value = match block.inner() {
-            Block::Expression(expr) => self.expression(span, expr)?,
-            Block::Object(object) => self.object(span, object)?,
-            Block::List(list) => self.list(span, list)?,
-            Block::Function { args, body } => self.function(span, args, body)?,
-            Block::Call { function, args } => self.call(span, function, args)?,
+        match block.inner() {
+            Block::Expression(expr) => self.expression(span, expr),
+            Block::Object(object) => self.object(span, object),
+            Block::List(list) => self.list(span, list),
+            Block::Function { args, body } => self.function(span, args, body),
+            Block::Call { function, args } => self.call(span, function, args),
             Block::If {
                 condition,
                 consequent,
@@ -46,18 +41,13 @@ impl Evaluator {
                 condition,
                 consequent.as_ref().map(|c| c.deref()),
                 alternative.as_ref().map(|a| a.deref()),
-            )?,
-
-            Block::Let { variables, body } => self.let_(span, variables, body.deref())?,
-        };
-
-        Ok(Spanned::new(value, span_ret))
+            ),
+            Block::Let { variables, body } => self.let_(span, variables, body.deref()),
+        }
     }
 
-    fn expression(&self, span: Span, expr: &Expression) -> Result<Value> {
-        let spanned_value =
-            evaluate_expression(&Spanned::new(expr.clone(), span), self.env.clone())?;
-        Ok(spanned_value.into_inner())
+    fn expression(&self, span: Span, expr: &Expression) -> Result<SpannedValue> {
+        evaluate_expression(&Spanned::new(expr.clone(), span), self.env.clone())
     }
 
     fn object(&self, _span: Span, entries: &[(Spanned<String>, SpannedBlock)]) -> Result<Value> {
