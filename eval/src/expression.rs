@@ -371,7 +371,7 @@ impl Evaluator {
             .borrow()
             .get(var)
             .ok_or_else(|| EvalError::MissingVariable {
-                span,
+                span: span.clone(),
                 var: var.to_string(),
             })?;
         Ok(value.with_span(span))
@@ -407,16 +407,16 @@ impl Evaluator {
         let (container, container_span) = self.expression(container)?.take();
         let (index, index_span) = self.expression(index)?.take();
 
-        match (container.clone(), index.clone()) {
+        let value = match (container.clone(), index.clone()) {
             (Value::List(list), index_value) => {
                 let index = get_index(container_span, index_span, index_value, list.len(), false)?;
-                Ok(list[index as usize].clone())
+                list[index as usize].clone()
             }
             (Value::String(string), index_value) => {
                 let index =
                     get_index(container_span, index_span, index_value, string.len(), false)?;
                 let ch = string[index as usize..].chars().next().unwrap();
-                Ok(Spanned::new(Value::String(ch.into()), span))
+                Spanned::new(Value::String(ch.into()), span.clone())
             }
             (Value::Object(object), Value::String(key)) => object
                 .get(&key)
@@ -426,18 +426,24 @@ impl Evaluator {
                     object: convert_value_object_to_serde_value_object(object),
                     key_span: index_span,
                     key: key.clone(),
-                }),
-            (Value::Object(_list), _) => Err(EvalError::TypeError {
-                span: index_span,
-                expected: "string".into(),
-                got: index.into(),
-            }),
-            _ => Err(EvalError::TypeError {
-                span: container_span,
-                expected: "list | string | object".into(),
-                got: container.into(),
-            }),
-        }
+                })?,
+            (Value::Object(_list), _) => {
+                return Err(EvalError::TypeError {
+                    span: index_span,
+                    expected: "string".into(),
+                    got: index.into(),
+                })
+            }
+            _ => {
+                return Err(EvalError::TypeError {
+                    span: container_span,
+                    expected: "list | string | object".into(),
+                    got: container.into(),
+                })
+            }
+        };
+
+        Ok(Spanned::new(value.into_inner(), span))
     }
 
     fn get_key(
@@ -456,15 +462,17 @@ impl Evaluator {
             });
         };
 
-        object
+        let value = object
             .get(key.inner())
             .ok_or_else(|| EvalError::KeyNotFound {
                 object_span: container_span,
-                object: convert_value_object_to_serde_value_object(object),
+                object: convert_value_object_to_serde_value_object(object.clone()),
                 key: key.clone().into_inner(),
                 key_span: key.span(),
             })
-            .map(Clone::clone)
+            .map(Clone::clone)?;
+
+        Ok(Spanned::new(value.into_inner(), span))
     }
 
     fn get_slice(
@@ -547,6 +555,7 @@ impl Evaluator {
                 })
             }
         };
+
         Ok(Spanned::new(value, span))
     }
 }

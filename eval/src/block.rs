@@ -5,7 +5,10 @@ use std::{cell::RefCell, ops::Deref, rc::Rc};
 
 use rimu_ast::{Block, Expression, SpannedBlock, SpannedExpression};
 use rimu_meta::{Span, Spanned};
-use rimu_value::{Environment, Function, FunctionBody, List, Object, SpannedValue, Value};
+use rimu_value::{
+    convert_value_object_to_serde_value_object, Environment, Function, FunctionBody, SpannedValue,
+    Value, ValueList, ValueObject,
+};
 
 use crate::{common, expression::evaluate as evaluate_expression, EvalError, Result};
 
@@ -50,44 +53,56 @@ impl Evaluator {
         evaluate_expression(&Spanned::new(expr.clone(), span), self.env.clone())
     }
 
-    fn object(&self, _span: Span, entries: &[(Spanned<String>, SpannedBlock)]) -> Result<Value> {
-        let mut object = Object::new();
+    fn object(
+        &self,
+        span: Span,
+        entries: &[(Spanned<String>, SpannedBlock)],
+    ) -> Result<SpannedValue> {
+        let mut object = ValueObject::new();
         for (key, value) in entries.iter() {
             let key = key.clone().into_inner();
-            let (value, _value_span) = self.block(value)?.take();
-            if value == Value::Null {
+            let value = self.block(value)?;
+            if value.inner() == &Value::Null {
                 continue;
             };
             object.insert(key, value);
         }
-        Ok(Value::Object(object))
+        let value = Value::Object(object);
+        Ok(Spanned::new(value, span))
     }
 
-    fn list(&self, _span: Span, items: &[SpannedBlock]) -> Result<Value> {
-        let mut list = List::with_capacity(items.len());
+    fn list(&self, span: Span, items: &[SpannedBlock]) -> Result<SpannedValue> {
+        let mut list = ValueList::with_capacity(items.len());
         for item in items.iter() {
-            let (item, _item_span) = self.block(item)?.take();
-            if item == Value::Null {
+            let item = self.block(item)?;
+            if item.inner() == &Value::Null {
                 continue;
             };
             list.push(item);
         }
-        Ok(Value::List(list))
+        let value = Value::List(list);
+        Ok(Spanned::new(value, span))
     }
 
     fn function(
         &self,
-        _span: Span,
+        span: Span,
         args: &[Spanned<String>],
         body: &SpannedBlock,
-    ) -> Result<Value> {
+    ) -> Result<SpannedValue> {
         let args: Vec<String> = args.iter().map(|a| a.inner()).cloned().collect();
         let body = FunctionBody::Block(body.clone());
         let env = self.env.clone();
-        Ok(Value::Function(Function { args, body, env }))
+        let value = Value::Function(Function { args, body, env });
+        Ok(Spanned::new(value, span))
     }
 
-    fn call(&self, span: Span, function: &SpannedExpression, args: &SpannedBlock) -> Result<Value> {
+    fn call(
+        &self,
+        span: Span,
+        function: &SpannedExpression,
+        args: &SpannedBlock,
+    ) -> Result<SpannedValue> {
         let Value::Function(function) =
             evaluate_expression(function, self.env.clone())?.into_inner()
         else {
@@ -97,22 +112,23 @@ impl Evaluator {
             });
         };
 
-        let (arg, arg_span) = self.block(args)?.take();
+        let arg = self.block(args)?;
 
-        // TODO if arg is a list, then becomes args
-        // - HOWEVER, we need span info, so we need eval to return spans for this to work.
+        let args = match arg.inner() {
+            Value::List(list) => list.clone(),
+            _ => vec![arg],
+        };
 
-        let args = vec![Spanned::new(arg, arg_span)];
         common::call(span, function, &args)
     }
 
     fn if_(
         &self,
-        _span: Span,
+        span: Span,
         condition: &SpannedBlock,
         consequent: Option<&SpannedBlock>,
         alternative: Option<&SpannedBlock>,
-    ) -> Result<Value> {
+    ) -> Result<SpannedValue> {
         let (condition, _condition_span) = self.block(condition)?.take();
 
         let value = if Into::<bool>::into(condition) {
@@ -129,7 +145,8 @@ impl Evaluator {
                 Value::Null
             }
         };
-        Ok(value)
+
+        Ok(Spanned::new(value, span))
     }
 
     fn let_(
@@ -137,28 +154,30 @@ impl Evaluator {
         span: Span,
         entries: &[(Spanned<String>, SpannedBlock)],
         body: &SpannedBlock,
-    ) -> Result<Value> {
-        let mut variables = Object::new();
+    ) -> Result<SpannedValue> {
+        let mut variables = ValueObject::new();
         for (key, value) in entries.iter() {
             let key = key.clone().into_inner();
-            let (value, _value_span) = self.block(value)?.take();
-            if value == Value::Null {
+            let value = self.block(value)?;
+            if value.inner() == &Value::Null {
                 continue;
             };
             variables.insert(key, value);
         }
 
         let parent_env = self.env.clone();
+        let variables = convert_value_object_to_serde_value_object(variables);
         let let_env = Environment::from_object(&variables, Some(parent_env)).map_err(|error| {
             EvalError::Environment {
-                span,
+                span: span.clone(),
                 source: error,
             }
         })?;
         let let_env = Rc::new(RefCell::new(let_env));
 
         let value = evaluate(body, let_env)?.into_inner();
-        Ok(value)
+
+        Ok(Spanned::new(value, span))
     }
 }
 
@@ -174,6 +193,7 @@ mod tests {
     use rimu_ast::SpannedBlock;
     use rimu_meta::SourceId;
     use rimu_parse::parse_block;
+    use rimu_value::SerdeValue;
     use rimu_value::{Environment, Value};
     use rust_decimal_macros::dec;
 
@@ -181,7 +201,7 @@ mod tests {
 
     fn test_block(
         expr: SpannedBlock,
-        env_object: Option<IndexMap<String, Value>>,
+        env_object: Option<IndexMap<String, SerdeValue>>,
     ) -> Result<Value, EvalError> {
         let mut env = Environment::new();
         if let Some(env_object) = env_object {
@@ -197,13 +217,13 @@ mod tests {
 
     fn test_code(
         code: &str,
-        env_object: Option<IndexMap<String, Value>>,
-    ) -> Result<Value, EvalError> {
+        env_object: Option<IndexMap<String, SerdeValue>>,
+    ) -> Result<SerdeValue, EvalError> {
         let (Some(expr), errors) = parse_block(code, SourceId::empty()) else {
             panic!()
         };
         assert_eq!(errors.len(), 0);
-        test_block(expr, env_object)
+        Ok(test_block(expr, env_object)?.into())
     }
 
     #[test]
@@ -216,13 +236,13 @@ zero:
 ";
 
         let env = indexmap! {
-            "five".into() => Value::Number(dec!(5).into()),
-            "ten".into() => Value::Number(dec!(10).into()),
+            "five".into() => SerdeValue::Number(dec!(5).into()),
+            "ten".into() => SerdeValue::Number(dec!(10).into()),
         };
         let actual = test_code(code, Some(env));
 
-        let expected = Ok(Value::Object(indexmap! {
-            "zero".into() => Value::Number(dec!(5).into())
+        let expected = Ok(SerdeValue::Object(indexmap! {
+            "zero".into() => SerdeValue::Number(dec!(5).into())
         }));
 
         assert_eq!(expected, actual);
@@ -240,13 +260,13 @@ zero:
 ";
 
         let env = indexmap! {
-            "ten".into() => Value::Number(dec!(10).into()),
+            "ten".into() => SerdeValue::Number(dec!(10).into()),
         };
         let actual = test_code(code, Some(env));
 
-        let expected = Ok(Value::Object(indexmap! {
-            "zero".into() => Value::Object(indexmap! {
-                "three".into() => Value::Number(dec!(12).into())
+        let expected = Ok(SerdeValue::Object(indexmap! {
+            "zero".into() => SerdeValue::Object(indexmap! {
+                "three".into() => SerdeValue::Number(dec!(12).into())
             })
         }));
 
