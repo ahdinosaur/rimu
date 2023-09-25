@@ -1,4 +1,3 @@
-mod convert;
 mod environment;
 mod eval;
 mod from;
@@ -12,13 +11,12 @@ use rimu_meta::Spanned;
 
 use std::fmt::{Debug, Display};
 
-pub use self::convert::convert;
 pub use self::environment::{Environment, EnvironmentError};
 pub use self::eval::EvalError;
 pub use self::function::{Function, FunctionBody};
 pub use self::native::NativeFunction;
 pub use self::number::Number;
-pub use self::serde::{SerdeValue, SerdeValueError, SerdeValueList, SerdeValueObject};
+pub use self::serde::{convert, SerdeValue, SerdeValueError, SerdeValueList, SerdeValueObject};
 
 pub type ValueList = Vec<SpannedValue>;
 pub type ValueObject = IndexMap<String, SpannedValue>;

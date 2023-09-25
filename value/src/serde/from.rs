@@ -6,14 +6,14 @@ use std::{
 };
 use std::{ffi::OsString, path::PathBuf};
 
-use crate::{Function, Number, Value};
+use crate::{Function, Number, SerdeValue};
 
 macro_rules! from_integer {
     ($($ty:ident)*) => {
         $(
-            impl From<$ty> for Value {
+            impl From<$ty> for SerdeValue {
                 fn from(n: $ty) -> Self {
-                    Value::Number(n.into())
+                    SerdeValue::Number(n.into())
                 }
             }
         )*
@@ -26,81 +26,81 @@ from_integer! {
     f32 f64
 }
 
-impl From<bool> for Value {
+impl From<bool> for SerdeValue {
     fn from(f: bool) -> Self {
-        Value::Boolean(f)
+        SerdeValue::Boolean(f)
     }
 }
 
-impl From<String> for Value {
+impl From<String> for SerdeValue {
     fn from(f: String) -> Self {
-        Value::String(f)
+        SerdeValue::String(f)
     }
 }
 
-impl<'a> From<&'a str> for Value {
+impl<'a> From<&'a str> for SerdeValue {
     fn from(f: &str) -> Self {
-        Value::String(f.to_string())
+        SerdeValue::String(f.to_string())
     }
 }
 
-impl<'a> From<Cow<'a, str>> for Value {
+impl<'a> From<Cow<'a, str>> for SerdeValue {
     fn from(f: Cow<'a, str>) -> Self {
-        Value::String(f.into_owned())
+        SerdeValue::String(f.into_owned())
     }
 }
 
-impl From<OsString> for Value {
+impl From<OsString> for SerdeValue {
     fn from(from: OsString) -> Self {
-        Value::String(from.to_str().unwrap_or("unknown").to_string())
+        SerdeValue::String(from.to_str().unwrap_or("unknown").to_string())
     }
 }
 
-impl From<PathBuf> for Value {
+impl From<PathBuf> for SerdeValue {
     fn from(from: PathBuf) -> Self {
-        Value::String(from.display().to_string())
+        SerdeValue::String(from.display().to_string())
     }
 }
 
-impl From<&Path> for Value {
+impl From<&Path> for SerdeValue {
     fn from(from: &Path) -> Self {
-        Value::String(from.display().to_string())
+        SerdeValue::String(from.display().to_string())
     }
 }
 
-impl From<Number> for Value {
+impl From<Number> for SerdeValue {
     fn from(f: Number) -> Self {
-        Value::Number(f)
+        SerdeValue::Number(f)
     }
 }
 
-impl From<IndexMap<String, Value>> for Value {
-    fn from(f: IndexMap<String, Value>) -> Self {
-        Value::Object(f)
+impl From<IndexMap<String, SerdeValue>> for SerdeValue {
+    fn from(f: IndexMap<String, SerdeValue>) -> Self {
+        SerdeValue::Object(f)
     }
 }
 
-impl<T: Into<Value>> From<Vec<T>> for Value {
+impl<T: Into<SerdeValue>> From<Vec<T>> for SerdeValue {
     fn from(f: Vec<T>) -> Self {
-        Value::List(f.into_iter().map(Into::into).collect())
+        SerdeValue::List(f.into_iter().map(Into::into).collect())
     }
 }
 
-impl<'a, T: Clone + Into<Value>> From<&'a [T]> for Value {
+impl<'a, T: Clone + Into<SerdeValue>> From<&'a [T]> for SerdeValue {
     fn from(f: &'a [T]) -> Self {
-        Value::List(f.iter().cloned().map(Into::into).collect())
+        SerdeValue::List(f.iter().cloned().map(Into::into).collect())
     }
 }
 
-impl<T: Into<Value>> FromIterator<T> for Value {
+impl<T: Into<SerdeValue>> FromIterator<T> for SerdeValue {
     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
-        Value::List(iter.into_iter().map(Into::into).collect())
+        SerdeValue::List(iter.into_iter().map(Into::into).collect())
     }
 }
 
-impl<K: Into<String>, V: Into<Value>> FromIterator<(K, V)> for Value {
+impl<K: Into<String>, V: Into<SerdeValue>> FromIterator<(K, V)> for SerdeValue {
     fn from_iter<I: IntoIterator<Item = (K, V)>>(iter: I) -> Self {
-        Value::Object(
+        SerdeValue::Object(
             iter.into_iter()
                 .map(|(k, v)| (k.into(), v.into()))
                 .collect(),
@@ -108,25 +108,25 @@ impl<K: Into<String>, V: Into<Value>> FromIterator<(K, V)> for Value {
     }
 }
 
-impl From<Function> for Value {
+impl From<Function> for SerdeValue {
     fn from(function: Function) -> Self {
-        Value::Function(function)
+        SerdeValue::Function(function)
     }
 }
 
-impl From<()> for Value {
+impl From<()> for SerdeValue {
     fn from((): ()) -> Self {
-        Value::Null
+        SerdeValue::Null
     }
 }
 
-impl<T> From<Option<T>> for Value
+impl<T> From<Option<T>> for SerdeValue
 where
-    T: Into<Value>,
+    T: Into<SerdeValue>,
 {
     fn from(opt: Option<T>) -> Self {
         match opt {
-            None => Value::Null,
+            None => SerdeValue::Null,
             Some(value) => Into::into(value),
         }
     }

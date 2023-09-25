@@ -1,9 +1,9 @@
 use serde::{de::DeserializeOwned, Serialize};
 
-use crate::{from_value, to_value, ValueError};
+use super::{from_value, to_value, SerdeValueError};
 
 // https://stackoverflow.com/a/57488708
-pub fn convert<Input, Output>(input: &Input) -> Result<Output, ValueError>
+pub fn convert<Input, Output>(input: &Input) -> Result<Output, SerdeValueError>
 where
     Input: Serialize,
     Output: DeserializeOwned,

@@ -1,5 +1,7 @@
+mod convert;
 mod de;
 mod error;
+mod from;
 mod ser;
 
 use std::fmt::{Debug, Display};
@@ -10,6 +12,7 @@ use serde::ser::Serialize;
 
 use crate::{Function, Number};
 
+pub use self::convert::convert;
 pub use self::error::SerdeValueError;
 
 use self::ser::Serializer;

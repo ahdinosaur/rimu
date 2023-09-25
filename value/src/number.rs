@@ -13,7 +13,7 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-use crate::ValueError;
+use crate::SerdeValueError;
 
 #[derive(Clone, Copy)]
 pub struct Number(Decimal);
@@ -64,7 +64,7 @@ impl<'de> Deserialize<'de> for Number {
 }
 
 impl<'de> Deserializer<'de> for Number {
-    type Error = ValueError;
+    type Error = SerdeValueError;
 
     #[inline]
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -72,7 +72,7 @@ impl<'de> Deserializer<'de> for Number {
         V: Visitor<'de>,
     {
         let Some(f) = self.0.to_f64() else {
-            return Err(ValueError::NumberOutOfRange)
+            return Err(SerdeValueError::NumberOutOfRange);
         };
         visitor.visit_f64(f)
     }
@@ -85,7 +85,7 @@ impl<'de> Deserializer<'de> for Number {
 }
 
 impl<'de, 'a> Deserializer<'de> for &'a Number {
-    type Error = ValueError;
+    type Error = SerdeValueError;
 
     #[inline]
     fn deserialize_any<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -93,7 +93,7 @@ impl<'de, 'a> Deserializer<'de> for &'a Number {
         V: Visitor<'de>,
     {
         let Some(f) = self.0.to_f64() else {
-            return Err(ValueError::NumberOutOfRange)
+            return Err(SerdeValueError::NumberOutOfRange);
         };
         visitor.visit_f64(f)
     }
