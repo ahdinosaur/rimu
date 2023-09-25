@@ -7,7 +7,7 @@ mod number;
 mod serde;
 
 use indexmap::IndexMap;
-use rimu_meta::Spanned;
+use rimu_meta::{Span, Spanned};
 
 use std::fmt::{Debug, Display};
 
@@ -49,16 +49,48 @@ impl From<Value> for SerdeValue {
             Value::String(string) => SerdeValue::String(string),
             Value::Number(number) => SerdeValue::Number(number),
             Value::Function(function) => SerdeValue::Function(function),
-            Value::List(list) => {
-                SerdeValue::List(list.iter().map(|item| item.clone().into()).collect())
+            Value::List(list) => SerdeValue::List(convert_value_list_to_serde_value_list(list)),
+            Value::Object(object) => {
+                SerdeValue::Object(convert_value_object_to_serde_value_object(object))
             }
-            Value::Object(object) => SerdeValue::Object(SerdeValueObject::from_iter(
+        }
+    }
+}
+
+pub fn convert_value_list_to_serde_value_list(list: ValueList) -> SerdeValueList {
+    list.iter().map(|item| item.clone().into()).collect()
+}
+
+pub fn convert_value_object_to_serde_value_object(object: ValueObject) -> SerdeValueObject {
+    SerdeValueObject::from_iter(
+        object
+            .iter()
+            .map(|(key, value)| (key.clone(), value.clone().into()))
+            .collect::<Vec<_>>(),
+    )
+}
+
+impl SerdeValue {
+    pub fn with_span(&self, span: Span) -> SpannedValue {
+        let value = match self {
+            SerdeValue::Null => Value::Null,
+            SerdeValue::Boolean(boolean) => Value::Boolean(boolean.to_owned()),
+            SerdeValue::String(string) => Value::String(string.to_owned()),
+            SerdeValue::Number(number) => Value::Number(number.to_owned()),
+            SerdeValue::Function(function) => Value::Function(function.to_owned()),
+            SerdeValue::List(list) => Value::List(
+                list.iter()
+                    .map(|item| item.clone().with_span(span.clone()))
+                    .collect(),
+            ),
+            SerdeValue::Object(object) => Value::Object(ValueObject::from_iter(
                 object
                     .iter()
-                    .map(|(key, value)| (key.clone(), value.clone().into()))
+                    .map(|(key, value)| (key.clone(), value.clone().with_span(span.clone())))
                     .collect::<Vec<_>>(),
             )),
-        }
+        };
+        Spanned::new(value, span)
     }
 }
 

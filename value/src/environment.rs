@@ -9,6 +9,12 @@ pub struct Environment {
     parent: Option<Rc<RefCell<Environment>>>,
 }
 
+impl Default for Environment {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Environment {
     pub fn new() -> Environment {
         Environment {

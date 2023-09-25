@@ -4,7 +4,8 @@
 use rimu_ast::{BinaryOperator, Expression, SpannedExpression, UnaryOperator};
 use rimu_meta::{Span, Spanned};
 use rimu_value::{
-    Environment, Function, FunctionBody, Number, Object, SpannedValue, SpannedValueInner, Value,
+    convert_value_object_to_serde_value_object, Environment, Function, FunctionBody, Number,
+    SpannedValue, Value, ValueObject,
 };
 use rust_decimal::prelude::ToPrimitive;
 use std::{cell::RefCell, ops::Deref, rc::Rc};
@@ -138,12 +139,12 @@ impl Evaluator {
         right: &SpannedExpression,
     ) -> Result<SpannedValue> {
         let (left, left_span) = self.expression(left)?.take();
-        let value = match operator {
-            BinaryOperator::And => self.boolean(span, left, right, true)?,
-            BinaryOperator::Or => self.boolean(span, left, right, false)?,
+        match operator {
+            BinaryOperator::And => self.boolean(span, left, right, true),
+            BinaryOperator::Or => self.boolean(span, left, right, false),
             _ => {
                 let (right, right_span) = self.expression(right)?.take();
-                match operator {
+                let value = match operator {
                     BinaryOperator::Or => unreachable!(),
                     BinaryOperator::And => unreachable!(),
                     BinaryOperator::Add => match (left.clone(), right.clone()) {
@@ -153,7 +154,7 @@ impl Evaluator {
                         (Value::Number(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "number".into(),
-                            got: right,
+                            got: right.into(),
                         }),
                         (Value::String(left), Value::String(right)) => {
                             Ok(Value::String([left, right].join("")))
@@ -161,7 +162,7 @@ impl Evaluator {
                         (Value::String(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "string".into(),
-                            got: right,
+                            got: right.into(),
                         }),
                         (Value::List(left), Value::List(right)) => {
                             Ok(Value::List([left, right].concat()))
@@ -169,12 +170,12 @@ impl Evaluator {
                         (Value::List(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "list".into(),
-                            got: right,
+                            got: right.into(),
                         }),
                         _ => Err(EvalError::TypeError {
                             span: left_span,
                             expected: "number | string | list".into(),
-                            got: left,
+                            got: left.into(),
                         }),
                     },
                     BinaryOperator::Subtract => match (left.clone(), right.clone()) {
@@ -184,12 +185,12 @@ impl Evaluator {
                         (Value::Number(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "number".into(),
-                            got: right,
+                            got: right.into(),
                         }),
                         _ => Err(EvalError::TypeError {
                             span: left_span,
                             expected: "number".into(),
-                            got: left,
+                            got: left.into(),
                         }),
                     },
                     BinaryOperator::Multiply => match (left.clone(), right.clone()) {
@@ -199,12 +200,12 @@ impl Evaluator {
                         (Value::Number(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "number".into(),
-                            got: right,
+                            got: right.into(),
                         }),
                         _ => Err(EvalError::TypeError {
                             span: left_span,
                             expected: "number".into(),
-                            got: left,
+                            got: left.into(),
                         }),
                     },
                     BinaryOperator::Divide => match (left.clone(), right.clone()) {
@@ -214,12 +215,12 @@ impl Evaluator {
                         (Value::Number(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "number".into(),
-                            got: right,
+                            got: right.into(),
                         }),
                         _ => Err(EvalError::TypeError {
                             span: left_span,
                             expected: "number".into(),
-                            got: left,
+                            got: left.into(),
                         }),
                     },
                     BinaryOperator::Rem => match (left.clone(), right.clone()) {
@@ -229,12 +230,12 @@ impl Evaluator {
                         (Value::Number(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "number".into(),
-                            got: right,
+                            got: right.into(),
                         }),
                         _ => Err(EvalError::TypeError {
                             span: left_span,
                             expected: "number".into(),
-                            got: left,
+                            got: left.into(),
                         }),
                     },
                     BinaryOperator::Xor => match (left.clone(), right.clone()) {
@@ -244,12 +245,12 @@ impl Evaluator {
                         (Value::Boolean(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "boolean".into(),
-                            got: right,
+                            got: right.into(),
                         }),
                         _ => Err(EvalError::TypeError {
                             span: left_span,
                             expected: "boolean".into(),
-                            got: left,
+                            got: left.into(),
                         }),
                     },
                     BinaryOperator::Greater => match (left.clone(), right.clone()) {
@@ -259,12 +260,12 @@ impl Evaluator {
                         (Value::Number(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "number".into(),
-                            got: right,
+                            got: right.into(),
                         }),
                         _ => Err(EvalError::TypeError {
                             span: left_span,
                             expected: "number".into(),
-                            got: left,
+                            got: left.into(),
                         }),
                     },
                     BinaryOperator::GreaterEqual => match (left.clone(), right.clone()) {
@@ -274,12 +275,12 @@ impl Evaluator {
                         (Value::Number(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "number".into(),
-                            got: right,
+                            got: right.into(),
                         }),
                         _ => Err(EvalError::TypeError {
                             span: left_span,
                             expected: "number".into(),
-                            got: left,
+                            got: left.into(),
                         }),
                     },
                     BinaryOperator::Less => match (left.clone(), right.clone()) {
@@ -289,12 +290,12 @@ impl Evaluator {
                         (Value::Number(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "number".into(),
-                            got: right,
+                            got: right.into(),
                         }),
                         _ => Err(EvalError::TypeError {
                             span: left_span,
                             expected: "number".into(),
-                            got: left,
+                            got: left.into(),
                         }),
                     },
                     BinaryOperator::LessEqual => match (left.clone(), right.clone()) {
@@ -304,25 +305,25 @@ impl Evaluator {
                         (Value::Number(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "number".into(),
-                            got: right,
+                            got: right.into(),
                         }),
                         _ => Err(EvalError::TypeError {
                             span: left_span,
                             expected: "number".into(),
-                            got: left,
+                            got: left.into(),
                         }),
                     },
                     BinaryOperator::Equal => Ok(Value::Boolean(left == right)),
                     BinaryOperator::NotEqual => Ok(Value::Boolean(left != right)),
-                }?
+                }?;
+                Ok(Spanned::new(value, span))
             }
-        };
-        Ok(value)
+        }
     }
 
     fn boolean(
         &self,
-        _span: Span,
+        span: Span,
         left: Value,
         right: &SpannedExpression,
         full_evaluate_on: bool,
@@ -330,46 +331,50 @@ impl Evaluator {
         let left: bool = left.into();
         let value = if left == full_evaluate_on {
             // if `left` is not the result we need, evaluate `right`
-            let (right, _right_span) = self.expression(right)?.take();
+            let right = self.expression(right)?.into_inner();
             let right: bool = right.into();
             Value::Boolean(right)
         } else {
             Value::Boolean(left) // short circuit
         };
-        Ok(value)
+        Ok(Spanned::new(value, span))
     }
 
-    fn list(&self, _span: Span, items: &Vec<SpannedExpression>) -> Result<SpannedValue> {
+    fn list(&self, span: Span, items: &Vec<SpannedExpression>) -> Result<SpannedValue> {
         let mut next_items = Vec::with_capacity(items.len());
         for item in items {
-            let (next_item, _next_item_span) = self.expression(item)?.take();
+            let next_item = self.expression(item)?;
             next_items.push(next_item);
         }
-        Ok(Value::List(next_items))
+        let value = Value::List(next_items);
+        Ok(Spanned::new(value, span))
     }
 
     fn object(
         &self,
-        _span: Span,
+        span: Span,
         entries: &[(Spanned<String>, SpannedExpression)],
     ) -> Result<SpannedValue> {
-        let mut object = Object::new();
+        let mut object = ValueObject::new();
         for (key, value) in entries.iter() {
             let key = key.clone().into_inner();
-            let (value, _value_span) = self.expression(value)?.take();
+            let value = self.expression(value)?;
             object.insert(key, value);
         }
-        Ok(Value::Object(object))
+        let value = Value::Object(object);
+        Ok(Spanned::new(value, span))
     }
 
     fn variable(&self, span: Span, var: &str) -> Result<SpannedValue> {
-        self.env
+        let value = self
+            .env
             .borrow()
             .get(var)
             .ok_or_else(|| EvalError::MissingVariable {
                 span,
                 var: var.to_string(),
-            })
+            })?;
+        Ok(value.with_span(span))
     }
 
     fn call(
@@ -385,10 +390,10 @@ impl Evaluator {
             });
         };
 
-        let args: Vec<Spanned<Value>> = args
+        let args: Vec<SpannedValue> = args
             .iter()
             .map(|expression| self.expression(expression))
-            .collect::<Result<Vec<Spanned<Value>>, EvalError>>()?;
+            .collect::<Result<Vec<SpannedValue>>>()?;
 
         common::call(span, function, &args)
     }
@@ -411,26 +416,26 @@ impl Evaluator {
                 let index =
                     get_index(container_span, index_span, index_value, string.len(), false)?;
                 let ch = string[index as usize..].chars().next().unwrap();
-                Ok(Value::String(ch.into()))
+                Ok(Spanned::new(Value::String(ch.into()), span))
             }
             (Value::Object(object), Value::String(key)) => object
                 .get(&key)
                 .map(Clone::clone)
                 .ok_or_else(|| EvalError::KeyNotFound {
                     object_span: container_span,
-                    object: object.clone(),
+                    object: convert_value_object_to_serde_value_object(object),
                     key_span: index_span,
                     key: key.clone(),
                 }),
             (Value::Object(_list), _) => Err(EvalError::TypeError {
                 span: index_span,
                 expected: "string".into(),
-                got: index,
+                got: index.into(),
             }),
             _ => Err(EvalError::TypeError {
                 span: container_span,
                 expected: "list | string | object".into(),
-                got: container,
+                got: container.into(),
             }),
         }
     }
@@ -447,7 +452,7 @@ impl Evaluator {
             return Err(EvalError::TypeError {
                 span: container_span,
                 expected: "object".into(),
-                got: container,
+                got: container.into(),
             });
         };
 
@@ -455,7 +460,7 @@ impl Evaluator {
             .get(key.inner())
             .ok_or_else(|| EvalError::KeyNotFound {
                 object_span: container_span,
-                object: object.clone(),
+                object: convert_value_object_to_serde_value_object(object),
                 key: key.clone().into_inner(),
                 key_span: key.span(),
             })
@@ -479,18 +484,18 @@ impl Evaluator {
             None => None,
         };
 
-        match container.clone() {
+        let value = match container.clone() {
             Value::List(list) => {
                 let length = list.len();
                 match (start.clone(), end.clone()) {
-                    (None, None) => Ok(Value::List(list)),
+                    (None, None) => Value::List(list),
                     (Some((start, start_span)), None) => {
                         let start = get_index(container_span, start_span, start, length, false)?;
-                        Ok(Value::List(list[start..].to_vec()))
+                        Value::List(list[start..].to_vec())
                     }
                     (None, Some((end, end_span))) => {
                         let end = get_index(container_span, end_span, end, length, true)?;
-                        Ok(Value::List(list[..end].to_vec()))
+                        Value::List(list[..end].to_vec())
                     }
                     (Some((start, start_span)), Some((end, end_span))) => {
                         let start =
@@ -503,21 +508,21 @@ impl Evaluator {
                                 end,
                             });
                         }
-                        Ok(Value::List(list[start..end].to_vec()))
+                        Value::List(list[start..end].to_vec())
                     }
                 }
             }
             Value::String(string) => {
                 let length = string.len();
                 match (start.clone(), end.clone()) {
-                    (None, None) => Ok(Value::String(string)),
+                    (None, None) => Value::String(string),
                     (Some((start, start_span)), None) => {
                         let start = get_index(container_span, start_span, start, length, false)?;
-                        Ok(Value::String(string[start..].to_string()))
+                        Value::String(string[start..].to_string())
                     }
                     (None, Some((end, end_span))) => {
                         let end = get_index(container_span, end_span, end, length, true)?;
-                        Ok(Value::String(string[..end].to_string()))
+                        Value::String(string[..end].to_string())
                     }
                     (Some((start, start_span)), Some((end, end_span))) => {
                         let start =
@@ -530,23 +535,26 @@ impl Evaluator {
                                 end,
                             });
                         }
-                        Ok(Value::String(string[start..end].to_string()))
+                        Value::String(string[start..end].to_string())
                     }
                 }
             }
-            _ => Err(EvalError::TypeError {
-                span: container_span,
-                expected: "list".into(),
-                got: container.into(),
-            }),
-        }
+            _ => {
+                return Err(EvalError::TypeError {
+                    span: container_span,
+                    expected: "list".into(),
+                    got: container.into(),
+                })
+            }
+        };
+        Ok(Spanned::new(value, span))
     }
 }
 
 fn get_index(
     container_span: Span,
     value_span: Span,
-    value: SpannedValueInner,
+    value: Value,
     length: usize,
     is_range_end: bool,
 ) -> Result<usize> {
@@ -600,7 +608,7 @@ mod tests {
     use rimu_ast::{BinaryOperator, Expression, SpannedExpression};
     use rimu_meta::{SourceId, Span, Spanned};
     use rimu_parse::parse_expression;
-    use rimu_value::{Environment, Function, FunctionBody, Value};
+    use rimu_value::{Environment, Function, FunctionBody, SerdeValue};
     use rust_decimal_macros::dec;
 
     use super::{evaluate, EvalError};
@@ -611,8 +619,8 @@ mod tests {
 
     fn test_expression(
         expr: SpannedExpression,
-        env_object: Option<IndexMap<String, Value>>,
-    ) -> Result<Value, EvalError> {
+        env_object: Option<IndexMap<String, SerdeValue>>,
+    ) -> Result<SerdeValue, EvalError> {
         let mut env = Environment::new();
         if let Some(env_object) = env_object {
             for (key, value) in env_object.into_iter() {
@@ -621,14 +629,14 @@ mod tests {
         }
 
         let value = evaluate(&expr, Rc::new(RefCell::new(env)))?;
-        let value: Value = value.into();
+        let value: SerdeValue = value.into();
         Ok(value)
     }
 
     fn test_code(
         code: &str,
-        env_object: Option<IndexMap<String, Value>>,
-    ) -> Result<Value, EvalError> {
+        env_object: Option<IndexMap<String, SerdeValue>>,
+    ) -> Result<SerdeValue, EvalError> {
         let (Some(expr), errors) = parse_expression(code, SourceId::empty()) else {
             panic!()
         };
@@ -641,7 +649,7 @@ mod tests {
         let expr = Spanned::new(Expression::Null, span(0..1));
         let actual = test_expression(expr, None);
 
-        let expected = Ok(Value::Null);
+        let expected = Ok(SerdeValue::Null);
 
         assert_eq!(actual, expected);
     }
@@ -651,7 +659,7 @@ mod tests {
         let expr = Spanned::new(Expression::Boolean(false), span(0..1));
         let actual = test_expression(expr, None);
 
-        let expected = Ok(Value::Boolean(false));
+        let expected = Ok(SerdeValue::Boolean(false));
 
         assert_eq!(actual, expected);
     }
@@ -662,7 +670,7 @@ mod tests {
         let expr = Spanned::new(Expression::Number(number), span(0..1));
         let actual = test_expression(expr, None);
 
-        let expected = Ok(Value::Number(number.into()));
+        let expected = Ok(SerdeValue::Number(number.into()));
 
         assert_eq!(actual, expected);
     }
@@ -679,10 +687,10 @@ mod tests {
         );
         let actual = test_expression(expr, None);
 
-        let expected = Ok(Value::List(vec![
-            Value::String("hello".into()),
-            Value::Boolean(true),
-            Value::String("world".into()),
+        let expected = Ok(SerdeValue::List(vec![
+            SerdeValue::String("hello".into()),
+            SerdeValue::Boolean(true),
+            SerdeValue::String("world".into()),
         ]));
 
         assert_eq!(actual, expected);
@@ -705,7 +713,7 @@ mod tests {
         );
         let actual = test_expression(expr, None);
 
-        let expected = Ok(Value::Object(indexmap! {
+        let expected = Ok(SerdeValue::Object(indexmap! {
             "a".into() => "hello".into(),
             "b".into() => "world".into(),
         }));
@@ -716,7 +724,7 @@ mod tests {
     #[test]
     fn simple_function_call() {
         let env = indexmap! {
-            "add".into() => Value::Function(Function {
+            "add".into() => SerdeValue::Function(Function {
                 args: vec!["a".into(), "b".into()],
                 body: FunctionBody::Expression(Spanned::new(
                     Expression::Binary {
@@ -734,8 +742,8 @@ mod tests {
                 )),
                 env: Rc::new(RefCell::new(Environment::new())),
             }),
-            "one".into() => Value::Number(dec!(1).into()),
-            "two".into() => Value::Number(dec!(2).into()),
+            "one".into() => SerdeValue::Number(dec!(1).into()),
+            "two".into() => SerdeValue::Number(dec!(2).into()),
         };
 
         let expr = Spanned::new(
@@ -754,7 +762,7 @@ mod tests {
 
         let actual = test_expression(expr, Some(env));
 
-        let expected = Ok(Value::Number(dec!(3).into()));
+        let expected = Ok(SerdeValue::Number(dec!(3).into()));
 
         assert_eq!(actual, expected);
     }
@@ -762,14 +770,14 @@ mod tests {
     #[test]
     fn arithmetic() {
         let env = indexmap! {
-            "x".into() => Value::Number(dec!(10).into()),
-            "y".into() => Value::Number(dec!(20).into()),
-            "z".into() => Value::Number(dec!(40).into()),
-            "w".into() => Value::Number(dec!(80).into()),
+            "x".into() => SerdeValue::Number(dec!(10).into()),
+            "y".into() => SerdeValue::Number(dec!(20).into()),
+            "z".into() => SerdeValue::Number(dec!(40).into()),
+            "w".into() => SerdeValue::Number(dec!(80).into()),
         };
         let actual = test_code("x + y * (z / w)", Some(env));
 
-        let expected = Ok(Value::Number(dec!(20).into()));
+        let expected = Ok(SerdeValue::Number(dec!(20).into()));
 
         assert_eq!(actual, expected);
     }
@@ -777,18 +785,18 @@ mod tests {
     #[test]
     fn get_list_index() {
         let env = indexmap! {
-            "list".into() => Value::List(vec![
-                Value::String("a".into()),
-                Value::String("b".into()),
-                Value::String("c".into()),
-                Value::String("d".into()),
+            "list".into() => SerdeValue::List(vec![
+                SerdeValue::String("a".into()),
+                SerdeValue::String("b".into()),
+                SerdeValue::String("c".into()),
+                SerdeValue::String("d".into()),
             ]),
             // "index".into() => Value::Number(dec!(2).into()),
         };
         // let actual = test_code("list[index]", Some(env));
         let actual = test_code("list[2]", Some(env));
 
-        let expected = Ok(Value::String("c".into()));
+        let expected = Ok(SerdeValue::String("c".into()));
 
         assert_eq!(actual, expected);
     }
@@ -796,18 +804,18 @@ mod tests {
     #[test]
     fn get_list_index_negative() {
         let env = indexmap! {
-            "list".into() => Value::List(vec![
-                Value::String("a".into()),
-                Value::String("b".into()),
-                Value::String("c".into()),
-                Value::String("d".into()),
+            "list".into() => SerdeValue::List(vec![
+                SerdeValue::String("a".into()),
+                SerdeValue::String("b".into()),
+                SerdeValue::String("c".into()),
+                SerdeValue::String("d".into()),
             ]),
             // "index".into() => Value::Number(dec!(-2).into()),
         };
         // let actual = test_code("list[index]", Some(env));
         let actual = test_code("list[-2]", Some(env));
 
-        let expected = Ok(Value::String("c".into()));
+        let expected = Ok(SerdeValue::String("c".into()));
 
         assert_eq!(actual, expected);
     }
@@ -815,16 +823,16 @@ mod tests {
     #[test]
     fn get_key() {
         let env = indexmap! {
-            "object".into() => Value::Object(indexmap! {
-                "a".into() => Value::String("apple".into()),
-                "b".into() => Value::String("bear".into()),
-                "c".into() => Value::String("cranberry".into()),
-                "d".into() => Value::String("dog".into()),
+            "object".into() => SerdeValue::Object(indexmap! {
+                "a".into() => SerdeValue::String("apple".into()),
+                "b".into() => SerdeValue::String("bear".into()),
+                "c".into() => SerdeValue::String("cranberry".into()),
+                "d".into() => SerdeValue::String("dog".into()),
             }),
         };
         let actual = test_code("object.a", Some(env));
 
-        let expected = Ok(Value::String("apple".into()));
+        let expected = Ok(SerdeValue::String("apple".into()));
 
         assert_eq!(actual, expected);
     }
@@ -832,21 +840,21 @@ mod tests {
     #[test]
     fn get_slice_start_end() {
         let env = indexmap! {
-            "list".into() => Value::List(vec![
-                Value::String("a".into()),
-                Value::String("b".into()),
-                Value::String("c".into()),
-                Value::String("d".into()),
-                Value::String("e".into()),
+            "list".into() => SerdeValue::List(vec![
+                SerdeValue::String("a".into()),
+                SerdeValue::String("b".into()),
+                SerdeValue::String("c".into()),
+                SerdeValue::String("d".into()),
+                SerdeValue::String("e".into()),
             ]),
-            "start".into() => Value::Number(dec!(1).into()),
-            "end".into() => Value::Number(dec!(3).into()),
+            "start".into() => SerdeValue::Number(dec!(1).into()),
+            "end".into() => SerdeValue::Number(dec!(3).into()),
         };
         let actual = test_code("list[start:end]", Some(env));
 
-        let expected = Ok(Value::List(vec![
-            Value::String("b".into()),
-            Value::String("c".into()),
+        let expected = Ok(SerdeValue::List(vec![
+            SerdeValue::String("b".into()),
+            SerdeValue::String("c".into()),
         ]));
 
         assert_eq!(actual, expected);

@@ -1,13 +1,14 @@
 use std::{cell::RefCell, rc::Rc};
 
 use rimu_meta::{Span, Spanned};
-use rimu_value::{Environment, Function, FunctionBody, Value};
+use rimu_value::{Environment, Function, FunctionBody, SpannedValue};
 
 use crate::{evaluate_block, evaluate_expression, EvalError, Result};
 
-pub fn call(span: Span, function: Function, args: &[Spanned<Value>]) -> Result<Value> {
+pub fn call(span: Span, function: Function, args: &[SpannedValue]) -> Result<SpannedValue> {
     if let FunctionBody::Native(native) = function.body {
-        return native.call(&args);
+        let value = native.call(&args)?;
+        return Ok(Spanned::new(value, span));
     }
 
     let function_env = function.env.clone();
@@ -30,10 +31,10 @@ pub fn call(span: Span, function: Function, args: &[Spanned<Value>]) -> Result<V
 
     let body_env = Rc::new(RefCell::new(body_env));
 
-    let spanned_value = match &function.body {
+    let value = match &function.body {
         FunctionBody::Expression(expression) => evaluate_expression(expression, body_env)?,
         FunctionBody::Block(block) => evaluate_block(block, body_env)?,
         _ => unreachable!(),
     };
-    Ok(spanned_value.into_inner())
+    Ok(value)
 }
