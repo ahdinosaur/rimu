@@ -32,16 +32,14 @@ impl Evaluator {
     fn expression(&self, expr: &SpannedExpression) -> Result<SpannedValue> {
         let span = expr.span();
         match expr.inner() {
-            Expression::Null => Ok(Spanned::new(SpannedValueInner::Null, span)),
+            Expression::Null => Ok(Spanned::new(Value::Null, span)),
 
-            Expression::Boolean(boolean) => {
-                Ok(Spanned::new(SpannedValueInner::Boolean(*boolean), span))
-            }
+            Expression::Boolean(boolean) => Ok(Spanned::new(Value::Boolean(*boolean), span)),
 
             Expression::String(string) => self.string(span, string),
 
             Expression::Number(decimal) => Ok(Spanned::new(
-                SpannedValueInner::Number(Into::<Number>::into(*decimal)),
+                Value::Number(Into::<Number>::into(*decimal)),
                 span,
             )),
 
@@ -90,7 +88,7 @@ impl Evaluator {
 
     fn string(&self, span: Span, string: &str) -> Result<SpannedValue> {
         // TODO handle string interpolations
-        let value = SpannedValueInner::String(string.to_string());
+        let value = Value::String(string.to_string());
         Ok(Spanned::new(value, span))
     }
 
@@ -103,7 +101,7 @@ impl Evaluator {
         let args: Vec<String> = args.iter().map(|a| a.inner()).cloned().collect();
         let body = FunctionBody::Expression(body.clone());
         let env = self.env.clone();
-        let value = SpannedValueInner::Function(Function { args, body, env });
+        let value = Value::Function(Function { args, body, env });
         Ok(Spanned::new(value, span))
     }
 
@@ -116,7 +114,7 @@ impl Evaluator {
         let (right, right_span) = self.expression(right)?.take();
         let value = match operator {
             UnaryOperator::Negate => match right.clone() {
-                SpannedValueInner::Number(number) => Ok(SpannedValueInner::Number(-number)),
+                Value::Number(number) => Ok(Value::Number(-number)),
                 _ => Err(EvalError::TypeError {
                     span: right_span,
                     expected: "number".into(),
@@ -126,7 +124,7 @@ impl Evaluator {
             UnaryOperator::Not => {
                 let right: Value = right.into();
                 let boolean: bool = right.into();
-                Ok(SpannedValueInner::Boolean(!boolean))
+                Ok(Value::Boolean(!boolean))
             }
         }?;
         Ok(Spanned::new(value, span))
@@ -149,26 +147,26 @@ impl Evaluator {
                     BinaryOperator::Or => unreachable!(),
                     BinaryOperator::And => unreachable!(),
                     BinaryOperator::Add => match (left.clone(), right.clone()) {
-                        (SpannedValueInner::Number(left), SpannedValueInner::Number(right)) => {
-                            Ok(SpannedValueInner::Number(left + right))
+                        (Value::Number(left), Value::Number(right)) => {
+                            Ok(Value::Number(left + right))
                         }
-                        (SpannedValueInner::Number(_left), right) => Err(EvalError::TypeError {
+                        (Value::Number(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "number".into(),
                             got: right,
                         }),
-                        (SpannedValueInner::String(left), SpannedValueInner::String(right)) => {
-                            Ok(SpannedValueInner::String([left, right].join("")))
+                        (Value::String(left), Value::String(right)) => {
+                            Ok(Value::String([left, right].join("")))
                         }
-                        (SpannedValueInner::String(_left), right) => Err(EvalError::TypeError {
+                        (Value::String(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "string".into(),
                             got: right,
                         }),
-                        (SpannedValueInner::List(left), SpannedValueInner::List(right)) => {
-                            Ok(SpannedValueInner::List([left, right].concat()))
+                        (Value::List(left), Value::List(right)) => {
+                            Ok(Value::List([left, right].concat()))
                         }
-                        (SpannedValueInner::List(_left), right) => Err(EvalError::TypeError {
+                        (Value::List(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "list".into(),
                             got: right,
@@ -180,10 +178,10 @@ impl Evaluator {
                         }),
                     },
                     BinaryOperator::Subtract => match (left.clone(), right.clone()) {
-                        (SpannedValueInner::Number(left), SpannedValueInner::Number(right)) => {
-                            Ok(SpannedValueInner::Number(left - right))
+                        (Value::Number(left), Value::Number(right)) => {
+                            Ok(Value::Number(left - right))
                         }
-                        (SpannedValueInner::Number(_left), right) => Err(EvalError::TypeError {
+                        (Value::Number(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "number".into(),
                             got: right,
@@ -195,10 +193,10 @@ impl Evaluator {
                         }),
                     },
                     BinaryOperator::Multiply => match (left.clone(), right.clone()) {
-                        (SpannedValueInner::Number(left), SpannedValueInner::Number(right)) => {
-                            Ok(SpannedValueInner::Number(left * right))
+                        (Value::Number(left), Value::Number(right)) => {
+                            Ok(Value::Number(left * right))
                         }
-                        (SpannedValueInner::Number(_left), right) => Err(EvalError::TypeError {
+                        (Value::Number(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "number".into(),
                             got: right,
@@ -210,10 +208,10 @@ impl Evaluator {
                         }),
                     },
                     BinaryOperator::Divide => match (left.clone(), right.clone()) {
-                        (SpannedValueInner::Number(left), SpannedValueInner::Number(right)) => {
-                            Ok(SpannedValueInner::Number(left / right))
+                        (Value::Number(left), Value::Number(right)) => {
+                            Ok(Value::Number(left / right))
                         }
-                        (SpannedValueInner::Number(_left), right) => Err(EvalError::TypeError {
+                        (Value::Number(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "number".into(),
                             got: right,
@@ -225,10 +223,10 @@ impl Evaluator {
                         }),
                     },
                     BinaryOperator::Rem => match (left.clone(), right.clone()) {
-                        (SpannedValueInner::Number(left), SpannedValueInner::Number(right)) => {
-                            Ok(SpannedValueInner::Number(left % right))
+                        (Value::Number(left), Value::Number(right)) => {
+                            Ok(Value::Number(left % right))
                         }
-                        (SpannedValueInner::Number(_left), right) => Err(EvalError::TypeError {
+                        (Value::Number(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "number".into(),
                             got: right,
@@ -240,10 +238,10 @@ impl Evaluator {
                         }),
                     },
                     BinaryOperator::Xor => match (left.clone(), right.clone()) {
-                        (SpannedValueInner::Boolean(left), SpannedValueInner::Boolean(right)) => {
-                            Ok(SpannedValueInner::Boolean(left ^ right))
+                        (Value::Boolean(left), Value::Boolean(right)) => {
+                            Ok(Value::Boolean(left ^ right))
                         }
-                        (SpannedValueInner::Boolean(_left), right) => Err(EvalError::TypeError {
+                        (Value::Boolean(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "boolean".into(),
                             got: right,
@@ -255,10 +253,10 @@ impl Evaluator {
                         }),
                     },
                     BinaryOperator::Greater => match (left.clone(), right.clone()) {
-                        (SpannedValueInner::Number(left), SpannedValueInner::Number(right)) => {
-                            Ok(SpannedValueInner::Boolean(left > right))
+                        (Value::Number(left), Value::Number(right)) => {
+                            Ok(Value::Boolean(left > right))
                         }
-                        (SpannedValueInner::Number(_left), right) => Err(EvalError::TypeError {
+                        (Value::Number(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "number".into(),
                             got: right,
@@ -270,10 +268,10 @@ impl Evaluator {
                         }),
                     },
                     BinaryOperator::GreaterEqual => match (left.clone(), right.clone()) {
-                        (SpannedValueInner::Number(left), SpannedValueInner::Number(right)) => {
-                            Ok(SpannedValueInner::Boolean(left >= right))
+                        (Value::Number(left), Value::Number(right)) => {
+                            Ok(Value::Boolean(left >= right))
                         }
-                        (SpannedValueInner::Number(_left), right) => Err(EvalError::TypeError {
+                        (Value::Number(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "number".into(),
                             got: right,
@@ -285,10 +283,10 @@ impl Evaluator {
                         }),
                     },
                     BinaryOperator::Less => match (left.clone(), right.clone()) {
-                        (SpannedValueInner::Number(left), SpannedValueInner::Number(right)) => {
-                            Ok(SpannedValueInner::Boolean(left < right))
+                        (Value::Number(left), Value::Number(right)) => {
+                            Ok(Value::Boolean(left < right))
                         }
-                        (SpannedValueInner::Number(_left), right) => Err(EvalError::TypeError {
+                        (Value::Number(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "number".into(),
                             got: right,
@@ -300,10 +298,10 @@ impl Evaluator {
                         }),
                     },
                     BinaryOperator::LessEqual => match (left.clone(), right.clone()) {
-                        (SpannedValueInner::Number(left), SpannedValueInner::Number(right)) => {
-                            Ok(SpannedValueInner::Boolean(left <= right))
+                        (Value::Number(left), Value::Number(right)) => {
+                            Ok(Value::Boolean(left <= right))
                         }
-                        (SpannedValueInner::Number(_left), right) => Err(EvalError::TypeError {
+                        (Value::Number(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "number".into(),
                             got: right,
@@ -314,8 +312,8 @@ impl Evaluator {
                             got: left,
                         }),
                     },
-                    BinaryOperator::Equal => Ok(SpannedValueInner::Boolean(left == right)),
-                    BinaryOperator::NotEqual => Ok(SpannedValueInner::Boolean(left != right)),
+                    BinaryOperator::Equal => Ok(Value::Boolean(left == right)),
+                    BinaryOperator::NotEqual => Ok(Value::Boolean(left != right)),
                 }?
             }
         };
@@ -334,9 +332,9 @@ impl Evaluator {
             // if `left` is not the result we need, evaluate `right`
             let (right, _right_span) = self.expression(right)?.take();
             let right: bool = right.into();
-            SpannedValueInner::Boolean(right)
+            Value::Boolean(right)
         } else {
-            SpannedValueInner::Boolean(left) // short circuit
+            Value::Boolean(left) // short circuit
         };
         Ok(value)
     }
@@ -347,7 +345,7 @@ impl Evaluator {
             let (next_item, _next_item_span) = self.expression(item)?.take();
             next_items.push(next_item);
         }
-        Ok(SpannedValueInner::List(next_items))
+        Ok(Value::List(next_items))
     }
 
     fn object(
@@ -361,7 +359,7 @@ impl Evaluator {
             let (value, _value_span) = self.expression(value)?.take();
             object.insert(key, value);
         }
-        Ok(SpannedValueInner::Object(object))
+        Ok(Value::Object(object))
     }
 
     fn variable(&self, span: Span, var: &str) -> Result<SpannedValue> {
@@ -380,9 +378,7 @@ impl Evaluator {
         function: &SpannedExpression,
         args: &[SpannedExpression],
     ) -> Result<SpannedValue> {
-        let (SpannedValueInner::Function(function), _function_span) =
-            self.expression(function)?.take()
-        else {
+        let (Value::Function(function), _function_span) = self.expression(function)?.take() else {
             return Err(EvalError::CallNonFunction {
                 span: function.span(),
                 expr: function.clone().into_inner(),
@@ -407,17 +403,17 @@ impl Evaluator {
         let (index, index_span) = self.expression(index)?.take();
 
         match (container.clone(), index.clone()) {
-            (SpannedValueInner::List(list), index_value) => {
+            (Value::List(list), index_value) => {
                 let index = get_index(container_span, index_span, index_value, list.len(), false)?;
                 Ok(list[index as usize].clone())
             }
-            (SpannedValueInner::String(string), index_value) => {
+            (Value::String(string), index_value) => {
                 let index =
                     get_index(container_span, index_span, index_value, string.len(), false)?;
                 let ch = string[index as usize..].chars().next().unwrap();
-                Ok(SpannedValueInner::String(ch.into()))
+                Ok(Value::String(ch.into()))
             }
-            (SpannedValueInner::Object(object), SpannedValueInner::String(key)) => object
+            (Value::Object(object), Value::String(key)) => object
                 .get(&key)
                 .map(Clone::clone)
                 .ok_or_else(|| EvalError::KeyNotFound {
@@ -426,7 +422,7 @@ impl Evaluator {
                     key_span: index_span,
                     key: key.clone(),
                 }),
-            (SpannedValueInner::Object(_list), _) => Err(EvalError::TypeError {
+            (Value::Object(_list), _) => Err(EvalError::TypeError {
                 span: index_span,
                 expected: "string".into(),
                 got: index,
@@ -447,7 +443,7 @@ impl Evaluator {
     ) -> Result<SpannedValue> {
         let (container, container_span) = self.expression(container)?.take();
 
-        let SpannedValueInner::Object(object) = container.clone() else {
+        let Value::Object(object) = container.clone() else {
             return Err(EvalError::TypeError {
                 span: container_span,
                 expected: "object".into(),
@@ -484,17 +480,17 @@ impl Evaluator {
         };
 
         match container.clone() {
-            SpannedValueInner::List(list) => {
+            Value::List(list) => {
                 let length = list.len();
                 match (start.clone(), end.clone()) {
-                    (None, None) => Ok(SpannedValueInner::List(list)),
+                    (None, None) => Ok(Value::List(list)),
                     (Some((start, start_span)), None) => {
                         let start = get_index(container_span, start_span, start, length, false)?;
-                        Ok(SpannedValueInner::List(list[start..].to_vec()))
+                        Ok(Value::List(list[start..].to_vec()))
                     }
                     (None, Some((end, end_span))) => {
                         let end = get_index(container_span, end_span, end, length, true)?;
-                        Ok(SpannedValueInner::List(list[..end].to_vec()))
+                        Ok(Value::List(list[..end].to_vec()))
                     }
                     (Some((start, start_span)), Some((end, end_span))) => {
                         let start =
@@ -507,21 +503,21 @@ impl Evaluator {
                                 end,
                             });
                         }
-                        Ok(SpannedValueInner::List(list[start..end].to_vec()))
+                        Ok(Value::List(list[start..end].to_vec()))
                     }
                 }
             }
-            SpannedValueInner::String(string) => {
+            Value::String(string) => {
                 let length = string.len();
                 match (start.clone(), end.clone()) {
-                    (None, None) => Ok(SpannedValueInner::String(string)),
+                    (None, None) => Ok(Value::String(string)),
                     (Some((start, start_span)), None) => {
                         let start = get_index(container_span, start_span, start, length, false)?;
-                        Ok(SpannedValueInner::String(string[start..].to_string()))
+                        Ok(Value::String(string[start..].to_string()))
                     }
                     (None, Some((end, end_span))) => {
                         let end = get_index(container_span, end_span, end, length, true)?;
-                        Ok(SpannedValueInner::String(string[..end].to_string()))
+                        Ok(Value::String(string[..end].to_string()))
                     }
                     (Some((start, start_span)), Some((end, end_span))) => {
                         let start =
@@ -534,7 +530,7 @@ impl Evaluator {
                                 end,
                             });
                         }
-                        Ok(SpannedValueInner::String(string[start..end].to_string()))
+                        Ok(Value::String(string[start..end].to_string()))
                     }
                 }
             }
@@ -554,7 +550,7 @@ fn get_index(
     length: usize,
     is_range_end: bool,
 ) -> Result<usize> {
-    let SpannedValueInner::Number(number) = value else {
+    let Value::Number(number) = value else {
         return Err(EvalError::TypeError {
             span: value_span,
             expected: "number".into(),

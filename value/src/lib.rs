@@ -1,34 +1,27 @@
 mod convert;
-mod de;
 mod environment;
-mod error;
 mod eval;
 mod from;
 mod function;
 mod native;
 mod number;
-mod ser;
-mod spanned;
+mod serde;
 
 use indexmap::IndexMap;
+use rimu_meta::Spanned;
 
 use std::fmt::{Debug, Display};
 
-use serde::de::DeserializeOwned;
-use serde::Serialize;
-
 pub use self::convert::convert;
 pub use self::environment::{Environment, EnvironmentError};
-pub use self::error::ValueError;
 pub use self::eval::EvalError;
 pub use self::function::{Function, FunctionBody};
 pub use self::native::NativeFunction;
 pub use self::number::Number;
-use self::ser::Serializer;
-pub use self::spanned::{SpannedValue, SpannedValueInner};
+pub use self::serde::{SerdeValue, SerdeValueError, SerdeValueList, SerdeValueObject};
 
-pub type List = Vec<Value>;
-pub type Object = IndexMap<String, Value>;
+pub type ValueList = Vec<SpannedValue>;
+pub type ValueObject = IndexMap<String, SpannedValue>;
 
 #[derive(Default, Clone, PartialEq)]
 pub enum Value {
@@ -38,22 +31,37 @@ pub enum Value {
     String(String),
     Number(Number),
     Function(Function),
-    List(List),
-    Object(Object),
+    List(ValueList),
+    Object(ValueObject),
 }
 
-pub fn to_value<T>(value: T) -> Result<Value, ValueError>
-where
-    T: Serialize,
-{
-    value.serialize(Serializer)
+pub type SpannedValue = Spanned<Value>;
+
+impl From<SpannedValue> for SerdeValue {
+    fn from(value: SpannedValue) -> Self {
+        value.into_inner().into()
+    }
 }
 
-pub fn from_value<T>(value: Value) -> Result<T, ValueError>
-where
-    T: DeserializeOwned,
-{
-    T::deserialize(value)
+impl From<Value> for SerdeValue {
+    fn from(value: Value) -> Self {
+        match value {
+            Value::Null => SerdeValue::Null,
+            Value::Boolean(boolean) => SerdeValue::Boolean(boolean),
+            Value::String(string) => SerdeValue::String(string),
+            Value::Number(number) => SerdeValue::Number(number),
+            Value::Function(function) => SerdeValue::Function(function),
+            Value::List(list) => {
+                SerdeValue::List(list.iter().map(|item| item.clone().into()).collect())
+            }
+            Value::Object(object) => SerdeValue::Object(SerdeValueObject::from_iter(
+                object
+                    .iter()
+                    .map(|(key, value)| (key.clone(), value.clone().into()))
+                    .collect::<Vec<_>>(),
+            )),
+        }
+    }
 }
 
 impl Debug for Value {
@@ -115,7 +123,7 @@ pub fn value_get_in<'a>(value: &'a Value, keys: &[&str]) -> Option<&'a Value> {
     };
     match value {
         Value::Object(object) => match object.get(*first) {
-            Some(value) => value_get_in(value, rest),
+            Some(value) => value_get_in(value.inner(), rest),
             None => None,
         },
         _ => None,
@@ -130,79 +138,5 @@ impl From<Value> for bool {
             Value::Null | Value::Boolean(false) => false,
             _ => true,
         }
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use std::{borrow::Cow, ffi::OsString, path::PathBuf};
-
-    use crate::Value;
-    use pretty_assertions::assert_eq;
-    use rust_decimal_macros::dec;
-
-    #[test]
-    fn from_string_tests() {
-        assert_eq!(
-            Value::from("John Sheppard"),
-            Value::String("John Sheppard".to_string())
-        );
-
-        assert_eq!(
-            Value::from("Elizabeth Weir".to_string()),
-            Value::String("Elizabeth Weir".to_string())
-        );
-
-        assert_eq!(Value::from(PathBuf::new()), Value::String("".to_string()));
-
-        assert_eq!(
-            Value::from(Cow::from("Samantha Carter")),
-            Value::String("Samantha Carter".to_string())
-        );
-
-        assert_eq!(
-            Value::from(OsString::from("Jennifer Keller")),
-            Value::String("Jennifer Keller".to_string())
-        );
-    }
-
-    #[test]
-    fn from_vec_test() {
-        assert_eq!(
-            Value::from(vec!["Aiden Ford", "Rodney McKay", "Ronon Dex"]),
-            Value::List(vec![
-                Value::String("Aiden Ford".to_string()),
-                Value::String("Rodney McKay".to_string()),
-                Value::String("Ronon Dex".to_string())
-            ])
-        );
-    }
-
-    #[test]
-    fn debug_tests() {
-        assert_eq!(format!("{:?}", Value::Null), "Null".to_string());
-
-        assert_eq!(
-            format!("{:?}", Value::String("Richard Woolsey".to_string())),
-            "String(\"Richard Woolsey\")".to_string()
-        );
-
-        assert_eq!(
-            format!(
-                "{:?}",
-                Value::List(vec![
-                    Value::String("Aiden Ford".to_string()),
-                    Value::String("Rodney McKay".to_string()),
-                    Value::String("Ronon Dex".to_string())
-                ])
-            ),
-            "List [String(\"Aiden Ford\"), String(\"Rodney McKay\"), String(\"Ronon Dex\")]"
-                .to_string()
-        );
-
-        assert_eq!(
-            format!("{:?}", Value::Number(dec!(2).into())),
-            "Number(2)".to_string()
-        );
     }
 }
