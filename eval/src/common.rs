@@ -7,6 +7,14 @@ use crate::{evaluate_block, evaluate_expression, EvalError, Result};
 
 pub fn call(span: Span, function: Function, args: &[SpannedValue]) -> Result<SpannedValue> {
     if let FunctionBody::Native(native) = function.body {
+        for index in 0..function.args.len() {
+            if args.get(index).is_none() {
+                return Err(EvalError::MissingArgument {
+                    span: span.clone(),
+                    index,
+                });
+            }
+        }
         return native.call(span, args);
     }
 
