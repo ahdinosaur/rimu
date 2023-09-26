@@ -16,7 +16,10 @@ pub use self::eval::EvalError;
 pub use self::function::{Function, FunctionBody};
 pub use self::native::NativeFunction;
 pub use self::number::Number;
-pub use self::serde::{convert, SerdeValue, SerdeValueError, SerdeValueList, SerdeValueObject};
+pub use self::serde::{
+    convert, from_serde_value, to_serde_value, SerdeValue, SerdeValueError, SerdeValueList,
+    SerdeValueObject,
+};
 
 pub type ValueList = Vec<SpannedValue>;
 pub type ValueObject = IndexMap<String, SpannedValue>;

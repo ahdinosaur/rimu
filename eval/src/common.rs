@@ -1,14 +1,13 @@
 use std::{cell::RefCell, rc::Rc};
 
-use rimu_meta::{Span, Spanned};
+use rimu_meta::Span;
 use rimu_value::{Environment, Function, FunctionBody, SpannedValue};
 
 use crate::{evaluate_block, evaluate_expression, EvalError, Result};
 
 pub fn call(span: Span, function: Function, args: &[SpannedValue]) -> Result<SpannedValue> {
     if let FunctionBody::Native(native) = function.body {
-        let value = native.call(&args)?;
-        return Ok(Spanned::new(value, span));
+        return native.call(span, args);
     }
 
     let function_env = function.env.clone();

@@ -32,14 +32,14 @@ pub enum SerdeValue {
     Object(SerdeValueObject),
 }
 
-pub fn to_value<T>(value: T) -> Result<SerdeValue, SerdeValueError>
+pub fn to_serde_value<T>(value: T) -> Result<SerdeValue, SerdeValueError>
 where
     T: Serialize,
 {
     value.serialize(Serializer)
 }
 
-pub fn from_value<T>(value: SerdeValue) -> Result<T, SerdeValueError>
+pub fn from_serde_value<T>(value: SerdeValue) -> Result<T, SerdeValueError>
 where
     T: DeserializeOwned,
 {

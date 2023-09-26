@@ -4,7 +4,7 @@ use indexmap::IndexMap;
 use serde::{ser::Impossible, Serialize};
 use std::fmt::Display;
 
-use crate::serde::{to_value, SerdeValue, SerdeValueError, SerdeValueObject};
+use super::{to_serde_value, SerdeValue, SerdeValueError, SerdeValueObject};
 
 impl Serialize for SerdeValue {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -173,7 +173,7 @@ impl serde::Serializer for Serializer {
         T: ?Sized + Serialize,
     {
         let mut values = SerdeValueObject::new();
-        values.insert(String::from(variant), to_value(value)?);
+        values.insert(String::from(variant), to_serde_value(value)?);
         Ok(SerdeValue::Object(values))
     }
 
@@ -286,7 +286,7 @@ impl serde::ser::SerializeSeq for SerializeVec {
     where
         T: ?Sized + Serialize,
     {
-        self.vec.push(to_value(value)?);
+        self.vec.push(to_serde_value(value)?);
         Ok(())
     }
 
@@ -335,7 +335,7 @@ impl serde::ser::SerializeTupleVariant for SerializeTupleVariant {
     where
         T: ?Sized + Serialize,
     {
-        self.vec.push(to_value(value)?);
+        self.vec.push(to_serde_value(value)?);
         Ok(())
     }
 
@@ -374,7 +374,7 @@ impl serde::ser::SerializeMap for SerializeMap {
                 // Panic because this indicates a bug in the program rather than an
                 // expected failure.
                 let key = key.expect("serialize_value called before serialize_key");
-                map.insert(key, to_value(value)?);
+                map.insert(key, to_serde_value(value)?);
                 Ok(())
             }
         }
@@ -617,7 +617,7 @@ impl serde::ser::SerializeStructVariant for SerializeStructVariant {
     where
         T: ?Sized + Serialize,
     {
-        self.map.insert(String::from(key), to_value(value)?);
+        self.map.insert(String::from(key), to_serde_value(value)?);
         Ok(())
     }
 
