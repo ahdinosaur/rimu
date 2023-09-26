@@ -10,6 +10,7 @@ use rimu_value::{
 pub fn create_stdlib() -> SerdeValueObject {
     let mut lib = SerdeValueObject::new();
     lib.insert("length".into(), length().into());
+    lib.insert("map".into(), map().into());
     lib
 }
 
@@ -45,17 +46,23 @@ pub fn map_function(span: Span, args: &[Spanned<Value>]) -> Result<SpannedValue,
     let (arg, arg_span) = &args[0].clone().take();
     match arg {
         Value::Object(object) => {
-            let list = object.get("list");
-            let mapper = object.get("item");
-            let (Some(list), Some(mapper)) = (list, mapper) else {
+            let list_arg = object.get("list");
+            let mapper_arg = object.get("item");
+            let (Some(list_arg), Some(mapper_arg)) = (list_arg, mapper_arg) else {
                 return Err(EvalError::TypeError {
                     span: arg_span.clone(),
                     expected: "{ list: list, item: (item) => next }".into(),
                     got: arg.clone().into(),
                 });
             };
-            match (list.inner(), mapper.inner()) {
-                (Value::List(list), Value::Function(mapper)) => call(span, mapper.clone(), list),
+            match (list_arg.inner(), mapper_arg.inner()) {
+                (Value::List(list), Value::Function(mapper)) => {
+                    let next_list = list
+                        .iter()
+                        .map(|item| call(span.clone(), mapper.clone(), &[item.clone()]))
+                        .collect::<Result<Vec<SpannedValue>, EvalError>>()?;
+                    Ok(Spanned::new(Value::List(next_list), list_arg.span()))
+                }
                 _ => Err(EvalError::TypeError {
                     span: arg_span.clone(),
                     expected: "{ list: list, item: (item) => next }".into(),
