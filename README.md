@@ -18,6 +18,11 @@
   </strong>
 </div>
 
+[![release version](https://img.shields.io/github/v/release/ahdinosaur/rimu?style=flat-square&display_name=tag&include_prereleases)](https://github.com/ahdinosaur/rimu/releases/latest)
+[![crates.io version](https://img.shields.io/crates/v/rimu.svg?style=flat-square)](https://crates.io/crates/rimu)
+[![ci status](https://img.shields.io/github/checks-status/ahdinosaur/rimu/main?style=flat-square)](https://github.com/ahdinosaur/rimu/actions/workflows/ci.yml?query=branch%3Amain)
+[![chat](https://img.shields.io/matrix/rimu:matrix.org?style=flat-square&label=Matrix%20chat)](https://matrix.to/#/#rimu:matrix.org)
+
 <br />
 
 Rimu is a friendly template language for structured data and functional expressions.
@@ -33,8 +38,6 @@ Learn more: [rimu.dev](https://rimu.dev)
 Playground: [play.rimu.dev](https://play.rimu.dev/?i=bNcpBCoAgFATQqwweQ3DXohtE4EbxV8LPD31bdPs0aTMD88acpBp2sr4ATLUXcIokC2-Uriy3etPnXAbm7XM41x-Z-RkO1INK29YQY8A0UuRXYqWmMzELFrk4dTEv)
 
 ## Modules
-
-[![ci status](https://img.shields.io/github/actions/workflow/status/ahdinosaur/rimu/rust.yml?branch=main&style=flat-square)](https://github.com/ahdinosaur/rimu/actions/workflows/rust.yml)
 
 - [`rimu`](./rimu/) : [![crates.io version](https://img.shields.io/crates/v/rimu.svg?style=flat-square)](https://crates.io/crates/rimu) [![download](https://img.shields.io/crates/d/rimu.svg?style=flat-square)](https://crates.io/crates/rimu) [![docs.rs docs](https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square)](https://docs.rs/rimu)
 - [`rimu-cli`](./rimu-cli) : [![crates.io version](https://img.shields.io/crates/v/rimu-cli.svg?style=flat-square)](https://crates.io/crates/rimu-cli) [![download](https://img.shields.io/crates/d/rimu-cli.svg?style=flat-square)](https://crates.io/crates/rimu-cli) [![docs.rs docs](https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square)](https://docs.rs/rimu-cli)
