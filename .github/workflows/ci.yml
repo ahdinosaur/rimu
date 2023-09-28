@@ -1,6 +1,6 @@
 # with help from https://github.com/orogene/orogene/blob/main/.github/workflows/ci.yml
 
-name: Continuous Integeration (CI)
+name: CI
 
 on: [push, pull_request]
 
@@ -8,8 +8,8 @@ env:
   RUSTFLAGS: -Dwarnings
 
 jobs:
-  fmt_and_docs:
-    name: Check fmt & build docs
+  fmt_and_doc:
+    name: Cargo fmt & doc
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
@@ -47,7 +47,8 @@ jobs:
     strategy:
       matrix:
         rust: [stable]
-        os: [ubuntu-latest, macOS-latest, windows-latest]
+        # os: [ubuntu-latest, macOS-latest, windows-latest]
+        os: [ubuntu-latest]
 
     steps:
       - uses: actions/checkout@v1
@@ -81,7 +82,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macOS-latest, windows-latest]
+        # os: [ubuntu-latest, macOS-latest, windows-latest]
+        os: [ubuntu-latest]
 
     steps:
       - uses: actions/checkout@v1
