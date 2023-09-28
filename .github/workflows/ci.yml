@@ -10,104 +10,51 @@ on:
 
 env:
   RUSTFLAGS: -Dwarnings
+  CARGO_TERM_COLOR: always
 
 jobs:
-  fmt_and_doc:
-    name: Cargo fmt & doc
+  check:
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        toolchain:
+          - stable
+          - 1.70.0 # msrv
+
     steps:
-      - uses: actions/checkout@v1
-
-      - name: Cache docs cargo dependencies
-        uses: actions/cache@v3
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
         with:
-          path: |
-            ~/.cargo/crates.toml
-            ~/.cargo/crates2.json
-            ~/.package-cache
-            ~/.cargo/bin/
-            ~/.cargo/binstall/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-docs-cargo-${{ hashFiles('**/Cargo.lock') }}
+          toolchain: ${{ matrix.toolchain }}
+      - run: cargo check
 
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo test --all-features
+
+  fmt:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
         with:
-          profile: minimal
           toolchain: stable
           components: rustfmt
-          override: true
-      - name: rustfmt
-        run: cargo fmt --all -- --check
-      - name: docs
-        run: cargo doc --no-deps
+      - run: cargo fmt --all -- --check
 
-  build_and_test:
-    name: Build & Test
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        rust: [stable]
-        # os: [ubuntu-latest, macOS-latest, windows-latest]
-        os: [ubuntu-latest]
+  clippy:
+    runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v1
-
-      - name: Cache build cargo dependencies on ${{ matrix.os }}
-        uses: actions/cache@v3
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
         with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-build-cargo-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: ${{ matrix.rust }}
-          target: wasm32-unknown-unknown
+          toolchain: stable
           components: clippy
-          override: true
-      - name: Clippy
-        run: cargo clippy --all -- -D warnings
-      - name: Run tests
-        run: cargo test --all --verbose
-
-  minimal_versions:
-    name: Minimal versions check
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        # os: [ubuntu-latest, macOS-latest, windows-latest]
-        os: [ubuntu-latest]
-
-    steps:
-      - uses: actions/checkout@v1
-
-      - name: Cache minimal-versions cargo dependencies on ${{ matrix.os }}
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-minimal-versions-cargo-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: nightly
-          override: true
-      - name: Run minimal version build
-        run: cargo build --all -Z minimal-versions --all-features
+      - run: cargo clippy -- -D warnings

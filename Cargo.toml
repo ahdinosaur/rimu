@@ -17,6 +17,7 @@ members = [
 version = "0.1.0"
 edition = "2021"
 
+rust-version = "1.70.0"
 description = "A data structure template system."
 readme = "README.md"
 homepage = "https://rimu.dev"

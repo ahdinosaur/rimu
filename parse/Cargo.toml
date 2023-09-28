@@ -1,6 +1,7 @@
 [package]
 name = "rimu-parse"
 version.workspace = true
+rust-version.workspace = true
 edition.workspace = true
 description.workspace = true
 readme.workspace = true
