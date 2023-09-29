@@ -1,8 +1,8 @@
 # Contributing to Rimu
 
-Thanks for your interest in contributing to the Rimu! :sunrise: :pray: :notes:
+Thanks for your interest in contributing to Rimu! 🌱
 
-This project is open commons that anyone can improve, stewarded by the Rimu team. :smiley_cat:
+This project is open commons that anyone can improve, stewarded by the Rimu team. 😺
 
 We welcome all contributions, such as but not limited to:
 
@@ -32,9 +32,9 @@ We welcome all contributions, such as but not limited to:
   - [Documentation style guide](#documentation-style-guide)
 - [Additional Notes](#additional-notes)
 
-## Code of Coundect
+## Code of Conduct
 
-Anyone who interacts with the Rimu in any space, including but not limited to our GitHub repositories, must follow our [Code of Conduct](CODE_OF_CONDUCT.md).
+Anyone who interacts with Rimu in any space, including but not limited to our GitHub repositories, must follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## What should I know before I get started?
 
@@ -116,7 +116,7 @@ We prefer to license under the Apache-2.0 license.
 
 Please be sure to follow the relevant [Style Guides](#style-guide).
 
-### Style Guide
+## Style Guide
 
 ### Git style guide
 
@@ -139,18 +139,18 @@ We follow the [Rust Style Guide](https://github.com/rust-lang-nursery/fmt-rfcs/b
 
 To run rustfmt tests locally:
 
-1. Use rustup to set rust toolchain to the version specified in the repository's `rust-toolchain` file.
+1. Use rustup to set rust toolchain.
 
 2. Install the rustfmt and clippy by running
 
-```
+```shell
 rustup component add rustfmt
 rustup component add clippy
 ```
 
 3. Run clippy using cargo from the root of your repo.
 
-```
+```shell
 cargo clippy
 ```
 
@@ -160,7 +160,7 @@ Each Pull Request needs to compile without warning.
 
 To see changes that need to be made, run
 
-```
+```shell
 cargo fmt --all -- --check
 ```
 
@@ -170,7 +170,7 @@ If your code needs to be reformatted, you will see a diff between your code and 
 
 Once you are ready to apply the formatting changes, run
 
-```
+```shell
 cargo fmt --all
 ```
 
