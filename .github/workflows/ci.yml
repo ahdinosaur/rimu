@@ -1,5 +1,3 @@
-# with help from https://github.com/orogene/orogene/blob/main/.github/workflows/ci.yml
-
 name: CI
 
 on:
