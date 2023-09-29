@@ -48,7 +48,7 @@ pub fn map() -> Function {
         match arg {
             Value::Object(object) => {
                 let list_arg = object.get("list").map(|a| a.inner());
-                let mapper_arg = object.get("item").map(|a| a.inner());
+                let mapper_arg = object.get("each").map(|a| a.inner());
                 match (list_arg, mapper_arg) {
                     (Some(Value::List(list)), Some(Value::Function(mapper))) => map_op(
                         span,
@@ -59,7 +59,7 @@ pub fn map() -> Function {
                     ),
                     _ => Err(EvalError::TypeError {
                         span: arg_span.clone(),
-                        expected: "{ list: list, item: (item) => next }".into(),
+                        expected: "{ list: list, each: (item) => next }".into(),
                         got: arg.clone().into(),
                     }),
                 }
