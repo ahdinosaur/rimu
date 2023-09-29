@@ -25,7 +25,7 @@ We welcome all contributions, such as but not limited to:
   - [Feature requests](#feature-requests)
   - [Code contributions](#code-contributions)
 - [Style guides](#style-guides)
-  - [Git Commit Messages](#git-commit-messages)
+  - [Git etiquette](#git-etiquette)
   - [Rust style guide](#rust-style-guide)
   - [JavaScript style guide](#javascript-style-guide)
   - [Specs style guide](#specs-style-guide)
@@ -118,7 +118,7 @@ Please be sure to follow the relevant [Style Guides](#style-guide).
 
 ## Style Guide
 
-### Git style guide
+### Git etiquette
 
 Write your commit messages however you want, at the end we will squash the commits as the pull request is merged.
 
@@ -131,7 +131,7 @@ When you submit a pull request, include clear information about how your pull re
   - Any bug fixes?
 - Document any and all technical decisions you had to make along the way.
 
-If and when your pull request is merged, we will squash the commits into a single commit, where the commit message is your pull request text.
+If and when your pull request is merged, we will squash the commits into a single commit, using your pull request text as the commit message.
 
 ### Rust style guide
 
