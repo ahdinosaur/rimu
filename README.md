@@ -33,7 +33,7 @@ Learn more: [rimu.dev](https://rimu.dev)
 
 ## Example
 
-![Screenshot of a "Hello world" Rimu example](./screenshot.png)
+[![Screenshot of a "Hello world" Rimu example](./screenshot.png)](https://play.rimu.dev/?i=bNcpBCoAgFATQqwweQ3DXohtE4EbxV8LPD31bdPs0aTMD88acpBp2sr4ATLUXcIokC2-Uriy3etPnXAbm7XM41x-Z-RkO1INK29YQY8A0UuRXYqWmMzELFrk4dTEv)
 
 Playground: [play.rimu.dev](https://play.rimu.dev/?i=bNcpBCoAgFATQqwweQ3DXohtE4EbxV8LPD31bdPs0aTMD88acpBp2sr4ATLUXcIokC2-Uriy3etPnXAbm7XM41x-Z-RkO1INK29YQY8A0UuRXYqWmMzELFrk4dTEv)
 
