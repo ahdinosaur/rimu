@@ -1,3 +1,27 @@
 # Standard Library
 
-TODO
+## length
+
+```rimu
+let
+  list: ["a", "b", "c"]
+in
+  length
+    list
+```
+
+## map
+
+```rimu
+map
+  list: range({ start: 5, end: 10 })
+  item: (item) => item * item
+```
+
+## range
+
+```rimu
+range
+  start: 0
+  end: 10
+```

@@ -1,0 +1,3 @@
+map
+  list: range({ start: 5, end: 10 })
+  item: (item) => item * item

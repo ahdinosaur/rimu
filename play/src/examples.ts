@@ -4,6 +4,8 @@ import helloWorldCode from '../../examples/hello-world.rimu'
 import ifCode from '../../examples/if.rimu'
 // @ts-ignore
 import letCode from '../../examples/let.rimu'
+// @ts-ignore
+import mapCode from '../../examples/map.rimu'
 
 export type Example = {
   name: string
@@ -16,11 +18,15 @@ export const examples: Array<Example> = [
     code: helloWorldCode,
   },
   {
-    name: 'If block',
+    name: 'If',
     code: ifCode,
   },
   {
-    name: 'Let block',
+    name: 'Let',
     code: letCode,
+  },
+  {
+    name: 'Map',
+    code: mapCode,
   },
 ]
