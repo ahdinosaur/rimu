@@ -383,7 +383,7 @@ impl Evaluator {
         function: &SpannedExpression,
         args: &[SpannedExpression],
     ) -> Result<SpannedValue> {
-        let (Value::Function(function), _function_span) = self.expression(function)?.take() else {
+        let Value::Function(function) = self.expression(function)?.into_inner() else {
             return Err(EvalError::CallNonFunction {
                 span: function.span(),
                 expr: function.clone().into_inner(),

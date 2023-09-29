@@ -129,7 +129,7 @@ impl Evaluator {
         consequent: Option<&SpannedBlock>,
         alternative: Option<&SpannedBlock>,
     ) -> Result<SpannedValue> {
-        let (condition, _condition_span) = self.block(condition)?.take();
+        let condition = self.block(condition)?.into_inner();
 
         let value = if Into::<bool>::into(condition) {
             if let Some(consequent) = &consequent {
