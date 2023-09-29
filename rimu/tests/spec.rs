@@ -1,27 +1,28 @@
 use pretty_assertions::assert_eq;
-use rimu::{evaluate, from_value, parse, Environment, SourceId, Value /*ValueError*/};
+use rimu::{evaluate, from_serde_value, parse, Environment, SourceId, Value};
+use rimu_value::SerdeValue;
 use std::{cell::RefCell, error::Error, rc::Rc};
 
 #[track_caller]
-fn test_spec(spec: Value) -> Result<(), Box<dyn Error>> {
-    let Value::Object(spec) = spec else {
+fn test_spec(spec: SerdeValue) -> Result<(), Box<dyn Error>> {
+    let SerdeValue::Object(spec) = spec else {
         panic!("Spec should be object");
     };
 
-    let title: Value = spec.get("title").expect("Spec missing 'title'").clone();
-    let template: Value = spec
+    let title: SerdeValue = spec.get("title").expect("Spec missing 'title'").clone();
+    let template: SerdeValue = spec
         .get("template")
         .expect("Spec missing 'template'")
         .clone();
-    let Value::String(template) = template else {
+    let SerdeValue::String(template) = template else {
         panic!("Spec 'template' must be (folded) string");
     };
-    let env_val: Value = spec.get("context").expect("Spec missing 'context'").clone();
+    let env_val: SerdeValue = spec.get("context").expect("Spec missing 'context'").clone();
 
-    let title: String = from_value(title)?;
+    let title: String = from_serde_value(title)?;
 
     let mut env = Environment::new();
-    let Value::Object(env_obj) = env_val else {
+    let SerdeValue::Object(env_obj) = env_val else {
         panic!("Spec 'context' must be object");
     };
     for (key, value) in env_obj.into_iter() {
@@ -43,18 +44,21 @@ fn test_spec(spec: Value) -> Result<(), Box<dyn Error>> {
         };
 
         let actual = evaluate(&template, env)?;
+        let actual: Value = actual.into_inner();
+        let actual: SerdeValue = actual.into();
 
         assert_eq!(output.clone(), actual, "{} : output", title);
     } else if let Some(error) = spec.get("error") {
-        let Value::Object(error) = error else {
+        let SerdeValue::Object(error) = error else {
             panic!("Spec 'error' should be object");
         };
-        let Value::String(_message) = error.get("message").expect("Spec missing 'error.message'")
+        let SerdeValue::String(_message) =
+            error.get("message").expect("Spec missing 'error.message'")
         else {
             panic!("Spec 'error.message' should be string");
         };
-        let default_error_type = Value::String("RenderError".into());
-        let Value::String(type_) = error.get("type").unwrap_or(&default_error_type) else {
+        let default_error_type = SerdeValue::String("RenderError".into());
+        let SerdeValue::String(type_) = error.get("type").unwrap_or(&default_error_type) else {
             panic!("Spec 'error.type' should be string");
         };
 
@@ -96,9 +100,9 @@ fn test_spec(spec: Value) -> Result<(), Box<dyn Error>> {
 }
 
 fn test_specs(content: &str) -> Result<(), Box<dyn Error>> {
-    let specs: Value = serde_yaml::from_str(content)?;
+    let specs: SerdeValue = serde_yaml::from_str(content)?;
 
-    let Value::List(specs) = specs else {
+    let SerdeValue::List(specs) = specs else {
         panic!("Specs should be list");
     };
 

@@ -1,12 +1,12 @@
+use indexmap::IndexMap;
 use std::{
     borrow::Cow,
     path::Path,
     string::{String, ToString},
 };
 use std::{ffi::OsString, path::PathBuf};
-use indexmap::IndexMap;
 
-use crate::{Number, Value};
+use crate::{Function, Number, SpannedValue, Value};
 
 macro_rules! from_integer {
     ($($ty:ident)*) => {
@@ -74,37 +74,45 @@ impl From<Number> for Value {
     }
 }
 
-impl From<IndexMap<String, Value>> for Value {
-    fn from(f: IndexMap<String, Value>) -> Self {
+impl From<IndexMap<String, SpannedValue>> for Value {
+    fn from(f: IndexMap<String, SpannedValue>) -> Self {
         Value::Object(f)
     }
 }
 
-impl<T: Into<Value>> From<Vec<T>> for Value {
+impl<T: Into<SpannedValue>> From<Vec<T>> for Value {
     fn from(f: Vec<T>) -> Self {
         Value::List(f.into_iter().map(Into::into).collect())
     }
 }
 
-impl<'a, T: Clone + Into<Value>> From<&'a [T]> for Value {
+impl<'a, T: Clone + Into<SpannedValue>> From<&'a [T]> for Value {
     fn from(f: &'a [T]) -> Self {
         Value::List(f.iter().cloned().map(Into::into).collect())
     }
 }
 
-impl<T: Into<Value>> FromIterator<T> for Value {
+impl<T: Into<SpannedValue>> FromIterator<T> for Value {
     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
         Value::List(iter.into_iter().map(Into::into).collect())
     }
 }
 
-impl<K: Into<String>, V: Into<Value>> FromIterator<(K, V)> for Value {
+/*
+impl<K: Into<String>, V: Into<SpannedValue>> FromIterator<(K, V)> for Value {
     fn from_iter<I: IntoIterator<Item = (K, V)>>(iter: I) -> Self {
         Value::Object(
             iter.into_iter()
                 .map(|(k, v)| (k.into(), v.into()))
                 .collect(),
         )
+    }
+}
+*/
+
+impl From<Function> for Value {
+    fn from(function: Function) -> Self {
+        Value::Function(function)
     }
 }
 

@@ -18,8 +18,8 @@ If we wanted to [make a star](https://www.turtleacademy.com/programs/40499):
 - forward: 50
 
 - map
-    list: range(5)
-    each:
+    list: range({ end: 5 })
+    each: () =>
       - right: 144
       - forward: 50
       - left: 72
@@ -89,8 +89,8 @@ Now to describe our star:
   forward: 50
 
 - map
-    list: range(5)
-    each:
+    list: range({ end: 5 })
+    each: () =>
       - action: "rotate"
         right: 144
       - action: "move"

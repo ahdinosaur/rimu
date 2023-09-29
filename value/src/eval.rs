@@ -1,6 +1,7 @@
 use rimu_ast::Expression;
 use rimu_meta::{ErrorReport, Span};
-use rimu_value::{EnvironmentError, Object, Value};
+
+use crate::{EnvironmentError, SerdeValue, SerdeValueObject};
 
 #[derive(Debug, thiserror::Error, Clone, PartialEq)]
 pub enum EvalError {
@@ -14,11 +15,13 @@ pub enum EvalError {
     MissingVariable { span: Span, var: String },
     #[error("tried to call non-function: {expr}")]
     CallNonFunction { span: Span, expr: Expression },
+    #[error("missing argument: {index}")]
+    MissingArgument { span: Span, index: usize },
     #[error("type error, expected: {expected}, got: {got}")]
     TypeError {
         span: Span,
         expected: String,
-        got: Value,
+        got: SerdeValue,
     },
     #[error("index out of bounds, index: {index}, length: {length}")]
     IndexOutOfBounds {
@@ -32,7 +35,7 @@ pub enum EvalError {
         key_span: Span,
         key: String,
         object_span: Span,
-        object: Object,
+        object: SerdeValueObject,
     },
     #[error("range start >= end, start: {start}, end: {end}")]
     RangeStartGreaterThanOrEqualToEnd {
@@ -43,7 +46,7 @@ pub enum EvalError {
     #[error("unterminated interpolation: {src}")]
     UnterminatedInterpolation { span: Span, src: String },
     #[error("cannot be interpolated into a string: {value}")]
-    InvalidInterpolationValue { span: Span, value: Value },
+    InvalidInterpolationValue { span: Span, value: SerdeValue },
     #[error("error expression")]
     ErrorExpression { span: Span },
 }
@@ -68,6 +71,12 @@ impl From<EvalError> for ErrorReport {
                 span.clone(),
                 "Eval: Tried to call non-function",
                 vec![(span.clone(), format!("Not a function: {}", expr))],
+                vec![],
+            ),
+            EvalError::MissingArgument { span, index } => (
+                span.clone(),
+                "Eval: Tried to call function without required argument",
+                vec![(span.clone(), format!("Argument index: {}", index))],
                 vec![],
             ),
             EvalError::TypeError {
@@ -108,7 +117,7 @@ impl From<EvalError> for ErrorReport {
                 vec![
                     (
                         object_span.clone(),
-                        format!("Object: {}", Value::Object(object.clone())),
+                        format!("Object: {}", SerdeValue::Object(object.clone())),
                     ),
                     (key_span.clone(), format!("Key: {}", key)),
                 ],

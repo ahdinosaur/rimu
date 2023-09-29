@@ -6,6 +6,7 @@ members = [
     "parse",
     "value",
     "eval",
+    "stdlib",
     "rimu",
     "repl",
     "cli",
@@ -39,6 +40,10 @@ path = "parse"
 [workspace.dependencies.rimu-value]
 version = "0.1.0"
 path = "value"
+
+[workspace.dependencies.rimu-stdlib]
+version = "0.1.0"
+path = "stdlib"
 
 [workspace.dependencies.rimu-eval]
 version = "0.1.0"

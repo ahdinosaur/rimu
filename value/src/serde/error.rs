@@ -3,7 +3,7 @@ use std::fmt::Display;
 use serde::{de, ser};
 
 #[derive(Debug, Clone, thiserror::Error)]
-pub enum ValueError {
+pub enum SerdeValueError {
     #[error("{0}")]
     Deserialize(String),
 
@@ -103,14 +103,14 @@ pub enum ValueError {
     RecursionLimitExceeded,
 }
 
-impl de::Error for ValueError {
+impl de::Error for SerdeValueError {
     fn custom<T: Display>(msg: T) -> Self {
-        ValueError::Deserialize(msg.to_string())
+        SerdeValueError::Deserialize(msg.to_string())
     }
 }
 
-impl ser::Error for ValueError {
+impl ser::Error for SerdeValueError {
     fn custom<T: Display>(msg: T) -> Self {
-        ValueError::Serialize(msg.to_string())
+        SerdeValueError::Serialize(msg.to_string())
     }
 }

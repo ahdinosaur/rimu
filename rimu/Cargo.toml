@@ -17,6 +17,7 @@ rimu-meta.workspace = true
 rimu-ast.workspace = true
 rimu-parse.workspace = true
 rimu-value.workspace = true
+rimu-stdlib.workspace = true
 rimu-eval.workspace = true
 
 [dev-dependencies]

@@ -9,7 +9,7 @@ use std::{
 
 use clap::Parser;
 use clio::*;
-use rimu::{evaluate, parse, Environment, ErrorReport, SourceId, Value};
+use rimu::{evaluate, parse, Environment, ErrorReport, SerdeValue, SourceId, Value};
 
 #[derive(Debug, Clone, Copy)]
 enum Format {
@@ -57,7 +57,7 @@ fn main() -> std::result::Result<ExitCode, Box<dyn Error>> {
     let env = if let Some(mut env_arg) = args.env {
         let mut env_string = String::new();
         env_arg.read_to_string(&mut env_string)?;
-        let env_value: Value = env_string.into();
+        let env_value: SerdeValue = env_string.into();
         Environment::from_value(&env_value, None)?
     } else {
         Environment::new()
@@ -89,6 +89,8 @@ fn main() -> std::result::Result<ExitCode, Box<dyn Error>> {
             return Ok(ExitCode::FAILURE);
         }
     };
+    let value: Value = value.into_inner();
+    let value: SerdeValue = value.into();
 
     let output: String = match args.format {
         Format::Yaml => serde_yaml::to_string(&value)?,

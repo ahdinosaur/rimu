@@ -1,5 +1,5 @@
 [package]
-name = "rimu-value"
+name = "rimu-stdlib"
 version.workspace = true
 edition.workspace = true
 description.workspace = true
@@ -14,13 +14,10 @@ categories.workspace = true
 
 [dependencies]
 rimu-meta.workspace = true
-rimu-ast.workspace = true
-ryu = "1.0.15"
-serde = "1.0.181"
-thiserror = "1.0.44"
-rust_decimal = { version = "1.31.0", features = ["serde-with-float"] }
+rimu-value.workspace = true
+rimu-eval.workspace = true
+rust_decimal = "1.31.0"
 rust_decimal_macros = "1.31.0"
-indexmap = { version = "2.0.0", features = ["serde"] }
 
 [dev-dependencies]
 pretty_assertions = "1.4.0"

@@ -1,12 +1,18 @@
 use indexmap::IndexMap;
 use std::{cell::RefCell, iter::empty, rc::Rc};
 
-use crate::{value_get_in, Object, Value};
+use crate::serde::{value_get_in, SerdeValue, SerdeValueObject};
 
 #[derive(Debug, Clone)]
 pub struct Environment {
-    content: Object,
+    content: SerdeValueObject,
     parent: Option<Rc<RefCell<Environment>>>,
+}
+
+impl Default for Environment {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Environment {
@@ -25,10 +31,10 @@ impl Environment {
     }
 
     pub fn from_value(
-        value: &Value,
+        value: &SerdeValue,
         parent: Option<Rc<RefCell<Environment>>>,
     ) -> Result<Environment, EnvironmentError> {
-        if let Value::Object(object) = value {
+        if let SerdeValue::Object(object) = value {
             Self::from_object(object, parent)
         } else {
             Err(EnvironmentError::InvalidEnvironmentValue {
@@ -38,7 +44,7 @@ impl Environment {
     }
 
     pub fn from_object(
-        object: &Object,
+        object: &SerdeValueObject,
         parent: Option<Rc<RefCell<Environment>>>,
     ) -> Result<Environment, EnvironmentError> {
         let mut context = Environment {
@@ -56,12 +62,12 @@ impl Environment {
     pub fn insert<K, V>(&mut self, k: K, v: V)
     where
         K: Into<String>,
-        V: Into<Value>,
+        V: Into<SerdeValue>,
     {
         self.content.insert(k.into(), v.into());
     }
 
-    pub fn get(&self, key: &str) -> Option<Value> {
+    pub fn get(&self, key: &str) -> Option<SerdeValue> {
         match self.content.get(key) {
             Some(value) => Some(value.clone()),
             None => match &self.parent {
@@ -71,7 +77,7 @@ impl Environment {
         }
     }
 
-    pub fn get_in(&self, keys: Vec<&str>) -> Option<Value> {
+    pub fn get_in(&self, keys: Vec<&str>) -> Option<SerdeValue> {
         let Some((first, rest)) = keys.split_first() else {
             return None;
         };
@@ -81,7 +87,7 @@ impl Environment {
         }
     }
 
-    pub fn iter(&self) -> Box<dyn Iterator<Item = (String, Value)>> {
+    pub fn iter(&self) -> Box<dyn Iterator<Item = (String, SerdeValue)>> {
         let parent_iter = match &self.parent {
             Some(parent) => parent.borrow().iter(),
             None => Box::new(empty()),
@@ -94,5 +100,5 @@ impl Environment {
 #[derive(Debug, thiserror::Error, Clone, PartialEq)]
 pub enum EnvironmentError {
     #[error("context value is not an object: {:?}", value)]
-    InvalidEnvironmentValue { value: Value },
+    InvalidEnvironmentValue { value: SerdeValue },
 }
