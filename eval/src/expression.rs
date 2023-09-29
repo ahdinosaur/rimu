@@ -123,7 +123,6 @@ impl Evaluator {
                 }),
             },
             UnaryOperator::Not => {
-                let right: Value = right.into();
                 let boolean: bool = right.into();
                 Ok(Value::Boolean(!boolean))
             }
