@@ -47,3 +47,18 @@ Playground: [play.rimu.dev](https://play.rimu.dev/?i=bNcpBCoAgFATQqwweQ3DXohtE4E
 - [`rimu-parse`](./rimu-parse) : [![crates.io version](https://img.shields.io/crates/v/rimu-parse.svg?style=flat-square)](https://crates.io/crates/rimu-parse) [![download](https://img.shields.io/crates/d/rimu-parse.svg?style=flat-square)](https://crates.io/crates/rimu-parse) [![docs.rs docs](https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square)](https://docs.rs/rimu-parse)
 - [`rimu-ast`](./rimu-ast) : [![crates.io version](https://img.shields.io/crates/v/rimu-ast.svg?style=flat-square)](https://crates.io/crates/rimu-ast) [![download](https://img.shields.io/crates/d/rimu-ast.svg?style=flat-square)](https://crates.io/crates/rimu-ast) [![docs.rs docs](https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square)](https://docs.rs/rimu-ast)
 - [`rimu-meta`](./rimu-meta) : [![crates.io version](https://img.shields.io/crates/v/rimu-meta.svg?style=flat-square)](https://crates.io/crates/rimu-meta) [![download](https://img.shields.io/crates/d/rimu-meta.svg?style=flat-square)](https://crates.io/crates/rimu-meta) [![docs.rs docs](https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square)](https://docs.rs/rimu-meta)
+
+#### License
+
+<sup>
+Licensed under either of <a href="LICENSE-APACHE">Apache License, Version
+2.0</a> or <a href="LICENSE-MIT">MIT license</a> at your option.
+</sup>
+
+<br>
+
+<sub>
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in Rimu by you, as defined in the Apache-2.0 license, shall be
+dual licensed as above, without any additional terms or conditions.
+</sub>

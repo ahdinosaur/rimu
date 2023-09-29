@@ -22,7 +22,7 @@ description = "A data structure template system."
 readme = "README.md"
 homepage = "https://rimu.dev"
 repository = "https://github.com/ahdinosaur/rimu"
-license = "Apache-2.0"
+license = "MIT OR Apache-2.0"
 keywords = ["rimu", "functional", "data", "template", "config"]
 categories = ["compilers", "config", "data-structures", "template-engine"]
 
