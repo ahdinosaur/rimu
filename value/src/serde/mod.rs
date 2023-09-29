@@ -112,17 +112,6 @@ pub fn value_get_in<'a>(value: &'a SerdeValue, keys: &[&str]) -> Option<&'a Serd
     }
 }
 
-/// Everything except `false` and `null' is truthy.
-impl From<SerdeValue> for bool {
-    fn from(value: SerdeValue) -> Self {
-        #[allow(clippy::match_like_matches_macro)]
-        match value {
-            SerdeValue::Null | SerdeValue::Boolean(false) => false,
-            _ => true,
-        }
-    }
-}
-
 #[cfg(test)]
 mod test {
     use std::{borrow::Cow, ffi::OsString, path::PathBuf};

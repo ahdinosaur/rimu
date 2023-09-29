@@ -150,19 +150,6 @@ impl Display for Value {
     }
 }
 
-pub fn value_get_in<'a>(value: &'a Value, keys: &[&str]) -> Option<&'a Value> {
-    let Some((first, rest)) = keys.split_first() else {
-        return Some(value);
-    };
-    match value {
-        Value::Object(object) => match object.get(*first) {
-            Some(value) => value_get_in(value.inner(), rest),
-            None => None,
-        },
-        _ => None,
-    }
-}
-
 /// Everything except `false` and `null' is truthy.
 impl From<Value> for bool {
     fn from(value: Value) -> Self {
