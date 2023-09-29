@@ -48,7 +48,17 @@ Playground: [play.rimu.dev](https://play.rimu.dev/?i=bNcpBCoAgFATQqwweQ3DXohtE4E
 - [`rimu-ast`](./rimu-ast) : [![crates.io version](https://img.shields.io/crates/v/rimu-ast.svg?style=flat-square)](https://crates.io/crates/rimu-ast) [![download](https://img.shields.io/crates/d/rimu-ast.svg?style=flat-square)](https://crates.io/crates/rimu-ast) [![docs.rs docs](https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square)](https://docs.rs/rimu-ast)
 - [`rimu-meta`](./rimu-meta) : [![crates.io version](https://img.shields.io/crates/v/rimu-meta.svg?style=flat-square)](https://crates.io/crates/rimu-meta) [![download](https://img.shields.io/crates/d/rimu-meta.svg?style=flat-square)](https://crates.io/crates/rimu-meta) [![docs.rs docs](https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square)](https://docs.rs/rimu-meta)
 
-#### License
+## Sponsors
+
+<img
+src="https://villagekit.com/icon.svg"
+alt="Village Kit icon"
+height="256px"
+/>
+
+[Village Kit](https://villagekit.com)
+
+## License
 
 <sup>
 Licensed under either of <a href="LICENSE-APACHE">Apache License, Version
