@@ -8,8 +8,9 @@
 
 <h1 align="center">
   <a href="https://rimu.dev">
-    Rimu 🌱
+    Rimu
   </a>
+  🌱
 </h1>
 
 <div align="center">
