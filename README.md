@@ -23,7 +23,7 @@
 [![release version](https://img.shields.io/github/v/release/ahdinosaur/rimu?style=flat-square&display_name=tag&include_prereleases)](https://github.com/ahdinosaur/rimu/releases/latest)
 [![crates.io version](https://img.shields.io/crates/v/rimu.svg?style=flat-square)](https://crates.io/crates/rimu)
 [![ci status](https://img.shields.io/github/checks-status/ahdinosaur/rimu/main?style=flat-square)](https://github.com/ahdinosaur/rimu/actions/workflows/ci.yml?query=branch%3Amain)
-[![chat](https://img.shields.io/matrix/rimu:matrix.org?style=flat-square&label=Matrix%20chat)](https://matrix.to/#/#rimu:matrix.org)
+[![chat](https://img.shields.io/matrix/rimu:matrix.org?style=flat-square&label=chat)](https://matrix.to/#/#rimu:matrix.org)
 
 Rimu is a friendly template language for structured data and functional expressions.
 

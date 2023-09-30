@@ -15,6 +15,42 @@ pre:not([data-theme]) {
   text-decoration-line: underline;
 }
 
+.logo {
+  height: 32px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 1rem;
+}
+
+.logo__svg {
+  height: 100%;
+}
+
+.logo__name {
+  font-size: 1.875rem;
+  font-weight: 700;
+}
+
+.landing-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.landing-header__image {
+}
+
+.landing-header__subtext {
+  font-weight: bold;
+}
+
+.landing-header__badges img {
+  display: inline-block;
+}
+
 /* latte */
 :root {
   --ctp-rosewater: 220, 138, 120;
