@@ -1,6 +1,7 @@
 [package]
 name = "rimu-cli"
 version.workspace = true
+rust-version.workspace = true
 edition.workspace = true
 description.workspace = true
 readme.workspace = true
@@ -13,7 +14,7 @@ categories.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rimu.workspace = true
+rimu = { path = "../rimu", version = "0.1.0" }
 ariadne = "0.3.0"
 clap = { version = "4.4.2", features = ["derive"] }
 clio = { version = "0.3.4", features = ["clap-parse"] }

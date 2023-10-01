@@ -1,28 +1,29 @@
 import Image from 'next/image'
 import rimuTree from '../public/rimu-tree-768x1024.jpg'
 
-<div align="center">
+<div className="landing-header">
 
-# Welcome!
+# Rimu 🌱
+
+<Image
+  className="landing-header__image"
+  height={512}
+  alt="An 800-year-old giant rimu tree stretching high into the canopy at Ōtari-Wilton's Bush in Te Whanganui-a-Tara (Wellington), Aotearoa (New Zealand)."
+  src={rimuTree}
+/>
+
+<span className="landing-header__subtext">
+A data structure template language.
+</span>
+
+<div className="landing-header__badges">
+
+[![release version](https://img.shields.io/github/v/release/ahdinosaur/rimu?style=flat-square&display_name=tag&include_prereleases)](https://github.com/ahdinosaur/rimu/releases/latest)
+[![crates.io version](https://img.shields.io/crates/v/rimu.svg?style=flat-square)](https://crates.io/crates/rimu)
+[![ci status](https://img.shields.io/github/checks-status/ahdinosaur/rimu/main?style=flat-square)](https://github.com/ahdinosaur/rimu/actions/workflows/ci.yml?query=branch%3Amain)
+[![chat](https://img.shields.io/matrix/rimu:matrix.org?style=flat-square&label=chat)](https://matrix.to/#/#rimu:matrix.org)
 
 </div>
-
-<br />
-
-<div align="center">
-  <Image
-    height={512}
-    alt="An 800-year-old giant rimu tree stretching high into the canopy at Ōtari-Wilton's Bush in Te Whanganui-a-Tara (Wellington), Aotearoa (New Zealand)."
-    src={rimuTree}
-  />
-</div>
-
-<br />
-
-<div align="center">
-  <strong>
-    A data structure template language.
-  </strong>
 </div>
 
 Rimu is a friendly template language for structured data and functional expressions.
@@ -76,6 +77,6 @@ For more stable alternatives, see [related projects](./related).
 
 We believe in learning and growing together.
 
-Join the conversation, share your insights, ask questions, and help evolve Rimu in our [Community Discussions](https://github.com/ahdinosaur/rimu/discussions).
+Join the conversation, share your insights, ask questions, and help evolve Rimu in our [Matrix Chat](https://matrix.to/#/#rimu:matrix.org) or [GitHub Discussions](https://github.com/ahdinosaur/rimu/discussions).
 
 Contributions to the development and documentation of Rimu are always welcome!

@@ -13,9 +13,9 @@ categories.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rimu-meta.workspace = true
-rimu-value.workspace = true
-rimu-eval.workspace = true
+rimu-meta = { path = "../meta", version = "0.1.0" }
+rimu-value = { path = "../value", version = "0.1.0" }
+rimu-eval = { path = "../eval", version = "0.1.0" }
 rust_decimal = "1.31.0"
 rust_decimal_macros = "1.31.0"
 

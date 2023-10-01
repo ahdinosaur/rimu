@@ -14,7 +14,8 @@ Here's an example:
 
 ```rust
 // populate your pre-defined environment (context where variables are defined)
-let env = Rc::new(RefCell::new(Environment::new()));
+let env = Environment::new();
+let env = Rc::new(RefCell::new(env));
 
 // parse code into Rimu ast
 let (block, errors) = rimu::parse(code, source_id);
@@ -27,8 +28,11 @@ let Ok(value) = rimu::evaluate(&block, env) else {
     panic!("eval error")
 }
 
+let value: rimu::Value = value.inner();
+let value: rimu::SerdeValue = value.into();
+
 // serialize Rimu value into your Rust struct
-let thing: YourThing = rimu::from_value(value).unwrap();
+let thing: YourThing = rimu::from_serde_value(value).unwrap();
 ```
 
 ## Wasm
