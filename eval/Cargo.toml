@@ -23,5 +23,5 @@ thiserror = "1.0.44"
 indexmap = "2.0.0"
 
 [dev-dependencies]
-rimu-parse = { path = "../parse", version = "0.1.0" }
+rimu-parse = { path = "../parse" }
 pretty_assertions = "1.4.0"
