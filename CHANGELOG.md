@@ -6,8 +6,9 @@ with help from [`git log`](https://www.git-scm.com/docs/git-log):
 git log --oneline --format="- [%h](https://github.com/ahdinosaur/rimu/commit/%H): %s"
 ```
 
-## unreleased
+## 0.2.0
 
+- [ae2929c](https://github.com/ahdinosaur/rimu/commit/ae2929c5635a96547144fb2c9762b8ce3405930f): Meta dev (#67)
 - [a39b055](https://github.com/ahdinosaur/rimu/commit/a39b0559540edfdb3b72d5daaeab980f03da71bc): Native functions and a standard library (#65)
 - [5fdc3e5](https://github.com/ahdinosaur/rimu/commit/5fdc3e5e0265d608edd8a867595391e7935185e7): Another pass on the docs and playground (#64)
 - [6e42351](https://github.com/ahdinosaur/rimu/commit/6e423516d2e69d289fa4f16b919e496cbd9d5757): Support function closures (#62)
