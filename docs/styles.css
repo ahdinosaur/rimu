@@ -51,6 +51,13 @@ pre:not([data-theme]) {
   display: inline-block;
 }
 
+.sponsor {
+}
+
+.sponsor__image {
+  height: 256px;
+}
+
 /* latte */
 :root {
   --ctp-rosewater: 220, 138, 120;

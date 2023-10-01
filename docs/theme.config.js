@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 
 export default {
   logo: (
-    <div class="logo">
+    <div className="logo">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72" className="logo__svg">
         <g
           style={{
