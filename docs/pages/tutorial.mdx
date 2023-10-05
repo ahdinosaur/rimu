@@ -40,7 +40,7 @@ We code our actions in Rust:
 
 ```rust
 #[derive(Debug, serde::Deserialize)]
-#[serde(tag = "type")]
+#[serde(tag = "action")]
 enum Action {
     #[serde(rename = "set")]
     Set {
