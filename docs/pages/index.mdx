@@ -13,7 +13,7 @@ import rimuTree from '../public/rimu-tree-768x1024.jpg'
 />
 
 <span className="landing-header__subtext">
-A data structure template language.
+A template language for structured data
 </span>
 
 <div className="landing-header__badges">
@@ -28,34 +28,13 @@ A data structure template language.
 
 Rimu is a friendly template language for structured data and functional expressions.
 
-Create parametric data using the best of Yaml structures and Lisp functions.
-
-## 🌿 Features
-
-- **Structured**: Structured block and flow data of [Yaml](https://en.wikipedia.org/wiki/YAML)
-- **Functional**: Functional expressions of [Lisp](https://en.wikipedia.org/wiki/Lisp_(programming_language))
-- **Educational** \*: Inspired by [Logo](https://en.wikipedia.org/wiki/Logo_(programming_language)) to be accessible to beginner programmers
-- **Embeddable**: Lightweight embed into web or native apps
-- **Debug-friendly** \*: Clear error messages when something is wrong
-- **Secure:** Safe with untrusted input
-
-\* _Work in progress_
-
-## 💡 Use Cases
-
-Rimu enables user-friendly expressive [domain-specific languages](https://en.wikipedia.org/wiki/Domain-specific_language):
-
-- **Programmatic users**: When you want to give users an expressive language for building things, like [OpenSCAD](https://openscad.org/).
-- **Educational code**: When you want to teach beginners how to program, like [Logo](https://en.wikipedia.org/wiki/Logo_(programming_language)) or [Scratch](https://scratch.mit.edu/).
-- **Creative code:** When you want to give artists and creators a playground for interactive and generative art.
-- **Complex configs**: When your infrastructure-as-code ([Kubernetes](https://kubernetes.io/), [Terraform](https://www.terraform.io/), [NixOps](https://github.com/NixOS/nixops)), declarative package managers ([Nix](https://nixos.org/)), or build systems ([Bazel](https://bazel.build/)) are complex enough to need functional config generation.
-- **Expressive configs**: When you want your system's configuration to be more expressive than static data.
-
-The author [Mikey](https://mikey.nz) (as part of [Village Kit](https://villagekit.com)) is motivated by the "programmatic user", which may inform future developments.
+Create [domain-specific languages](https://en.wikipedia.org/wiki/Domain-specific_language) using the best of YAML structures and LISP functions.
 
 ## 🎮 Try Rimu!
 
 Playground: [play.rimu.dev](https://play.rimu.dev)
+
+> Try changing the `mood` to `"silly"`.
 
 <br />
 
@@ -64,6 +43,30 @@ Playground: [play.rimu.dev](https://play.rimu.dev)
   height="600"
   src="https://play.rimu.dev/?i=bNcpBCoAwDATAryx5RqE3D_5AhF5ajFqIDZh68Pdai5dd2Fk62Cxu7EIBhGsr4FBdHAIZn1kvC9TmXDrm9XN43x5Z5O4O1J3Lu80xpYihp-qvLMavjiyimPSUJRA9"
 />
+
+
+## 🌿 Principles
+
+- **Structured**: Structured block and flow data of [Yaml](https://en.wikipedia.org/wiki/YAML)
+- **Functional**: Functional expressions of [Lisp](https://en.wikipedia.org/wiki/Lisp_(programming_language))
+- **Educational** \*: Inspired by [Logo](https://en.wikipedia.org/wiki/Logo_(programming_language)) to be accessible to beginner programmers
+- **Embeddable**: Lightweight embed into web or native apps
+- **Debug-friendly** \*: Clear error messages when something is wrong
+- **Secure:** \* Safe with untrusted input, provably terminates
+
+\* _Work in progress_
+
+## 💡 Use Cases
+
+Rimu enables user-friendly expressive [domain-specific languages](https://en.wikipedia.org/wiki/Domain-specific_language):
+
+- **User code**: When you want to give users an expressive language for building things, like a [code-as-CAD](https://openscad.org/).
+- **Educational code**: When you want to teach beginners how to program, like [Logo](https://en.wikipedia.org/wiki/Logo_(programming_language)) or [Scratch](https://scratch.mit.edu/).
+- **Creative code:** When you want to give artists and creators a playground for interactive and generative art.
+- **Complex configs**: When your infrastructure-as-code ([Kubernetes](https://kubernetes.io/), [Terraform](https://www.terraform.io/)), package managers, or build systems are complex enough to need functional config generation.
+- **Expressive configs**: When you want your system's configuration to be more expressive than static data.
+
+The author [Mikey](https://mikey.nz) (as part of [Village Kit](https://villagekit.com)) is motivated by the "user code", which may inform future developments.
 
 ## 📌 Stability
 

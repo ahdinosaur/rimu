@@ -5,7 +5,7 @@ import { App } from '@/components/app'
 
 export const metadata: Metadata = {
   title: 'Rimu Playground',
-  description: 'A playground for the Rimu data template language.',
+  description: 'A playground for the Rimu template language for structured data.',
   themeColor: '#dffdff',
 }
 

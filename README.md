@@ -15,7 +15,7 @@
 
 <div align="center">
   <strong>
-    A data structure template language.
+    A template language for structured data
   </strong>
 </div>
 
