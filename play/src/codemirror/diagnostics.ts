@@ -49,8 +49,8 @@ export interface Report {
   sourceId: string
   severity: Severity
   markClass?: string
-  // labels: Array<Label>
-  // notes: Array<Note>
+  labels: Array<Label>
+  notes: Array<Note>
   renderMessage?: () => Node
   actions?: readonly Action[]
 }
@@ -79,7 +79,11 @@ interface DiagnosticGutterConfig {
 }
 
 class SelectedReport {
-  constructor(readonly from: number, readonly to: number, readonly report: Report) {}
+  constructor(
+    readonly from: number,
+    readonly to: number,
+    readonly report: Report,
+  ) {}
 }
 
 class DiagnosticState {
@@ -415,7 +419,10 @@ class PanelItem {
   id = 'item_' + Math.floor(Math.random() * 0xffffffff).toString(16)
   dom: HTMLElement
 
-  constructor(view: EditorView, readonly report: Report) {
+  constructor(
+    view: EditorView,
+    readonly report: Report,
+  ) {
     this.dom = renderReport(view, report, true)
     this.dom.id = this.id
     this.dom.setAttribute('role', 'option')
