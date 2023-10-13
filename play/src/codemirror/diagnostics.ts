@@ -32,10 +32,15 @@ import elt from 'crelt'
 
 type Severity = 'hint' | 'info' | 'warning' | 'error'
 
-export interface Label {
-  message: string
+export interface Span {
+  sourceId: string
   from: number
   to: number
+}
+
+export interface Label {
+  message: string
+  span: Span
 }
 
 export interface Note {
@@ -44,15 +49,11 @@ export interface Note {
 
 export interface Report {
   message: string
-  from: number
-  to: number
-  sourceId: string
+  span: Span
   severity: Severity
   markClass?: string
   labels: Array<Label>
   notes: Array<Note>
-  renderMessage?: () => Node
-  actions?: readonly Action[]
 }
 
 /// An action associated with a diagnostic.
@@ -101,12 +102,13 @@ class DiagnosticState {
 
     let ranges = Decoration.set(
       markedReports.map((d: Report) => {
+        const s = d.span
         // For zero-length ranges or ranges covering only a line break, create a widget
-        return d.from == d.to || (d.from == d.to - 1 && state.doc.lineAt(d.from).to == d.from)
+        return s.from == s.to || (s.from == s.to - 1 && state.doc.lineAt(s.from).to == s.from)
           ? Decoration.widget({
               widget: new ReportWidget(d),
               report: d,
-            }).range(d.from)
+            }).range(s.from)
           : Decoration.mark({
               attributes: {
                 class:
@@ -115,7 +117,7 @@ class DiagnosticState {
                   (d.markClass ? ' ' + d.markClass : ''),
               },
               report: d,
-            }).range(d.from, d.to)
+            }).range(s.from, s.to)
       }),
       true,
     )
@@ -144,18 +146,9 @@ function hideTooltip(tr: Transaction, tooltip: Tooltip) {
   )
 }
 
-function maybeEnableDiagnostic(state: EditorState, effects: readonly StateEffect<unknown>[]) {
-  return state.field(diagnosticState, false)
-    ? effects
-    : effects.concat(StateEffect.appendConfig.of(diagnosticExtensions))
-}
-
-/// Returns a transaction spec which updates the current set of
-/// reports, and enables the diagnostic extension if if wasn't already
-/// active.
-export function setReports(state: EditorState, reports: readonly Report[]): TransactionSpec {
+export function setReports(reports: readonly Report[]): TransactionSpec {
   return {
-    effects: maybeEnableDiagnostic(state, [setReportsEffect.of(reports)]),
+    effects: setReportsEffect.of(reports),
   }
 }
 
@@ -205,12 +198,6 @@ const diagnosticState = StateField.define<DiagnosticState>({
   ],
 })
 
-/// Returns the number of active diagnostic reports in the given state.
-export function reportCount(state: EditorState) {
-  const diagnostic_ = state.field(diagnosticState, false)
-  return diagnostic_ ? diagnostic_.reports.size : 0
-}
-
 const activeMark = Decoration.mark({ class: 'cm-diagnosticRange cm-diagnosticRange-active' })
 
 function diagnosticTooltip(view: EditorView, pos: number, side: -1 | 1) {
@@ -251,24 +238,6 @@ function reportsTooltip(view: EditorView, reports: readonly Report[]) {
     { class: 'cm-tooltip-diagnostic' },
     reports.map((d) => renderReport(view, d, false)),
   )
-}
-
-/// Command to open and focus the diagnostic panel.
-export const openDiagnosticPanel: Command = (view: EditorView) => {
-  let field = view.state.field(diagnosticState, false)
-  if (!field || !field.panel)
-    view.dispatch({ effects: maybeEnableDiagnostic(view.state, [togglePanel.of(true)]) })
-  let panel = getPanel(view, DiagnosticPanel.open)
-  if (panel) (panel.dom.querySelector('.cm-panel-diagnostic ul') as HTMLElement).focus()
-  return true
-}
-
-/// Command to close the diagnostic panel, when open.
-export const closeDiagnosticPanel: Command = (view: EditorView) => {
-  let field = view.state.field(diagnosticState, false)
-  if (!field || !field.panel) return false
-  view.dispatch({ effects: togglePanel.of(false) })
-  return true
 }
 
 /// Move the selection to the next report.
@@ -315,12 +284,8 @@ export const previousReport: Command = (view: EditorView) => {
 
 /// A set of default key bindings for the diagnostic functionality.
 ///
-/// - Ctrl-Shift-m (Cmd-Shift-m on macOS): [`openDiagnosticPanel`](#diagnostic.openDiagnosticPanel)
 /// - F8: [`nextReport`](#diagnostic.nextReport)
-export const diagnosticKeymap: readonly KeyBinding[] = [
-  { key: 'Mod-Shift-m', run: openDiagnosticPanel, preventDefault: true },
-  { key: 'F8', run: nextReport },
-]
+export const diagnosticKeymap: readonly KeyBinding[] = [{ key: 'F8', run: nextReport }]
 
 const diagnosticConfig = Facet.define<{ config: DiagnosticConfig }, Required<DiagnosticConfig>>({
   combine(input) {
@@ -361,11 +326,7 @@ function renderReport(view: EditorView, report: Report, inPanel: boolean) {
   return elt(
     'li',
     { class: 'cm-report cm-report-' + report.severity },
-    elt(
-      'span',
-      { class: 'cm-reportText' },
-      report.renderMessage ? report.renderMessage() : report.message,
-    ),
+    elt('span', { class: 'cm-reportText' }, report.message),
     report.actions?.map((action, i) => {
       let fired = false,
         click = (e: Event) => {
@@ -397,7 +358,7 @@ function renderReport(view: EditorView, report: Report, inPanel: boolean) {
         nameElt,
       )
     }),
-    report.sourceId && elt('div', { class: 'cm-reportSource' }, report.sourceId),
+    report.span.sourceId && elt('div', { class: 'cm-reportSource' }, report.span.sourceId),
   )
 }
 
@@ -528,7 +489,10 @@ class DiagnosticPanel implements Panel {
       }
       i++
     })
-    while (i < this.items.length && !(this.items.length == 1 && this.items[0].report.from < 0)) {
+    while (
+      i < this.items.length &&
+      !(this.items.length == 1 && this.items[0].report.span.from < 0)
+    ) {
       needsSync = true
       this.items.pop()
     }
@@ -684,7 +648,7 @@ function gutterMarkerMouseOver(view: EditorView, marker: HTMLElement, reports: r
 function markersForReports(doc: Text, reports: readonly Report[]) {
   let byLine: { [line: number]: Report[] } = Object.create(null)
   for (let report of reports) {
-    let line = doc.lineAt(report.from)
+    let line = doc.lineAt(report.span.from)
     ;(byLine[line.from] || (byLine[line.from] = [])).push(report)
   }
   let markers: Range<GutterMarker>[] = []

@@ -36,17 +36,17 @@ export function useRimu(options: UseRimuOptions) {
 
       // @ts-ignore
       for (const report of err.reports) {
-        const { span } = report
-        let message = report.message
-        for (const [_span, label] of report.labels) {
-          message += '\n' + label
-        }
+        const { span, message, labels, notes } = report
+
         reports.push({
-          from: span.start,
-          to: span.end,
-          sourceId: span.sourceId,
-          severity: 'error',
+          span: toCodemirrorSpan(span),
           message,
+          labels: labels.map((label: any) => ({
+            ...label,
+            span: toCodemirrorSpan(span),
+          })),
+          notes,
+          severity: 'error',
         })
       }
     }
@@ -57,4 +57,9 @@ export function useRimu(options: UseRimuOptions) {
 
     setReports(reports)
   }, [rimu, code, format, setOutput, setReports])
+}
+
+function toCodemirrorSpan(span: any) {
+  const { sourceId, start, end } = span
+  return { sourceId, from: start, to: end }
 }
