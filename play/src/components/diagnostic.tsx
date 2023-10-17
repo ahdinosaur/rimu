@@ -12,10 +12,12 @@ export function DiagnosticPanel(props: DiagnosticPanelProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
 
   const listRef = useRef(null)
+  /*
   useOutsideClick({
     ref: listRef,
     handler: () => setSelectedIndex(null),
   })
+  */
 
   return (
     <Box>
@@ -44,7 +46,16 @@ const DiagnosticList = forwardRef<HTMLUListElement, DiagnosticListProps>(
     const { children, selectedIndex } = props
     const activeId = selectedIndex == null ? undefined : `diagnostic-list-item-${selectedIndex}`
     return (
-      <List ref={ref} role="listbox" aria-activedescendant={activeId}>
+      <List
+        ref={ref}
+        role="listbox"
+        aria-activedescendant={activeId}
+        sx={{
+          margin: 0,
+          padding: 0,
+          overflowY: 'auto',
+        }}
+      >
         {children}
       </List>
     )
@@ -65,13 +76,38 @@ function DiagnosticReport(props: DiagnosticReportProps) {
   return (
     <ListItem
       id={`diagnostic-list-item-${index}`}
+      tabIndex={0}
       role="option"
       aria-selected={isSelected}
       onClick={handleSelect}
+      sx={{
+        padding: '3px 6px 3px 8px',
+        whiteSpace: 'pre-wrap',
+        borderLeftWidth: 5,
+        borderLeftStyle: 'solid',
+        borderLeftColor: colorsBySeverity[report.severity],
+
+        backgroundColor: 'ctp.surface2',
+        color: 'ctp.text',
+
+        '&[aria-selected="true"]': {
+          backgroundColor: 'ctp.surface1',
+        },
+        '&:focus[aria-selected="true"]': {
+          backgroundColor: 'ctp.surface0',
+        },
+      }}
     >
-      <Text>{message}</Text>
+      {message}
     </ListItem>
   )
+}
+
+const colorsBySeverity: Record<Report['severity'], string> = {
+  hint: 'ctp.peach',
+  info: 'ctp.teal',
+  warning: 'ctp.yellow',
+  error: 'ctp.red',
 }
 
 /*
