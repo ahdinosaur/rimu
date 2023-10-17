@@ -10,10 +10,6 @@ import {
   showTooltip,
   gutter,
   GutterMarker,
-  PanelConstructor,
-  Panel,
-  showPanel,
-  getPanel,
 } from '@codemirror/view'
 import {
   Text,
@@ -56,16 +52,6 @@ export interface Report {
   notes: Array<Note>
 }
 
-/// An action associated with a diagnostic.
-export interface Action {
-  /// The label to show to the user. Should be relatively short.
-  name: string
-  /// The function to call when the user activates this action. Is
-  /// given the diagnostic's _current_ position, which may have
-  /// changed since the creation of the diagnostic, due to editing.
-  apply: (view: EditorView, from: number, to: number) => void
-}
-
 type ReportFilter = (reports: readonly Report[]) => Report[]
 
 interface DiagnosticConfig {
@@ -90,11 +76,10 @@ class SelectedReport {
 class DiagnosticState {
   constructor(
     readonly reports: DecorationSet,
-    readonly panel: PanelConstructor | null,
     readonly selected: SelectedReport | null,
   ) {}
 
-  static init(reports: readonly Report[], panel: PanelConstructor | null, state: EditorState) {
+  static init(reports: readonly Report[], state: EditorState) {
     // Filter the list of reports for which to create markers
     let markedReports = reports
     let reportFilter = state.facet(diagnosticConfig).markerFilter
@@ -121,7 +106,7 @@ class DiagnosticState {
       }),
       true,
     )
-    return new DiagnosticState(ranges, panel, findReport(ranges))
+    return new DiagnosticState(ranges, findReport(ranges))
   }
 }
 
@@ -156,13 +141,11 @@ export function setReports(reports: readonly Report[]): TransactionSpec {
 /// be useful when writing an extension that needs to track these.
 export const setReportsEffect = StateEffect.define<readonly Report[]>()
 
-const togglePanel = StateEffect.define<boolean>()
-
 const movePanelSelection = StateEffect.define<SelectedReport>()
 
 const diagnosticState = StateField.define<DiagnosticState>({
   create() {
-    return new DiagnosticState(Decoration.none, DiagnosticPanel.open, null)
+    return new DiagnosticState(Decoration.none, null)
   },
   update(value, tr) {
     if (tr.docChanged) {
@@ -173,29 +156,20 @@ const diagnosticState = StateField.define<DiagnosticState>({
         selected =
           findReport(mapped, value.selected.report, selPos) || findReport(mapped, null, selPos)
       }
-      value = new DiagnosticState(mapped, value.panel, selected)
+      value = new DiagnosticState(mapped, selected)
     }
 
     for (let effect of tr.effects) {
       if (effect.is(setReportsEffect)) {
-        value = DiagnosticState.init(effect.value, value.panel, tr.state)
-      } else if (effect.is(togglePanel)) {
-        value = new DiagnosticState(
-          value.reports,
-          effect.value ? DiagnosticPanel.open : null,
-          value.selected,
-        )
+        value = DiagnosticState.init(effect.value, tr.state)
       } else if (effect.is(movePanelSelection)) {
-        value = new DiagnosticState(value.reports, value.panel, effect.value)
+        value = new DiagnosticState(value.reports, effect.value)
       }
     }
 
     return value
   },
-  provide: (f) => [
-    showPanel.from(f, (val) => val.panel),
-    EditorView.decorations.from(f, (s) => s.reports),
-  ],
+  provide: (f) => [EditorView.decorations.from(f, (s) => s.reports)],
 })
 
 const activeMark = Decoration.mark({ class: 'cm-diagnosticRange cm-diagnosticRange-active' })
@@ -305,59 +279,11 @@ export function createDiagnostics(config: DiagnosticConfig = {}): Extension {
   return [diagnosticConfig.of({ config }), diagnosticExtensions]
 }
 
-function assignKeys(actions: readonly Action[] | undefined) {
-  let assigned: string[] = []
-  if (actions)
-    actions: for (let { name } of actions) {
-      for (let i = 0; i < name.length; i++) {
-        let ch = name[i]
-        if (/[a-zA-Z]/.test(ch) && !assigned.some((c) => c.toLowerCase() == ch.toLowerCase())) {
-          assigned.push(ch)
-          continue actions
-        }
-      }
-      assigned.push('')
-    }
-  return assigned
-}
-
-function renderReport(view: EditorView, report: Report, inPanel: boolean) {
-  let keys = inPanel ? assignKeys(report.actions) : []
+function renderReport(view: EditorView, report: Report, _inPanel: boolean) {
   return elt(
     'li',
     { class: 'cm-report cm-report-' + report.severity },
     elt('span', { class: 'cm-reportText' }, report.message),
-    report.actions?.map((action, i) => {
-      let fired = false,
-        click = (e: Event) => {
-          e.preventDefault()
-          if (fired) return
-          fired = true
-          let found = findReport(view.state.field(diagnosticState).reports, report)
-          if (found) action.apply(view, found.from, found.to)
-        }
-      let { name } = action,
-        keyIndex = keys[i] ? name.indexOf(keys[i]) : -1
-      let nameElt =
-        keyIndex < 0
-          ? name
-          : [
-              name.slice(0, keyIndex),
-              elt('u', name.slice(keyIndex, keyIndex + 1)),
-              name.slice(keyIndex + 1),
-            ]
-      return elt(
-        'button',
-        {
-          type: 'button',
-          class: 'cm-reportAction',
-          onclick: click,
-          onmousedown: click,
-          'aria-label': ` Action: ${name}${keyIndex < 0 ? '' : ` (access key "${keys[i]})"`}.`,
-        },
-        nameElt,
-      )
-    }),
     report.span.sourceId && elt('div', { class: 'cm-reportSource' }, report.span.sourceId),
   )
 }
@@ -376,6 +302,7 @@ class ReportWidget extends WidgetType {
   }
 }
 
+/*
 class PanelItem {
   id = 'item_' + Math.floor(Math.random() * 0xffffffff).toString(16)
   dom: HTMLElement
@@ -416,15 +343,6 @@ class DiagnosticPanel implements Panel {
       } else if (event.keyCode == 13) {
         // Enter
         this.view.focus()
-      } else if (event.keyCode >= 65 && event.keyCode <= 90 && this.selectedIndex >= 0) {
-        // A-Z
-        let { report } = this.items[this.selectedIndex],
-          keys = assignKeys(report.actions)
-        for (let i = 0; i < keys.length; i++)
-          if (keys[i].toUpperCase().charCodeAt(0) == event.keyCode) {
-            let found = findReport(this.view.state.field(diagnosticState).reports, report)
-            if (found) report.actions![i].apply(view, found.from, found.to)
-          }
       } else {
         return
       }
@@ -552,6 +470,7 @@ class DiagnosticPanel implements Panel {
     return new DiagnosticPanel(view)
   }
 }
+*/
 
 function severityWeight(sev: Severity) {
   return sev == 'error' ? 4 : sev == 'warning' ? 3 : sev == 'info' ? 2 : 1
@@ -700,8 +619,8 @@ const diagnosticGutterTooltip = StateField.define<Tooltip | null>({
 const diagnosticExtensions = [
   diagnosticState,
   EditorView.decorations.compute([diagnosticState], (state) => {
-    let { selected, panel } = state.field(diagnosticState)
-    return !selected || !panel || selected.from == selected.to
+    let { selected } = state.field(diagnosticState)
+    return !selected || selected.from == selected.to
       ? Decoration.none
       : Decoration.set([activeMark.range(selected.from, selected.to)])
   }),
