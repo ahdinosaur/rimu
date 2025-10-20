@@ -26,19 +26,6 @@ license = "MIT OR Apache-2.0"
 keywords = ["rimu", "functional", "data", "template", "config"]
 categories = ["compilers", "config", "data-structures", "template-engine"]
 
-# Config for 'cargo dist'
-[workspace.metadata.dist]
-# The preferred cargo-dist version to use in CI (Cargo.toml SemVer syntax)
-cargo-dist-version = "0.3.0"
-# CI backends to support
-ci = ["github"]
-# The installers to generate for each app
-installers = ["shell"]
-# Target platforms to build apps for (Rust target-triple syntax)
-targets = ["x86_64-unknown-linux-gnu", "aarch64-apple-darwin", "x86_64-apple-darwin", "x86_64-pc-windows-msvc"]
-# Publish jobs to run in CI
-pr-run-mode = "plan"
-
 [profile.release]
 # less code to include into binary
 panic = 'abort'
