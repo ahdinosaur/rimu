@@ -34,6 +34,18 @@ impl fmt::Display for SourceId {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+#[error("failed to create SourceId from path: {path}")]
+pub struct SourceIdFromPathError {
+    path: PathBuf,
+}
+
+#[derive(Debug, thiserror::Error)]
+#[error("Failed to convert SourceId to path: {source_id}")]
+pub struct SourceIdToPathError {
+    source_id: SourceId,
+}
+
 impl SourceId {
     pub fn empty() -> Self {
         SourceId::Empty
@@ -43,17 +55,23 @@ impl SourceId {
         SourceId::Repl
     }
 
-    #[allow(clippy::result_unit_err)]
-    pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Self, ()> {
-        Ok(SourceId::Url(Url::from_file_path(path)?))
+    pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Self, SourceIdFromPathError> {
+        Ok(SourceId::Url(Url::from_file_path(&path).map_err(|_| {
+            SourceIdFromPathError {
+                path: path.as_ref().to_path_buf(),
+            }
+        })?))
     }
 
-    #[allow(clippy::result_unit_err)]
-    pub fn to_path(&self) -> Result<PathBuf, ()> {
+    pub fn to_path(&self) -> Result<PathBuf, SourceIdToPathError> {
         let SourceId::Url(url) = self else {
-            return Err(());
+            return Err(SourceIdToPathError {
+                source_id: self.clone(),
+            });
         };
-        url.to_file_path()
+        url.to_file_path().map_err(|_| SourceIdToPathError {
+            source_id: self.clone(),
+        })
     }
 }
 
