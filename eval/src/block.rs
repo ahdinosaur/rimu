@@ -170,7 +170,7 @@ impl Evaluator {
         let let_env = Environment::from_object(&variables, Some(parent_env)).map_err(|error| {
             EvalError::Environment {
                 span: span.clone(),
-                source: error,
+                source: Box::new(error),
             }
         })?;
         let let_env = Rc::new(RefCell::new(let_env));

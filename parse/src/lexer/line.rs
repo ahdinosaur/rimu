@@ -147,7 +147,7 @@ fn line_parser() -> impl LineLexer<Vec<SpannedToken>> {
 }
 
 pub fn ident<C: text::Character, E: chumsky::Error<C>>(
-) -> impl Parser<C, C::Collection, Error = E> + Copy + Clone {
+) -> impl Parser<C, C::Collection, Error = E> + Copy {
     filter(|c: &C| c.to_char().is_ascii_alphabetic() || c.to_char() == '_' || c.to_char() == '$')
         .map(Some)
         .chain::<C, Vec<_>, _>(

@@ -16,12 +16,12 @@ categories.workspace = true
 [dependencies]
 rimu-meta = { path = "../meta", version = "0.2.0" }
 rimu-ast = { path = "../ast", version = "0.2.0" }
-ryu = "1.0.15"
-serde = "1.0.181"
-thiserror = "1.0.44"
-rust_decimal = { version = "1.31.0", features = ["serde-with-float"] }
-rust_decimal_macros = "1.31.0"
-indexmap = { version = "2.0.0", features = ["serde"] }
+ryu = "1.0.20"
+serde = "1.0.228"
+thiserror = "2.0.17"
+rust_decimal = { version = "1.39.0", features = ["serde-with-float"] }
+rust_decimal_macros = "1.39.0"
+indexmap = { version = "2.11.4", features = ["serde"] }
 
 [dev-dependencies]
-pretty_assertions = "1.4.0"
+pretty_assertions = "1.4.1"

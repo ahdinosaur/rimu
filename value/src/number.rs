@@ -84,7 +84,7 @@ impl<'de> Deserializer<'de> for Number {
     }
 }
 
-impl<'de, 'a> Deserializer<'de> for &'a Number {
+impl<'de> Deserializer<'de> for &Number {
     type Error = SerdeValueError;
 
     #[inline]
@@ -138,7 +138,7 @@ from_integer!(i8 i16 i32 i64 isize);
 from_integer!(u8 u16 u32 u64 usize);
 from_float!(f32 f64);
 
-pub(crate) fn unexpected(_number: &Number) -> Unexpected {
+pub(crate) fn unexpected<'a>(_number: &'a Number) -> Unexpected<'a> {
     Unexpected::Other("number")
 }
 
@@ -156,7 +156,7 @@ impl Eq for Number {
 
 impl PartialOrd for Number {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.partial_cmp(&other.0)
+        Some(self.cmp(other))
     }
 }
 

@@ -15,4 +15,4 @@ categories.workspace = true
 
 [dependencies]
 rimu = { path = "../rimu", version = "0.2.0" }
-rustyline = "12.0.0"
+rustyline = "17.0.2"

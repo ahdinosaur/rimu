@@ -9,7 +9,7 @@ pub enum EvalError {
     Environment {
         span: Span,
         #[source]
-        source: EnvironmentError,
+        source: Box<EnvironmentError>,
     },
     #[error("missing variable: {var}")]
     MissingVariable { span: Span, var: String },
@@ -21,7 +21,7 @@ pub enum EvalError {
     TypeError {
         span: Span,
         expected: String,
-        got: SerdeValue,
+        got: Box<SerdeValue>,
     },
     #[error("index out of bounds, index: {index}, length: {length}")]
     IndexOutOfBounds {
@@ -35,7 +35,7 @@ pub enum EvalError {
         key_span: Span,
         key: String,
         object_span: Span,
-        object: SerdeValueObject,
+        object: Box<SerdeValueObject>,
     },
     #[error("range start >= end, start: {start}, end: {end}")]
     RangeStartGreaterThanOrEqualToEnd {
@@ -46,7 +46,7 @@ pub enum EvalError {
     #[error("unterminated interpolation: {src}")]
     UnterminatedInterpolation { span: Span, src: String },
     #[error("cannot be interpolated into a string: {value}")]
-    InvalidInterpolationValue { span: Span, value: SerdeValue },
+    InvalidInterpolationValue { span: Span, value: Box<SerdeValue> },
     #[error("error expression")]
     ErrorExpression { span: Span },
 }
@@ -117,7 +117,7 @@ impl From<EvalError> for ErrorReport {
                 vec![
                     (
                         object_span.clone(),
-                        format!("Object: {}", SerdeValue::Object(object.clone())),
+                        format!("Object: {}", SerdeValue::Object(*object)),
                     ),
                     (key_span.clone(), format!("Key: {}", key)),
                 ],

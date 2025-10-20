@@ -116,9 +116,7 @@ impl<'src> LinesLexer<'src> {
     ) -> Option<(Spanned<&'src str>, Spanned<&'src str>)> {
         let (line, span) = line.take();
 
-        let Some(nonblank_index) = self.get_space_index(line) else {
-            return None;
-        };
+        let nonblank_index = self.get_space_index(line)?;
 
         let space_str = &line[..nonblank_index];
         let space_span = self.span(span.start(), span.start() + nonblank_index);
@@ -247,7 +245,10 @@ impl<'src> LinesLexer<'src> {
     }
 }
 
-pub(crate) fn tokenize_lines(code: &str, source_id: SourceId) -> Result<Vec<SpannedLinesToken>> {
+pub(crate) fn tokenize_lines<'src>(
+    code: &'src str,
+    source_id: SourceId,
+) -> Result<Vec<SpannedLinesToken<'src>>> {
     LinesLexer::new(code, source_id).tokenize()
 }
 
@@ -262,7 +263,7 @@ mod tests {
         Span::new(SourceId::empty(), range.start, range.end)
     }
 
-    fn test(code: &str) -> Result<Vec<SpannedLinesToken>, LinesLexerError> {
+    fn test<'src>(code: &'src str) -> Result<Vec<SpannedLinesToken<'src>>, LinesLexerError> {
         tokenize_lines(code, SourceId::empty())
     }
 

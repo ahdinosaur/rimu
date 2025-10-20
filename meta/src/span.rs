@@ -68,7 +68,7 @@ impl fmt::Debug for Span {
     }
 }
 
-impl chumsky::Span for Span {
+impl chumsky::span::Span for Span {
     type Context = SourceId;
     type Offset = usize;
 

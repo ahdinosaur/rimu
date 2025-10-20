@@ -15,9 +15,9 @@ categories.workspace = true
 
 [dependencies]
 rimu = { path = "../rimu", version = "0.2.0" }
-ariadne = "0.3.0"
-clap = { version = "4.4.2", features = ["derive"] }
-clio = { version = "0.3.4", features = ["clap-parse"] }
-serde_json = "1.0.105"
-serde_yaml = "0.9.25"
-toml = "0.7.6"
+ariadne = "0.5.1"
+clap = { version = "4.4.18", features = ["derive"] }
+clio = { version = "0.3.5", features = ["clap-parse"] }
+serde_json = "1.0.145"
+serde_yaml = "0.9.34"
+toml = "0.9.6"

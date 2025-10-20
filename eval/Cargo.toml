@@ -17,11 +17,11 @@ categories.workspace = true
 rimu-meta = { path = "../meta", version = "0.2.0" }
 rimu-ast = { path = "../ast", version = "0.2.0" }
 rimu-value = { path = "../value", version = "0.2.0" }
-rust_decimal = "1.31.0"
-rust_decimal_macros = "1.31.0"
-thiserror = "1.0.44"
-indexmap = "2.0.0"
+rust_decimal = "1.39.0"
+rust_decimal_macros = "1.39.0"
+thiserror = "2.0.17"
+indexmap = "2.11.4"
 
 [dev-dependencies]
 rimu-parse = { path = "../parse" }
-pretty_assertions = "1.4.0"
+pretty_assertions = "1.4.1"

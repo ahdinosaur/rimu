@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::Rc, slice::from_ref};
 
 use rimu_eval::call;
 use rimu_meta::{Span, Spanned};
@@ -30,7 +30,7 @@ pub fn length() -> Function {
                 return Err(EvalError::TypeError {
                     span: arg_span.clone(),
                     expected: "list | string".into(),
-                    got: arg.clone().into(),
+                    got: Box::new(arg.clone().into()),
                 })
             }
         };
@@ -39,7 +39,7 @@ pub fn length() -> Function {
     Function {
         args: vec!["arg".into()],
         env: empty_env(),
-        body: FunctionBody::Native(NativeFunction::new(function)),
+        body: FunctionBody::Native(NativeFunction::new("length", function)),
     }
 }
 pub fn map() -> Function {
@@ -60,14 +60,14 @@ pub fn map() -> Function {
                     _ => Err(EvalError::TypeError {
                         span: arg_span.clone(),
                         expected: "{ list: list, each: (item) => next }".into(),
-                        got: arg.clone().into(),
+                        got: Box::new(arg.clone().into()),
                     }),
                 }
             }
             _ => Err(EvalError::TypeError {
                 span: arg_span.clone(),
                 expected: "object".into(),
-                got: arg.clone().into(),
+                got: Box::new(arg.clone().into()),
             }),
         }
     };
@@ -75,7 +75,7 @@ pub fn map() -> Function {
     Function {
         args: vec!["arg".into()],
         env: empty_env(),
-        body: FunctionBody::Native(NativeFunction::new(function)),
+        body: FunctionBody::Native(NativeFunction::new("map", function)),
     }
 }
 
@@ -88,7 +88,7 @@ fn map_op(span: Span, options: MapOptions) -> Result<SpannedValue, EvalError> {
     let MapOptions { list, mapper } = options;
     let next_list = list
         .iter()
-        .map(|item| call(span.clone(), mapper.clone(), &[item.clone()]))
+        .map(|item| call(span.clone(), mapper.clone(), from_ref(item)))
         .collect::<Result<Vec<SpannedValue>, EvalError>>()?;
     Ok(Spanned::new(Value::List(next_list), span))
 }
@@ -108,7 +108,7 @@ pub fn range() -> Function {
                         let end = end.to_usize().ok_or_else(|| EvalError::TypeError {
                             span: end_span,
                             expected: "zero or positive integer".into(),
-                            got: SerdeValue::Number(end),
+                            got: Box::new(SerdeValue::Number(end)),
                         })?;
                         range_op(span, RangeOptions { start: None, end })
                     }
@@ -119,12 +119,12 @@ pub fn range() -> Function {
                         let start = start.to_usize().ok_or_else(|| EvalError::TypeError {
                             span: start_span,
                             expected: "zero or positive integer".into(),
-                            got: SerdeValue::Number(start),
+                            got: Box::new(SerdeValue::Number(start)),
                         })?;
                         let end = end.to_usize().ok_or_else(|| EvalError::TypeError {
                             span: end_span,
                             expected: "zero or positive integer".into(),
-                            got: SerdeValue::Number(end),
+                            got: Box::new(SerdeValue::Number(end)),
                         })?;
                         range_op(
                             span,
@@ -137,14 +137,14 @@ pub fn range() -> Function {
                     _ => Err(EvalError::TypeError {
                         span: arg_span.clone(),
                         expected: "{ start?: number, end: number }".into(),
-                        got: arg.clone().into(),
+                        got: Box::new(arg.clone().into()),
                     }),
                 }
             }
             _ => Err(EvalError::TypeError {
                 span: arg_span.clone(),
                 expected: "object".into(),
-                got: arg.clone().into(),
+                got: Box::new(arg.clone().into()),
             }),
         }
     };
@@ -152,7 +152,7 @@ pub fn range() -> Function {
     Function {
         args: vec!["arg".into()],
         env: empty_env(),
-        body: FunctionBody::Native(NativeFunction::new(function)),
+        body: FunctionBody::Native(NativeFunction::new("range", function)),
     }
 }
 
