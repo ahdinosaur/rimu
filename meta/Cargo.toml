@@ -18,3 +18,4 @@ chumsky = "0.9.3"
 ariadne = "0.5.1"
 thiserror = "2.0.17"
 serde = { version = "1.0.228", features = ["derive"] }
+url = { version = "2.5.7", features = ["serde"] }

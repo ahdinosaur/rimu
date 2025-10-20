@@ -1,57 +1,66 @@
 use serde::{Deserialize, Serialize};
 use std::{
-    convert::Infallible,
     fmt,
     path::{Path, PathBuf},
     str::FromStr,
 };
+use url::Url;
 
 #[derive(Clone, PartialOrd, Ord, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
-pub struct SourceId(Vec<String>);
-
-impl fmt::Display for SourceId {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.0.is_empty() {
-            write!(f, "?")
-        } else {
-            write!(f, "{}", self.0.clone().join("/"))
-        }
-    }
+pub enum SourceId {
+    #[default]
+    Empty,
+    Repl,
+    Url(Url),
 }
 
 impl fmt::Debug for SourceId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self)
+        match self {
+            SourceId::Empty => write!(f, "?"),
+            SourceId::Repl => write!(f, "repl"),
+            SourceId::Url(url) => url.fmt(f),
+        }
+    }
+}
+
+impl fmt::Display for SourceId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            SourceId::Empty => write!(f, "?"),
+            SourceId::Repl => write!(f, "repl"),
+            SourceId::Url(url) => url.fmt(f),
+        }
     }
 }
 
 impl SourceId {
     pub fn empty() -> Self {
-        SourceId(Vec::new())
+        SourceId::Empty
     }
 
     pub fn repl() -> Self {
-        SourceId(vec!["repl".to_string()])
+        SourceId::Repl
     }
 
-    pub fn from_path<P: AsRef<Path>>(path: P) -> Self {
-        SourceId(
-            path.as_ref()
-                .iter()
-                .map(|c| c.to_string_lossy().into_owned())
-                .collect(),
-        )
+    #[allow(clippy::result_unit_err)]
+    pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Self, ()> {
+        Ok(SourceId::Url(Url::from_file_path(path)?))
     }
 
-    pub fn to_path(&self) -> PathBuf {
-        self.0.iter().map(|e| e.to_string()).collect()
+    #[allow(clippy::result_unit_err)]
+    pub fn to_path(&self) -> Result<PathBuf, ()> {
+        let SourceId::Url(url) = self else {
+            return Err(());
+        };
+        url.to_file_path()
     }
 }
 
 impl FromStr for SourceId {
-    type Err = Infallible;
+    type Err = url::ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(SourceId(vec![s.to_string()]))
+        Ok(SourceId::Url(Url::parse(s)?))
     }
 }
