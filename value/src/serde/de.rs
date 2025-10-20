@@ -726,7 +726,7 @@ impl SerdeValue {
     }
 
     #[cold]
-    fn unexpected(&self) -> Unexpected {
+    fn unexpected<'a>(&'a self) -> Unexpected<'a> {
         match self {
             SerdeValue::Null => Unexpected::Unit,
             SerdeValue::Boolean(b) => Unexpected::Bool(*b),

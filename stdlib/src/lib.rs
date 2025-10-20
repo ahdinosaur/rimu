@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::Rc, slice::from_ref};
 
 use rimu_eval::call;
 use rimu_meta::{Span, Spanned};
@@ -39,7 +39,7 @@ pub fn length() -> Function {
     Function {
         args: vec!["arg".into()],
         env: empty_env(),
-        body: FunctionBody::Native(NativeFunction::new(function)),
+        body: FunctionBody::Native(NativeFunction::new("length", function)),
     }
 }
 pub fn map() -> Function {
@@ -75,7 +75,7 @@ pub fn map() -> Function {
     Function {
         args: vec!["arg".into()],
         env: empty_env(),
-        body: FunctionBody::Native(NativeFunction::new(function)),
+        body: FunctionBody::Native(NativeFunction::new("map", function)),
     }
 }
 
@@ -88,7 +88,7 @@ fn map_op(span: Span, options: MapOptions) -> Result<SpannedValue, EvalError> {
     let MapOptions { list, mapper } = options;
     let next_list = list
         .iter()
-        .map(|item| call(span.clone(), mapper.clone(), &[item.clone()]))
+        .map(|item| call(span.clone(), mapper.clone(), from_ref(item)))
         .collect::<Result<Vec<SpannedValue>, EvalError>>()?;
     Ok(Spanned::new(Value::List(next_list), span))
 }
@@ -152,7 +152,7 @@ pub fn range() -> Function {
     Function {
         args: vec!["arg".into()],
         env: empty_env(),
-        body: FunctionBody::Native(NativeFunction::new(function)),
+        body: FunctionBody::Native(NativeFunction::new("range", function)),
     }
 }
 
