@@ -14,7 +14,7 @@ categories.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-chumsky = "0.9.2"
+chumsky = "0.9.3"
 ariadne = "0.3.0"
-thiserror = "1.0.44"
-serde = { version = "1.0.188", features = ["derive"] }
+thiserror = "1.0.69"
+serde = { version = "1.0.228", features = ["derive"] }
