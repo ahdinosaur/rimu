@@ -13,8 +13,8 @@ pub struct ErrorReport {
 
 impl ErrorReport {
     pub fn display(&self, source: &str, source_id: SourceId) {
-        let mut report = Report::build(ReportKind::Error, self.span.source(), self.span.end())
-            .with_message(self.message.clone());
+        let mut report =
+            Report::build(ReportKind::Error, self.span.clone()).with_message(self.message.clone());
 
         for (i, (span, msg)) in self.labels.clone().into_iter().enumerate() {
             report = report.with_label(Label::new(span).with_message(msg).with_order(i as i32));

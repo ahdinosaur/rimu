@@ -20,7 +20,7 @@ rust_decimal = "1.39.0"
 chumsky = "0.9.3"
 line-span = "0.1.5"
 indexmap = "2.11.4"
-thiserror = "1.0.69"
+thiserror = "2.0.17"
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"

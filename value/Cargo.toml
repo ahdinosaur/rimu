@@ -18,7 +18,7 @@ rimu-meta = { path = "../meta", version = "0.2.0" }
 rimu-ast = { path = "../ast", version = "0.2.0" }
 ryu = "1.0.20"
 serde = "1.0.228"
-thiserror = "1.0.69"
+thiserror = "2.0.17"
 rust_decimal = { version = "1.39.0", features = ["serde-with-float"] }
 rust_decimal_macros = "1.39.0"
 indexmap = { version = "2.11.4", features = ["serde"] }
