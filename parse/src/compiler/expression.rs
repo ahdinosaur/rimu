@@ -262,7 +262,7 @@ fn right_unary_parser<'a>(
     let call = items
         .clone()
         .delimited_by(just(Token::LeftParen), just(Token::RightParen))
-        .map(|expr| RightUnary::Call(expr.unwrap_or(vec![])));
+        .map(|expr| RightUnary::Call(expr.unwrap_or_default()));
     let get_index = expr
         .clone()
         .delimited_by(just(Token::LeftBrack), just(Token::RightBrack))

@@ -38,7 +38,7 @@ impl From<String> for SerdeValue {
     }
 }
 
-impl<'a> From<&'a str> for SerdeValue {
+impl From<&str> for SerdeValue {
     fn from(f: &str) -> Self {
         SerdeValue::String(f.to_string())
     }

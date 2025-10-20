@@ -30,7 +30,7 @@ pub fn length() -> Function {
                 return Err(EvalError::TypeError {
                     span: arg_span.clone(),
                     expected: "list | string".into(),
-                    got: arg.clone().into(),
+                    got: Box::new(arg.clone().into()),
                 })
             }
         };
@@ -60,14 +60,14 @@ pub fn map() -> Function {
                     _ => Err(EvalError::TypeError {
                         span: arg_span.clone(),
                         expected: "{ list: list, each: (item) => next }".into(),
-                        got: arg.clone().into(),
+                        got: Box::new(arg.clone().into()),
                     }),
                 }
             }
             _ => Err(EvalError::TypeError {
                 span: arg_span.clone(),
                 expected: "object".into(),
-                got: arg.clone().into(),
+                got: Box::new(arg.clone().into()),
             }),
         }
     };
@@ -108,7 +108,7 @@ pub fn range() -> Function {
                         let end = end.to_usize().ok_or_else(|| EvalError::TypeError {
                             span: end_span,
                             expected: "zero or positive integer".into(),
-                            got: SerdeValue::Number(end),
+                            got: Box::new(SerdeValue::Number(end)),
                         })?;
                         range_op(span, RangeOptions { start: None, end })
                     }
@@ -119,12 +119,12 @@ pub fn range() -> Function {
                         let start = start.to_usize().ok_or_else(|| EvalError::TypeError {
                             span: start_span,
                             expected: "zero or positive integer".into(),
-                            got: SerdeValue::Number(start),
+                            got: Box::new(SerdeValue::Number(start)),
                         })?;
                         let end = end.to_usize().ok_or_else(|| EvalError::TypeError {
                             span: end_span,
                             expected: "zero or positive integer".into(),
-                            got: SerdeValue::Number(end),
+                            got: Box::new(SerdeValue::Number(end)),
                         })?;
                         range_op(
                             span,
@@ -137,14 +137,14 @@ pub fn range() -> Function {
                     _ => Err(EvalError::TypeError {
                         span: arg_span.clone(),
                         expected: "{ start?: number, end: number }".into(),
-                        got: arg.clone().into(),
+                        got: Box::new(arg.clone().into()),
                     }),
                 }
             }
             _ => Err(EvalError::TypeError {
                 span: arg_span.clone(),
                 expected: "object".into(),
-                got: arg.clone().into(),
+                got: Box::new(arg.clone().into()),
             }),
         }
     };

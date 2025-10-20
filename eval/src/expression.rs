@@ -119,7 +119,7 @@ impl Evaluator {
                 _ => Err(EvalError::TypeError {
                     span: right_span,
                     expected: "number".into(),
-                    got: right.clone().into(),
+                    got: Box::new(right.into()),
                 }),
             },
             UnaryOperator::Not => {
@@ -153,7 +153,7 @@ impl Evaluator {
                         (Value::Number(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "number".into(),
-                            got: right.into(),
+                            got: Box::new(right.into()),
                         }),
                         (Value::String(left), Value::String(right)) => {
                             Ok(Value::String([left, right].join("")))
@@ -161,7 +161,7 @@ impl Evaluator {
                         (Value::String(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "string".into(),
-                            got: right.into(),
+                            got: Box::new(right.into()),
                         }),
                         (Value::List(left), Value::List(right)) => {
                             Ok(Value::List([left, right].concat()))
@@ -169,12 +169,12 @@ impl Evaluator {
                         (Value::List(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "list".into(),
-                            got: right.into(),
+                            got: Box::new(right.into()),
                         }),
                         _ => Err(EvalError::TypeError {
                             span: left_span,
                             expected: "number | string | list".into(),
-                            got: left.into(),
+                            got: Box::new(left.into()),
                         }),
                     },
                     BinaryOperator::Subtract => match (left.clone(), right.clone()) {
@@ -184,12 +184,12 @@ impl Evaluator {
                         (Value::Number(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "number".into(),
-                            got: right.into(),
+                            got: Box::new(right.into()),
                         }),
                         _ => Err(EvalError::TypeError {
                             span: left_span,
                             expected: "number".into(),
-                            got: left.into(),
+                            got: Box::new(left.into()),
                         }),
                     },
                     BinaryOperator::Multiply => match (left.clone(), right.clone()) {
@@ -199,12 +199,12 @@ impl Evaluator {
                         (Value::Number(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "number".into(),
-                            got: right.into(),
+                            got: Box::new(right.into()),
                         }),
                         _ => Err(EvalError::TypeError {
                             span: left_span,
                             expected: "number".into(),
-                            got: left.into(),
+                            got: Box::new(left.into()),
                         }),
                     },
                     BinaryOperator::Divide => match (left.clone(), right.clone()) {
@@ -214,12 +214,12 @@ impl Evaluator {
                         (Value::Number(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "number".into(),
-                            got: right.into(),
+                            got: Box::new(right.into()),
                         }),
                         _ => Err(EvalError::TypeError {
                             span: left_span,
                             expected: "number".into(),
-                            got: left.into(),
+                            got: Box::new(left.into()),
                         }),
                     },
                     BinaryOperator::Rem => match (left.clone(), right.clone()) {
@@ -229,12 +229,12 @@ impl Evaluator {
                         (Value::Number(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "number".into(),
-                            got: right.into(),
+                            got: Box::new(right.into()),
                         }),
                         _ => Err(EvalError::TypeError {
                             span: left_span,
                             expected: "number".into(),
-                            got: left.into(),
+                            got: Box::new(left.into()),
                         }),
                     },
                     BinaryOperator::Xor => match (left.clone(), right.clone()) {
@@ -244,12 +244,12 @@ impl Evaluator {
                         (Value::Boolean(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "boolean".into(),
-                            got: right.into(),
+                            got: Box::new(right.into()),
                         }),
                         _ => Err(EvalError::TypeError {
                             span: left_span,
                             expected: "boolean".into(),
-                            got: left.into(),
+                            got: Box::new(left.into()),
                         }),
                     },
                     BinaryOperator::Greater => match (left.clone(), right.clone()) {
@@ -259,12 +259,12 @@ impl Evaluator {
                         (Value::Number(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "number".into(),
-                            got: right.into(),
+                            got: Box::new(right.into()),
                         }),
                         _ => Err(EvalError::TypeError {
                             span: left_span,
                             expected: "number".into(),
-                            got: left.into(),
+                            got: Box::new(left.into()),
                         }),
                     },
                     BinaryOperator::GreaterEqual => match (left.clone(), right.clone()) {
@@ -274,12 +274,12 @@ impl Evaluator {
                         (Value::Number(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "number".into(),
-                            got: right.into(),
+                            got: Box::new(right.into()),
                         }),
                         _ => Err(EvalError::TypeError {
                             span: left_span,
                             expected: "number".into(),
-                            got: left.into(),
+                            got: Box::new(left.into()),
                         }),
                     },
                     BinaryOperator::Less => match (left.clone(), right.clone()) {
@@ -289,12 +289,12 @@ impl Evaluator {
                         (Value::Number(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "number".into(),
-                            got: right.into(),
+                            got: Box::new(right.into()),
                         }),
                         _ => Err(EvalError::TypeError {
                             span: left_span,
                             expected: "number".into(),
-                            got: left.into(),
+                            got: Box::new(left.into()),
                         }),
                     },
                     BinaryOperator::LessEqual => match (left.clone(), right.clone()) {
@@ -304,12 +304,12 @@ impl Evaluator {
                         (Value::Number(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
                             expected: "number".into(),
-                            got: right.into(),
+                            got: Box::new(right.into()),
                         }),
                         _ => Err(EvalError::TypeError {
                             span: left_span,
                             expected: "number".into(),
-                            got: left.into(),
+                            got: Box::new(left.into()),
                         }),
                     },
                     BinaryOperator::Equal => Ok(Value::Boolean(left == right)),
@@ -417,27 +417,29 @@ impl Evaluator {
                 let ch = string[index as usize..].chars().next().unwrap();
                 Spanned::new(Value::String(ch.into()), span.clone())
             }
-            (Value::Object(object), Value::String(key)) => object
-                .get(&key)
-                .map(Clone::clone)
-                .ok_or_else(|| EvalError::KeyNotFound {
-                    object_span: container_span,
-                    object: convert_value_object_to_serde_value_object(object),
-                    key_span: index_span,
-                    key: key.clone(),
-                })?,
+            (Value::Object(object), Value::String(key)) => {
+                object
+                    .get(&key)
+                    .cloned()
+                    .ok_or_else(|| EvalError::KeyNotFound {
+                        object_span: container_span,
+                        object: Box::new(convert_value_object_to_serde_value_object(object)),
+                        key_span: index_span,
+                        key: key.clone(),
+                    })?
+            }
             (Value::Object(_list), _) => {
                 return Err(EvalError::TypeError {
                     span: index_span,
                     expected: "string".into(),
-                    got: index.into(),
+                    got: Box::new(index.into()),
                 })
             }
             _ => {
                 return Err(EvalError::TypeError {
                     span: container_span,
                     expected: "list | string | object".into(),
-                    got: container.into(),
+                    got: Box::new(container.into()),
                 })
             }
         };
@@ -457,7 +459,7 @@ impl Evaluator {
             return Err(EvalError::TypeError {
                 span: container_span,
                 expected: "object".into(),
-                got: container.into(),
+                got: Box::new(container.into()),
             });
         };
 
@@ -465,11 +467,11 @@ impl Evaluator {
             .get(key.inner())
             .ok_or_else(|| EvalError::KeyNotFound {
                 object_span: container_span,
-                object: convert_value_object_to_serde_value_object(object.clone()),
+                object: Box::new(convert_value_object_to_serde_value_object(object.clone())),
                 key: key.clone().into_inner(),
                 key_span: key.span(),
             })
-            .map(Clone::clone)?;
+            .cloned()?;
 
         Ok(Spanned::new(value.into_inner(), span))
     }
@@ -550,7 +552,7 @@ impl Evaluator {
                 return Err(EvalError::TypeError {
                     span: container_span,
                     expected: "list".into(),
-                    got: container.into(),
+                    got: Box::new(container.into()),
                 })
             }
         };
@@ -570,7 +572,7 @@ fn get_index(
         return Err(EvalError::TypeError {
             span: value_span,
             expected: "number".into(),
-            got: value.into(),
+            got: Box::new(value.into()),
         });
     };
     let number = if number.is_integer() {
@@ -582,7 +584,7 @@ fn get_index(
         return Err(EvalError::TypeError {
             span: value_span,
             expected: "integer".into(),
-            got: value.into(),
+            got: Box::new(value.into()),
         });
     };
     let is_under = index <= -(length as isize);

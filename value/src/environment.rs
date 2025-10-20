@@ -38,7 +38,7 @@ impl Environment {
             Self::from_object(object, parent)
         } else {
             Err(EnvironmentError::InvalidEnvironmentValue {
-                value: value.clone(),
+                value: Box::new(value.clone()),
             })
         }
     }
@@ -78,9 +78,7 @@ impl Environment {
     }
 
     pub fn get_in(&self, keys: Vec<&str>) -> Option<SerdeValue> {
-        let Some((first, rest)) = keys.split_first() else {
-            return None;
-        };
+        let (first, rest) = keys.split_first()?;
         match self.get(first) {
             Some(value) => value_get_in(&value, rest).cloned(),
             None => None,
@@ -100,5 +98,5 @@ impl Environment {
 #[derive(Debug, thiserror::Error, Clone, PartialEq)]
 pub enum EnvironmentError {
     #[error("context value is not an object: {:?}", value)]
-    InvalidEnvironmentValue { value: SerdeValue },
+    InvalidEnvironmentValue { value: Box<SerdeValue> },
 }
