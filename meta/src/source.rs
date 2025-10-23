@@ -11,7 +11,7 @@ pub enum SourceId {
     #[default]
     Empty,
     Repl,
-    Path(PathBuf),
+    Path(Vec<String>),
     Url(Url),
 }
 
@@ -31,7 +31,7 @@ impl fmt::Display for SourceId {
         match self {
             SourceId::Empty => write!(f, "?"),
             SourceId::Repl => write!(f, "repl"),
-            SourceId::Path(path) => path.display().fmt(f),
+            SourceId::Path(path) => path.join("/").fmt(f),
             SourceId::Url(url) => url.fmt(f),
         }
     }
@@ -53,19 +53,21 @@ impl SourceId {
     }
 
     pub fn from_path<P: AsRef<Path>>(path: P) -> Self {
-        SourceId::Path(path.as_ref().to_path_buf())
+        SourceId::Path(
+            path.as_ref()
+                .iter()
+                .map(|c| c.to_string_lossy().into_owned())
+                .collect(),
+        )
     }
 
     pub fn into_path(self) -> Result<PathBuf, SourceIdToPathError> {
-        match self {
-            SourceId::Empty | SourceId::Repl => Err(SourceIdToPathError {
+        let SourceId::Path(path) = self else {
+            return Err(SourceIdToPathError {
                 source_id: self.clone(),
-            }),
-            SourceId::Path(path) => Ok(path),
-            SourceId::Url(ref url) => url.to_file_path().map_err(|_| SourceIdToPathError {
-                source_id: self.clone(),
-            }),
-        }
+            });
+        };
+        Ok(path.iter().map(|e| e.to_string()).collect())
     }
 }
 
@@ -73,6 +75,6 @@ impl FromStr for SourceId {
     type Err = url::ParseError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(SourceId::Url(Url::parse(s)?))
+        Ok(SourceId::Path(vec![s.to_string()]))
     }
 }
