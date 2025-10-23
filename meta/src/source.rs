@@ -45,8 +45,26 @@ impl SourceId {
         )
     }
 
-    pub fn into_path(self) -> PathBuf {
-        PathBuf::from(self.0)
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl From<String> for SourceId {
+    fn from(value: String) -> Self {
+        SourceId(value)
+    }
+}
+
+impl From<SourceId> for String {
+    fn from(value: SourceId) -> Self {
+        value.0
+    }
+}
+
+impl From<PathBuf> for SourceId {
+    fn from(value: PathBuf) -> Self {
+        SourceId::from_path(value)
     }
 }
 
@@ -55,5 +73,11 @@ impl FromStr for SourceId {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(SourceId(s.to_string()))
+    }
+}
+
+impl AsRef<str> for SourceId {
+    fn as_ref(&self) -> &str {
+        self.as_str()
     }
 }
