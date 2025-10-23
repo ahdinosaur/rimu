@@ -1,8 +1,6 @@
-use std::{cell::RefCell, path::PathBuf, rc::Rc, str::FromStr};
+use std::{cell::RefCell, rc::Rc};
 
-use rimu::{
-    create_stdlib, evaluate, Environment, ErrorReport, ErrorReports, SerdeValue, SourceId, Value,
-};
+use rimu::{create_stdlib, evaluate, Environment, ErrorReport, ErrorReports, SerdeValue, Value};
 use serde::Serialize;
 use serde_wasm_bindgen::{Error as SerdeWasmError, Serializer as WasmSerializer};
 use wasm_bindgen::prelude::*;
@@ -28,7 +26,7 @@ pub enum Format {
 
 #[wasm_bindgen]
 pub fn render(code: &str, source_id: &str, format: Format) -> Result<String, JsValue> {
-    let source_id = SourceId::Path(PathBuf::from_str(source_id).unwrap());
+    let source_id = source_id.parse().unwrap();
 
     let (block, errors) = rimu::parse(code, source_id);
 

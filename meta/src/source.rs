@@ -1,59 +1,43 @@
 use serde::{Deserialize, Serialize};
 use std::{
+    convert::Infallible,
     fmt,
     path::{Path, PathBuf},
     str::FromStr,
 };
-use url::Url;
 
-#[derive(Clone, PartialOrd, Ord, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
-pub enum SourceId {
-    #[default]
-    Empty,
-    Repl,
-    Path(Vec<String>),
-    Url(Url),
+#[derive(Clone, PartialOrd, Ord, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct SourceId(String);
+
+impl Default for SourceId {
+    fn default() -> Self {
+        SourceId("".to_string())
+    }
 }
 
 impl fmt::Debug for SourceId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            SourceId::Empty => write!(f, "?"),
-            SourceId::Repl => write!(f, "repl"),
-            SourceId::Path(path) => path.fmt(f),
-            SourceId::Url(url) => url.fmt(f),
-        }
+        self.0.fmt(f)
     }
 }
 
 impl fmt::Display for SourceId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            SourceId::Empty => write!(f, "?"),
-            SourceId::Repl => write!(f, "repl"),
-            SourceId::Path(path) => path.join("/").fmt(f),
-            SourceId::Url(url) => url.fmt(f),
-        }
+        self.0.fmt(f)
     }
-}
-
-#[derive(Debug, thiserror::Error)]
-#[error("Failed to convert SourceId to path: {source_id}")]
-pub struct SourceIdToPathError {
-    source_id: SourceId,
 }
 
 impl SourceId {
     pub fn empty() -> Self {
-        SourceId::Empty
+        SourceId::default()
     }
 
     pub fn repl() -> Self {
-        SourceId::Repl
+        SourceId("repl".to_string())
     }
 
     pub fn from_path<P: AsRef<Path>>(path: P) -> Self {
-        SourceId::Path(
+        SourceId(
             path.as_ref()
                 .iter()
                 .map(|c| c.to_string_lossy().into_owned())
@@ -61,20 +45,15 @@ impl SourceId {
         )
     }
 
-    pub fn into_path(self) -> Result<PathBuf, SourceIdToPathError> {
-        let SourceId::Path(path) = self else {
-            return Err(SourceIdToPathError {
-                source_id: self.clone(),
-            });
-        };
-        Ok(path.iter().map(|e| e.to_string()).collect())
+    pub fn into_path(self) -> PathBuf {
+        PathBuf::from(self.0)
     }
 }
 
 impl FromStr for SourceId {
-    type Err = url::ParseError;
+    type Err = Infallible;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(SourceId::Path(vec![s.to_string()]))
+        Ok(SourceId(s.to_string()))
     }
 }
