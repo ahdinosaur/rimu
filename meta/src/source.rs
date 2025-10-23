@@ -11,6 +11,7 @@ pub enum SourceId {
     #[default]
     Empty,
     Repl,
+    Path(PathBuf),
     Url(Url),
 }
 
@@ -19,6 +20,7 @@ impl fmt::Debug for SourceId {
         match self {
             SourceId::Empty => write!(f, "?"),
             SourceId::Repl => write!(f, "repl"),
+            SourceId::Path(path) => path.fmt(f),
             SourceId::Url(url) => url.fmt(f),
         }
     }
@@ -29,15 +31,10 @@ impl fmt::Display for SourceId {
         match self {
             SourceId::Empty => write!(f, "?"),
             SourceId::Repl => write!(f, "repl"),
+            SourceId::Path(path) => path.display().fmt(f),
             SourceId::Url(url) => url.fmt(f),
         }
     }
-}
-
-#[derive(Debug, thiserror::Error)]
-#[error("failed to create SourceId from path: {path}")]
-pub struct SourceIdFromPathError {
-    path: PathBuf,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -55,23 +52,20 @@ impl SourceId {
         SourceId::Repl
     }
 
-    pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Self, SourceIdFromPathError> {
-        Ok(SourceId::Url(Url::from_file_path(&path).map_err(|_| {
-            SourceIdFromPathError {
-                path: path.as_ref().to_path_buf(),
-            }
-        })?))
+    pub fn from_path<P: AsRef<Path>>(path: P) -> Self {
+        SourceId::Path(path.as_ref().to_path_buf())
     }
 
-    pub fn to_path(&self) -> Result<PathBuf, SourceIdToPathError> {
-        let SourceId::Url(url) = self else {
-            return Err(SourceIdToPathError {
+    pub fn into_path(self) -> Result<PathBuf, SourceIdToPathError> {
+        match self {
+            SourceId::Empty | SourceId::Repl => Err(SourceIdToPathError {
                 source_id: self.clone(),
-            });
-        };
-        url.to_file_path().map_err(|_| SourceIdToPathError {
-            source_id: self.clone(),
-        })
+            }),
+            SourceId::Path(path) => Ok(path),
+            SourceId::Url(ref url) => url.to_file_path().map_err(|_| SourceIdToPathError {
+                source_id: self.clone(),
+            }),
+        }
     }
 }
 

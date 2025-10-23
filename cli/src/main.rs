@@ -52,8 +52,7 @@ fn main() -> std::result::Result<ExitCode, Box<dyn Error>> {
 
     let mut input = String::new();
     args.input.read_to_string(&mut input)?;
-    let input_source =
-        SourceId::from_path(args.input.path().path()).expect("SourceId::from_path failed");
+    let input_source = SourceId::from_path(args.input.path().path());
 
     let env = if let Some(mut env_arg) = args.env {
         let mut env_string = String::new();

@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 
 import { useLoader } from './use-loader'
 
-const sourceId = 'playground'
+const sourceId = '/playground.rimu'
 
 export type UseRimuOptions = {
   code: string
