@@ -96,15 +96,6 @@ fn line_parser() -> impl LineLexer<Vec<SpannedToken>> {
     ))
     .labelled("delimiter");
 
-    let keyword = choice((
-        just("if").to(Token::If),
-        just("then").to(Token::Then),
-        just("else").to(Token::Else),
-        just("let").to(Token::Let),
-        just("in").to(Token::In),
-    ))
-    .labelled("keyword");
-
     let control = choice((
         just(',').to(Token::Comma),
         just(':').to(Token::Colon),
@@ -132,10 +123,19 @@ fn line_parser() -> impl LineLexer<Vec<SpannedToken>> {
     ))
     .labelled("operator");
 
-    let identifier = ident().map(Token::Identifier).labelled("identifier");
+    let identifier = ident()
+        .map(|ident: String| match ident.as_str() {
+            "if" => Token::If,
+            "then" => Token::Then,
+            "else" => Token::Else,
+            "let" => Token::Let,
+            "in" => Token::In,
+            _ => Token::Identifier(ident),
+        })
+        .labelled("identifier");
 
     let token = choice((
-        null, boolean, number, string, delimiter, keyword, control, operator, identifier,
+        null, boolean, number, string, delimiter, control, operator, identifier,
     ))
     .recover_with(skip_then_retry_until([]));
 
@@ -271,6 +271,27 @@ mod tests {
             Spanned::new(Token::Identifier(String::from("ANOTHER_ONE")), span(14..25)),
             Spanned::new(Token::RightParen, span(25..26)),
         ]);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn identifier_not_keyword_prefix() {
+        let actual = test("install");
+
+        let expected = Ok(vec![Spanned::new(
+            Token::Identifier(String::from("install")),
+            span(0..7),
+        )]);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn keyword_in() {
+        let actual = test("in");
+
+        let expected = Ok(vec![Spanned::new(Token::In, span(0..2))]);
 
         assert_eq!(actual, expected);
     }
