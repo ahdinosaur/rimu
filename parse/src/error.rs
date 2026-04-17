@@ -1,4 +1,4 @@
-use chumsky::error::SimpleReason;
+use chumsky::error::RichReason;
 use rimu_meta::ErrorReport;
 
 use crate::compiler::CompilerError;
@@ -39,31 +39,29 @@ impl From<Error> for ErrorReport {
             },
             Error::Lexer(LexerError::Line(error)) => ErrorReport {
                 message: "Lexer: Unexpected character".into(),
-                span: error.span(),
-                labels: if let SimpleReason::Custom(msg) = error.reason() {
-                    vec![(error.span(), msg.to_string())]
+                span: error.span().clone(),
+                labels: if let RichReason::Custom(msg) = error.reason() {
+                    vec![(error.span().clone(), msg.clone())]
                 } else {
-                    vec![(error.span(), format!("{}", error))]
+                    vec![(error.span().clone(), format!("{}", error.reason()))]
                 },
-                notes: if let Some(e) = error.label() {
-                    vec![format!("Label is `{}`", e)]
-                } else {
-                    vec![]
-                },
+                notes: error
+                    .contexts()
+                    .map(|(label, _)| format!("Label is `{}`", label))
+                    .collect(),
             },
             Error::Compiler(error) => ErrorReport {
                 message: "Compiler: Unexpected token".into(),
-                span: error.span(),
-                labels: if let SimpleReason::Custom(msg) = error.reason() {
-                    vec![(error.span(), msg.to_string())]
+                span: error.span().clone(),
+                labels: if let RichReason::Custom(msg) = error.reason() {
+                    vec![(error.span().clone(), msg.clone())]
                 } else {
-                    vec![(error.span(), format!("{}", error))]
+                    vec![(error.span().clone(), format!("{}", error.reason()))]
                 },
-                notes: if let Some(e) = error.label() {
-                    vec![format!("Label is `{}`", e)]
-                } else {
-                    vec![]
-                },
+                notes: error
+                    .contexts()
+                    .map(|(label, _)| format!("Label is `{}`", label))
+                    .collect(),
             },
         }
     }
