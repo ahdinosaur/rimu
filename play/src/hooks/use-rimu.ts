@@ -16,7 +16,11 @@ export type UseRimuOptions = {
 export function useRimu(options: UseRimuOptions) {
   const { code, format, setOutput, setReports } = options
 
-  const rimu = useLoader(() => import('@/wasm'))
+  const rimu = useLoader(async () => {
+    const mod = await import('@/wasm')
+    await mod.default()
+    return mod
+  })
 
   useEffect(() => {
     if (rimu === null) return

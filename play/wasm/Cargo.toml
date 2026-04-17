@@ -23,6 +23,3 @@ wasm-bindgen = "0.2.104"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.54"
-
-[package.metadata.wasm-pack.profile.release]
-wasm-opt = ['-O', '--signext-lowering']
