@@ -71,10 +71,26 @@ where
     I: ValueInput<'src, Token = char, Span = Span> + 'src,
 {
     let digit = any::<I, _>().filter(|c: &char| c.is_ascii_digit());
-    let digits = digit.repeated().at_least(1).collect::<String>();
 
-    let number = digits
-        .then(just('.').ignore_then(digits).or_not())
+    // Integer part: a single `0`, or a non-zero digit followed by any digits.
+    // Leading zeros are rejected so `0o..`, `0x..`, etc. remain available as future number prefixes.
+    let int = choice((
+        just('0').map(|c: char| c.to_string()),
+        any::<I, _>()
+            .filter(|c: &char| matches!(c, '1'..='9'))
+            .then(digit.repeated().collect::<String>())
+            .map(|(first, rest): (char, String)| {
+                let mut s = String::with_capacity(1 + rest.len());
+                s.push(first);
+                s.push_str(&rest);
+                s
+            }),
+    ));
+
+    let frac = just('.').ignore_then(digit.repeated().at_least(1).collect::<String>());
+
+    let number = int
+        .then(frac.or_not())
         .map(
             |(int_part, frac_part): (String, Option<String>)| match frac_part {
                 Some(frac) => format!("{}.{}", int_part, frac),
@@ -132,7 +148,6 @@ where
     .labelled("control");
 
     let operator = choice((
-        just("=>").to(Token::FatArrow),
         just(">=").to(Token::GreaterEqual),
         just("<=").to(Token::LessEqual),
         just("==").to(Token::Equal),

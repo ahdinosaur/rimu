@@ -1,4 +1,3 @@
-use chumsky::error::RichReason;
 use rimu_meta::ErrorReport;
 
 use crate::compiler::CompilerError;
@@ -37,32 +36,32 @@ impl From<Error> for ErrorReport {
                     notes: vec![],
                 },
             },
-            Error::Lexer(LexerError::Line(error)) => ErrorReport {
-                message: "Lexer: Unexpected character".into(),
-                span: error.span().clone(),
-                labels: if let RichReason::Custom(msg) = error.reason() {
-                    vec![(error.span().clone(), msg.clone())]
-                } else {
-                    vec![(error.span().clone(), format!("{}", error.reason()))]
-                },
-                notes: error
-                    .contexts()
-                    .map(|(label, _)| format!("Label is `{}`", label))
-                    .collect(),
-            },
-            Error::Compiler(error) => ErrorReport {
-                message: "Compiler: Unexpected token".into(),
-                span: error.span().clone(),
-                labels: if let RichReason::Custom(msg) = error.reason() {
-                    vec![(error.span().clone(), msg.clone())]
-                } else {
-                    vec![(error.span().clone(), format!("{}", error.reason()))]
-                },
-                notes: error
-                    .contexts()
-                    .map(|(label, _)| format!("Label is `{}`", label))
-                    .collect(),
-            },
+            Error::Lexer(LexerError::Line(error)) => {
+                let span = error.span().clone();
+                let mut labels = vec![(span.clone(), error.reason().to_string())];
+                for (context, context_span) in error.contexts() {
+                    labels.push((context_span.clone(), format!("while parsing {}", context)));
+                }
+                ErrorReport {
+                    message: "Lexer: Unexpected character".into(),
+                    span,
+                    labels,
+                    notes: vec![],
+                }
+            }
+            Error::Compiler(error) => {
+                let span = error.span().clone();
+                let mut labels = vec![(span.clone(), error.reason().to_string())];
+                for (context, context_span) in error.contexts() {
+                    labels.push((context_span.clone(), format!("while parsing {}", context)));
+                }
+                ErrorReport {
+                    message: "Compiler: Unexpected token".into(),
+                    span,
+                    labels,
+                    notes: vec![],
+                }
+            }
         }
     }
 }
