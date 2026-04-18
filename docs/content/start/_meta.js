@@ -1,0 +1,5 @@
+export default {
+  play: 'Playground',
+  lib: 'Library',
+  cli: 'Command-line',
+}

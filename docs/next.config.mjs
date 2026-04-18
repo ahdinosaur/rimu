@@ -1,6 +1,6 @@
 /* eslint-env node */
 
-import Nextra from 'nextra'
+import nextra from 'nextra'
 import rehypeHighlightCodeBlock from '@mapbox/rehype-highlight-code-block'
 import { fromLezer } from 'hast-util-from-lezer'
 import { parser as rimuParser } from 'rimu-lezer'
@@ -10,11 +10,7 @@ const lezerParsers = {
   rimu: rimuParser,
 }
 
-const withNextra = Nextra({
-  theme: 'nextra-theme-docs',
-  themeConfig: './theme.config.js',
-  unstable_staticImage: true,
-  // codeHighlight: false,
+const withNextra = nextra({
   mdxOptions: {
     rehypePlugins: [
       [
@@ -27,9 +23,7 @@ const withNextra = Nextra({
   },
 })
 
-const config = withNextra()
-
-export default config
+export default withNextra()
 
 function highlight(code, lang) {
   const parser = lezerParsers[lang]

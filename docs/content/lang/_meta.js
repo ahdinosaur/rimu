@@ -1,0 +1,5 @@
+export default {
+  expressions: 'Expressions',
+  blocks: 'Blocks',
+  stdlib: 'Standard Library',
+}

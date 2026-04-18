@@ -1,0 +1,9 @@
+export default {
+  index: 'Introduction',
+  tutorial: 'Tutorial',
+  start: 'Get Started',
+  lang: 'Language',
+  roadmap: 'Roadmap',
+  sponsors: 'Sponsors',
+  related: 'Related',
+}
