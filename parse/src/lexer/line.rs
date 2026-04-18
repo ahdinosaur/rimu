@@ -4,7 +4,11 @@
 // - https://github.com/noir-lang/noir/blob/master/crates/noirc_frontend/src/lexer/lexer.rs
 // - https://github.com/DennisPrediger/SLAC/blob/main/src/scanner.rs
 
-use chumsky::{extra, input::{Stream, ValueInput}, prelude::*};
+use chumsky::{
+    extra,
+    input::{Stream, ValueInput},
+    prelude::*,
+};
 use rimu_meta::{SourceId, Span, Spanned};
 use rust_decimal::Decimal;
 use std::str::FromStr;
@@ -97,9 +101,7 @@ where
                 None => int_part,
             },
         )
-        .try_map(|s, span| {
-            Decimal::from_str(&s).map_err(|e| Rich::custom(span, format!("{}", e)))
-        })
+        .try_map(|s, span| Decimal::from_str(&s).map_err(|e| Rich::custom(span, format!("{}", e))))
         .map(Token::Number)
         .labelled("number");
 
@@ -180,10 +182,8 @@ where
         })
         .labelled("identifier");
 
-    let token = choice((
-        number, string, delimiter, control, operator, identifier,
-    ))
-    .recover_with(skip_then_retry_until(any().ignored(), end()));
+    let token = choice((number, string, delimiter, control, operator, identifier))
+        .recover_with(skip_then_retry_until(any().ignored(), end()));
 
     token
         .map_with(|v, e| Spanned::new(v, e.span()))
@@ -197,8 +197,7 @@ fn ident<'src, I>() -> impl Parser<'src, I, String, extra::Err<Rich<'src, char, 
 where
     I: ValueInput<'src, Token = char, Span = Span>,
 {
-    let first = any::<I, _>()
-        .filter(|c: &char| c.is_ascii_alphabetic() || *c == '_' || *c == '$');
+    let first = any::<I, _>().filter(|c: &char| c.is_ascii_alphabetic() || *c == '_' || *c == '$');
     let rest = any::<I, _>()
         .filter(|c: &char| c.is_ascii_alphanumeric() || *c == '_')
         .repeated()
@@ -236,8 +235,7 @@ mod tests {
             .enumerate()
             .map(|(i, c)| (c, Span::new(source.clone(), i, i + 1)))
             .collect();
-        let stream =
-            Stream::from_iter(tokens).map(eoi, |(t, s): (char, Span)| (t, s));
+        let stream = Stream::from_iter(tokens).map(eoi, |(t, s): (char, Span)| (t, s));
         line_parser()
             .parse(stream)
             .into_result()

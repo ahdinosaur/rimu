@@ -49,19 +49,16 @@ where
             .labelled("unary operator");
         let left_unary = op
             .repeated()
-            .foldr(
-                right_unary.labelled("unary right operand"),
-                |op, expr| {
-                    let span = op.span().union(expr.span());
-                    Spanned::new(
-                        Expression::Unary {
-                            operator: op.into_inner(),
-                            right: Box::new(expr),
-                        },
-                        span,
-                    )
-                },
-            )
+            .foldr(right_unary.labelled("unary right operand"), |op, expr| {
+                let span = op.span().union(expr.span());
+                Spanned::new(
+                    Expression::Unary {
+                        operator: op.into_inner(),
+                        right: Box::new(expr),
+                    },
+                    span,
+                )
+            })
             .boxed();
 
         // Next precedence: "factor" operators: "*", "/", "%"
