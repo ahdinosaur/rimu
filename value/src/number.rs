@@ -148,11 +148,7 @@ impl PartialEq for Number {
     }
 }
 
-impl Eq for Number {
-    fn assert_receiver_is_total_eq(&self) {
-        self.0.assert_receiver_is_total_eq()
-    }
-}
+impl Eq for Number {}
 
 impl PartialOrd for Number {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {

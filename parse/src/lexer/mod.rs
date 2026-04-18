@@ -49,7 +49,7 @@ pub(crate) fn tokenize_block(
                 let (line_tokens, line_lexer_errors) =
                     tokenize_spanned_line(spanned_line, source_id.clone());
                 if let Some(line_tokens) = line_tokens {
-                    tokens.extend(line_tokens.into_iter());
+                    tokens.extend(line_tokens);
                 }
                 for line_lexer_error in line_lexer_errors {
                     errors.push(LexerError::Line(line_lexer_error));
