@@ -1,4 +1,4 @@
-use chumsky::{prelude::Simple, Parser};
+use chumsky::{extra, input::ValueInput, prelude::*};
 use rimu_meta::Span;
 
 use crate::token::Token;
@@ -9,10 +9,18 @@ mod expression;
 pub(crate) use block::compile_block;
 pub(crate) use expression::compile_expression;
 
-pub type CompilerError = Simple<Token, Span>;
+pub type CompilerError = Rich<'static, Token, Span>;
 
-pub(crate) trait Compiler<T>:
-    Parser<Token, T, Error = CompilerError> + Sized + Clone
+pub(crate) trait Compiler<'src, I, T>:
+    Parser<'src, I, T, extra::Err<Rich<'src, Token, Span>>> + Clone
+where
+    I: ValueInput<'src, Token = Token, Span = Span>,
 {
 }
-impl<P, T> Compiler<T> for P where P: Parser<Token, T, Error = CompilerError> + Clone {}
+
+impl<'src, I, P, T> Compiler<'src, I, T> for P
+where
+    I: ValueInput<'src, Token = Token, Span = Span>,
+    P: Parser<'src, I, T, extra::Err<Rich<'src, Token, Span>>> + Clone,
+{
+}

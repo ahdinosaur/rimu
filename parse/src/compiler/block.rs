@@ -1,4 +1,4 @@
-use chumsky::prelude::*;
+use chumsky::{extra, input::ValueInput, prelude::*};
 
 use rimu_ast::{Block, SpannedBlock};
 use rimu_meta::{Span, Spanned};
@@ -11,13 +11,18 @@ pub(crate) fn compile_block(
     tokens: Vec<SpannedToken>,
     eoi: Span,
 ) -> (Option<SpannedBlock>, Vec<CompilerError>) {
-    block_parser().parse_recovery(chumsky::Stream::from_iter(
-        eoi,
-        tokens.into_iter().map(|token| token.take()),
-    ))
+    let stream = chumsky::input::Stream::from_iter(tokens.into_iter().map(|t| t.take()))
+        .map(eoi, |(t, s): (Token, Span)| (t, s));
+    let (output, errors) = block_parser().parse(stream).into_output_errors();
+    let errors = errors.into_iter().map(|e| e.into_owned()).collect();
+    (output, errors)
 }
 
-fn block_parser() -> impl Compiler<SpannedBlock> {
+fn block_parser<'src, I>(
+) -> impl Parser<'src, I, SpannedBlock, extra::Err<Rich<'src, Token, Span>>> + Clone
+where
+    I: ValueInput<'src, Token = Token, Span = Span> + 'src,
+{
     recursive(|block| {
         let expr = expression_parser();
         let nested_block = nested_block_parser(block.clone());
@@ -41,7 +46,10 @@ fn block_parser() -> impl Compiler<SpannedBlock> {
     .then_ignore(end())
 }
 
-fn expression_parser<'a>() -> impl Compiler<SpannedBlock> + 'a {
+fn expression_parser<'src, I>() -> impl Compiler<'src, I, SpannedBlock> + 'src
+where
+    I: ValueInput<'src, Token = Token, Span = Span> + 'src,
+{
     expression::expression_parser()
         .map(|expr| {
             let (expr, span) = expr.take();
@@ -52,9 +60,12 @@ fn expression_parser<'a>() -> impl Compiler<SpannedBlock> + 'a {
         .boxed()
 }
 
-fn nested_block_parser<'a>(
-    block: impl Compiler<SpannedBlock> + 'a,
-) -> impl Compiler<SpannedBlock> + 'a {
+fn nested_block_parser<'src, I>(
+    block: impl Compiler<'src, I, SpannedBlock> + 'src,
+) -> impl Compiler<'src, I, SpannedBlock> + 'src
+where
+    I: ValueInput<'src, Token = Token, Span = Span> + 'src,
+{
     just(Token::EndOfLine)
         .ignore_then(just(Token::Indent))
         .ignore_then(block.clone())
@@ -62,31 +73,44 @@ fn nested_block_parser<'a>(
         .boxed()
 }
 
-fn entry_parser<'a>(
-    block: impl Compiler<SpannedBlock> + 'a,
-) -> impl Compiler<(Spanned<String>, SpannedBlock)> + 'a {
+fn entry_parser<'src, I>(
+    block: impl Compiler<'src, I, SpannedBlock> + 'src,
+) -> impl Compiler<'src, I, (Spanned<String>, SpannedBlock)> + 'src
+where
+    I: ValueInput<'src, Token = Token, Span = Span> + 'src,
+{
     let key = select! {
         Token::String(key) => key,
         Token::Identifier(key) => key
     }
-    .map_with_span(Spanned::new)
+    .map_with(|v, e| Spanned::new(v, e.span()))
     .then_ignore(just(Token::Colon));
     let value = block;
     let entry = key.then(value);
     entry.boxed()
 }
 
-fn object_parser<'a>(block: impl Compiler<SpannedBlock> + 'a) -> impl Compiler<SpannedBlock> + 'a {
+fn object_parser<'src, I>(
+    block: impl Compiler<'src, I, SpannedBlock> + 'src,
+) -> impl Compiler<'src, I, SpannedBlock> + 'src
+where
+    I: ValueInput<'src, Token = Token, Span = Span> + 'src,
+{
     let entry = entry_parser(block);
-    let entries = entry.clone().repeated().at_least(1);
+    let entries = entry.clone().repeated().at_least(1).collect::<Vec<_>>();
     let object = entries
         .clone()
         .map(Block::Object)
-        .map_with_span(Spanned::new);
+        .map_with(|v, e| Spanned::new(v, e.span()));
     object.boxed()
 }
 
-fn list_parser<'a>(block: impl Compiler<SpannedBlock> + 'a) -> impl Compiler<SpannedBlock> + 'a {
+fn list_parser<'src, I>(
+    block: impl Compiler<'src, I, SpannedBlock> + 'src,
+) -> impl Compiler<'src, I, SpannedBlock> + 'src
+where
+    I: ValueInput<'src, Token = Token, Span = Span> + 'src,
+{
     let list_item = just(Token::Dash)
         .ignore_then(just(Token::Indent))
         .ignore_then(block)
@@ -95,21 +119,26 @@ fn list_parser<'a>(block: impl Compiler<SpannedBlock> + 'a) -> impl Compiler<Spa
     let list = list_item
         .repeated()
         .at_least(1)
+        .collect::<Vec<_>>()
         .map(Block::List)
-        .map_with_span(Spanned::new);
+        .map_with(|v, e| Spanned::new(v, e.span()));
     list.boxed()
 }
 
-fn function_parser<'a>(
-    block: impl Compiler<SpannedBlock> + 'a,
-) -> impl Compiler<SpannedBlock> + 'a {
+fn function_parser<'src, I>(
+    block: impl Compiler<'src, I, SpannedBlock> + 'src,
+) -> impl Compiler<'src, I, SpannedBlock> + 'src
+where
+    I: ValueInput<'src, Token = Token, Span = Span> + 'src,
+{
     let arg_name = select! {
         Token::Identifier(arg_name) => arg_name
     }
-    .map_with_span(Spanned::new);
+    .map_with(|v, e| Spanned::new(v, e.span()));
     let arg_items = arg_name
         .separated_by(just(Token::Comma))
         .allow_trailing()
+        .collect::<Vec<_>>()
         .boxed();
     let args = arg_items.delimited_by(just(Token::LeftParen), just(Token::RightParen));
     let function = args
@@ -122,12 +151,17 @@ fn function_parser<'a>(
             args,
             body: Box::new(body),
         })
-        .map_with_span(Spanned::new);
+        .map_with(|v, e| Spanned::new(v, e.span()));
 
     function.boxed()
 }
 
-fn call_parser<'a>(block: impl Compiler<SpannedBlock> + 'a) -> impl Compiler<SpannedBlock> + 'a {
+fn call_parser<'src, I>(
+    block: impl Compiler<'src, I, SpannedBlock> + 'src,
+) -> impl Compiler<'src, I, SpannedBlock> + 'src
+where
+    I: ValueInput<'src, Token = Token, Span = Span> + 'src,
+{
     let function = expression::expression_parser();
 
     let call = function
@@ -139,12 +173,17 @@ fn call_parser<'a>(block: impl Compiler<SpannedBlock> + 'a) -> impl Compiler<Spa
             function: Box::new(function),
             args: Box::new(args),
         })
-        .map_with_span(Spanned::new);
+        .map_with(|v, e| Spanned::new(v, e.span()));
 
     call.boxed()
 }
 
-fn if_parser<'a>(block: impl Compiler<SpannedBlock> + 'a) -> impl Compiler<SpannedBlock> + 'a {
+fn if_parser<'src, I>(
+    block: impl Compiler<'src, I, SpannedBlock> + 'src,
+) -> impl Compiler<'src, I, SpannedBlock> + 'src
+where
+    I: ValueInput<'src, Token = Token, Span = Span> + 'src,
+{
     let value = block;
 
     let if_then = just(Token::If)
@@ -180,13 +219,18 @@ fn if_parser<'a>(block: impl Compiler<SpannedBlock> + 'a) -> impl Compiler<Spann
     let if_ = if_then_else
         .or(if_then)
         .or(if_else)
-        .map_with_span(Spanned::new);
+        .map_with(|v, e| Spanned::new(v, e.span()));
     if_.boxed()
 }
 
-fn let_parser<'a>(block: impl Compiler<SpannedBlock> + 'a) -> impl Compiler<SpannedBlock> + 'a {
+fn let_parser<'src, I>(
+    block: impl Compiler<'src, I, SpannedBlock> + 'src,
+) -> impl Compiler<'src, I, SpannedBlock> + 'src
+where
+    I: ValueInput<'src, Token = Token, Span = Span> + 'src,
+{
     let entry = entry_parser(block.clone());
-    let entries = entry.repeated().at_least(1);
+    let entries = entry.repeated().at_least(1).collect::<Vec<_>>();
 
     let value = block.clone();
 
@@ -201,7 +245,7 @@ fn let_parser<'a>(block: impl Compiler<SpannedBlock> + 'a) -> impl Compiler<Span
             variables,
             body: Box::new(body),
         })
-        .map_with_span(Spanned::new);
+        .map_with(|v, e| Spanned::new(v, e.span()));
 
     let_.boxed()
 }
@@ -210,7 +254,7 @@ fn let_parser<'a>(block: impl Compiler<SpannedBlock> + 'a) -> impl Compiler<Span
 mod tests {
     use std::ops::Range;
 
-    use chumsky::Parser;
+    use chumsky::{input::Input, Parser};
     use pretty_assertions::assert_eq;
     use rimu_ast::{Block, Expression};
     use rimu_meta::{SourceId, Span, Spanned};
@@ -227,13 +271,17 @@ mod tests {
         let source = SourceId::empty();
         let len = tokens.len();
         let eoi = Span::new(source.clone(), len, len);
-        block_parser().parse(chumsky::Stream::from_iter(
-            eoi,
+        let stream = chumsky::input::Stream::from_iter(
             tokens
                 .into_iter()
                 .enumerate()
-                .map(|(i, c)| (c, Span::new(source.clone(), i, i + 1))),
-        ))
+                .map(move |(i, t)| (t, Span::new(source.clone(), i, i + 1))),
+        )
+        .map(eoi, |(t, s): (Token, Span)| (t, s));
+        block_parser()
+            .parse(stream)
+            .into_result()
+            .map_err(|errs| errs.into_iter().map(|e| e.into_owned()).collect())
     }
 
     #[test]

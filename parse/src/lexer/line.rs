@@ -1,20 +1,31 @@
 // with help from:
-// - https://github.com/zesterer/chumsky/blob/40fe7d1966f375b3c676d01e04c5dca08f7615ac/examples/nano_rust.rs
+// - https://github.com/zesterer/chumsky/blob/0.12/examples/nano_rust.rs
 // - https://github.com/zesterer/tao/blob/6e7be425ba98cb36582b9c836b3b5b120d13194a/syntax/src/token.rs
 // - https://github.com/noir-lang/noir/blob/master/crates/noirc_frontend/src/lexer/lexer.rs
 // - https://github.com/DennisPrediger/SLAC/blob/main/src/scanner.rs
 
-use chumsky::prelude::*;
+use chumsky::{extra, input::{Stream, ValueInput}, prelude::*};
 use rimu_meta::{SourceId, Span, Spanned};
 use rust_decimal::Decimal;
 use std::str::FromStr;
 
 use crate::token::{SpannedToken, Token};
 
-pub type LineLexerError = Simple<char, Span>;
+pub type LineLexerError = Rich<'static, char, Span>;
 
-pub trait LineLexer<T>: Parser<char, T, Error = LineLexerError> + Sized + Clone {}
-impl<P, T> LineLexer<T> for P where P: Parser<char, T, Error = LineLexerError> + Clone {}
+pub(crate) trait LineLexer<'src, I, T>:
+    Parser<'src, I, T, extra::Err<Rich<'src, char, Span>>> + Clone
+where
+    I: ValueInput<'src, Token = char, Span = Span>,
+{
+}
+
+impl<'src, I, P, T> LineLexer<'src, I, T> for P
+where
+    I: ValueInput<'src, Token = char, Span = Span>,
+    P: Parser<'src, I, T, extra::Err<Rich<'src, char, Span>>> + Clone,
+{
+}
 
 pub(crate) fn tokenize_line(
     code: &str,
@@ -22,12 +33,15 @@ pub(crate) fn tokenize_line(
 ) -> (Option<Vec<SpannedToken>>, Vec<LineLexerError>) {
     let len = code.chars().count();
     let eoi = Span::new(source.clone(), len, len);
-    line_parser().parse_recovery(chumsky::Stream::from_iter(
-        eoi,
-        code.chars()
-            .enumerate()
-            .map(|(i, c)| (c, Span::new(source.clone(), i, i + 1))),
-    ))
+    let tokens: Vec<(char, Span)> = code
+        .chars()
+        .enumerate()
+        .map(|(i, c)| (c, Span::new(source.clone(), i, i + 1)))
+        .collect();
+    let stream = Stream::from_iter(tokens).map(eoi, |(t, s): (char, Span)| (t, s));
+    let (output, errors) = line_parser().parse(stream).into_output_errors();
+    let errors = errors.into_iter().map(|e| e.into_owned()).collect();
+    (output, errors)
 }
 
 pub(crate) fn tokenize_spanned_line(
@@ -36,53 +50,82 @@ pub(crate) fn tokenize_spanned_line(
 ) -> (Option<Vec<SpannedToken>>, Vec<LineLexerError>) {
     let (line, span) = spanned_line.take();
     let eoi = Span::new(source.clone(), span.end(), span.end());
-    line_parser().parse_recovery(chumsky::Stream::from_iter(
-        eoi,
-        line.chars().enumerate().map(|(i, c)| {
+    let tokens: Vec<(char, Span)> = line
+        .chars()
+        .enumerate()
+        .map(|(i, c)| {
             (
                 c,
                 Span::new(source.clone(), span.start() + i, span.start() + i + 1),
             )
-        }),
-    ))
+        })
+        .collect();
+    let stream = Stream::from_iter(tokens).map(eoi, |(t, s): (char, Span)| (t, s));
+    let (output, errors) = line_parser().parse(stream).into_output_errors();
+    let errors = errors.into_iter().map(|e| e.into_owned()).collect();
+    (output, errors)
 }
 
-fn line_parser() -> impl LineLexer<Vec<SpannedToken>> {
-    let null = just("null").to(Token::Null).labelled("null");
+fn line_parser<'src, I>() -> impl LineLexer<'src, I, Vec<SpannedToken>>
+where
+    I: ValueInput<'src, Token = char, Span = Span> + 'src,
+{
+    let digit = any::<I, _>().filter(|c: &char| c.is_ascii_digit());
 
-    let boolean = choice((
-        just("true").to(Token::Boolean(true)),
-        just("false").to(Token::Boolean(false)),
-    ))
-    .labelled("boolean");
+    // Integer part: a single `0`, or a non-zero digit followed by any digits.
+    // Leading zeros are rejected so `0o..`, `0x..`, etc. remain available as future number prefixes.
+    let int = choice((
+        just('0').map(|c: char| c.to_string()),
+        any::<I, _>()
+            .filter(|c: &char| matches!(c, '1'..='9'))
+            .then(digit.repeated().collect::<String>())
+            .map(|(first, rest): (char, String)| {
+                let mut s = String::with_capacity(1 + rest.len());
+                s.push(first);
+                s.push_str(&rest);
+                s
+            }),
+    ));
 
-    let number = text::int(10)
-        .chain::<char, _, _>(just('.').chain(text::digits(10)).or_not().flatten())
-        .collect::<String>()
+    let frac = just('.').ignore_then(digit.repeated().at_least(1).collect::<String>());
+
+    let number = int
+        .then(frac.or_not())
+        .map(
+            |(int_part, frac_part): (String, Option<String>)| match frac_part {
+                Some(frac) => format!("{}.{}", int_part, frac),
+                None => int_part,
+            },
+        )
         .try_map(|s, span| {
-            Decimal::from_str(&s).map_err(|e| Simple::custom(span, format!("{}", e)))
+            Decimal::from_str(&s).map_err(|e| Rich::custom(span, format!("{}", e)))
         })
         .map(Token::Number)
         .labelled("number");
 
     let escape = just('\\')
-        .ignore_then(
-            just('\\')
-                .or(just('/'))
-                .or(just('"'))
-                .or(just('b').to('\x08'))
-                .or(just('f').to('\x0C'))
-                .or(just('n').to('\n'))
-                .or(just('r').to('\r'))
-                .or(just('t').to('\t')),
-        )
+        .ignore_then(choice((
+            just('\\'),
+            just('/'),
+            just('"'),
+            just('b').to('\x08'),
+            just('f').to('\x0C'),
+            just('n').to('\n'),
+            just('r').to('\r'),
+            just('t').to('\t'),
+        )))
         .labelled("escape");
 
     // TODO parse string interpolations
     let string = just('"')
-        .ignore_then(filter(|c| *c != '\\' && *c != '"').or(escape).repeated())
+        .ignore_then(
+            any::<I, _>()
+                .filter(|c: &char| *c != '\\' && *c != '"')
+                .or(escape)
+                .repeated()
+                .collect::<String>(),
+        )
         .then_ignore(just('"'))
-        .collect::<String>()
         .map(Token::String)
         .labelled("string");
 
@@ -105,26 +148,29 @@ fn line_parser() -> impl LineLexer<Vec<SpannedToken>> {
     .labelled("control");
 
     let operator = choice((
-        just('+').to(Token::Plus),
-        just('-').to(Token::Dash),
-        just('*').to(Token::Star),
-        just('/').to(Token::Slash),
-        just('>').to(Token::Greater),
         just(">=").to(Token::GreaterEqual),
-        just('<').to(Token::Less),
         just("<=").to(Token::LessEqual),
         just("==").to(Token::Equal),
         just("!=").to(Token::NotEqual),
         just("&&").to(Token::And),
         just("||").to(Token::Or),
-        just("^").to(Token::Xor),
-        just("!").to(Token::Not),
-        just("%").to(Token::Rem),
+        just('+').to(Token::Plus),
+        just('-').to(Token::Dash),
+        just('*').to(Token::Star),
+        just('/').to(Token::Slash),
+        just('>').to(Token::Greater),
+        just('<').to(Token::Less),
+        just('^').to(Token::Xor),
+        just('!').to(Token::Not),
+        just('%').to(Token::Rem),
     ))
     .labelled("operator");
 
-    let identifier = ident()
+    let identifier = ident::<I>()
         .map(|ident: String| match ident.as_str() {
+            "null" => Token::Null,
+            "true" => Token::Boolean(true),
+            "false" => Token::Boolean(false),
             "if" => Token::If,
             "then" => Token::Then,
             "else" => Token::Else,
@@ -135,30 +181,39 @@ fn line_parser() -> impl LineLexer<Vec<SpannedToken>> {
         .labelled("identifier");
 
     let token = choice((
-        null, boolean, number, string, delimiter, control, operator, identifier,
+        number, string, delimiter, control, operator, identifier,
     ))
-    .recover_with(skip_then_retry_until([]));
+    .recover_with(skip_then_retry_until(any().ignored(), end()));
 
     token
-        .map_with_span(Spanned::new)
+        .map_with(|v, e| Spanned::new(v, e.span()))
         .padded()
         .repeated()
+        .collect::<Vec<_>>()
         .then_ignore(end())
 }
 
-pub fn ident<C: text::Character, E: chumsky::Error<C>>(
-) -> impl Parser<C, C::Collection, Error = E> + Copy {
-    filter(|c: &C| c.to_char().is_ascii_alphabetic() || c.to_char() == '_' || c.to_char() == '$')
-        .map(Some)
-        .chain::<C, Vec<_>, _>(
-            filter(|c: &C| c.to_char().is_ascii_alphanumeric() || c.to_char() == '_').repeated(),
-        )
-        .collect()
+fn ident<'src, I>() -> impl Parser<'src, I, String, extra::Err<Rich<'src, char, Span>>> + Clone
+where
+    I: ValueInput<'src, Token = char, Span = Span>,
+{
+    let first = any::<I, _>()
+        .filter(|c: &char| c.is_ascii_alphabetic() || *c == '_' || *c == '$');
+    let rest = any::<I, _>()
+        .filter(|c: &char| c.is_ascii_alphanumeric() || *c == '_')
+        .repeated()
+        .collect::<String>();
+    first.then(rest).map(|(f, r): (char, String)| {
+        let mut s = String::with_capacity(1 + r.len());
+        s.push(f);
+        s.push_str(&r);
+        s
+    })
 }
 
 #[cfg(test)]
 mod tests {
-    use chumsky::Parser;
+    use chumsky::{input::Stream, prelude::*};
     use pretty_assertions::assert_eq;
     use rimu_meta::{SourceId, Span, Spanned};
     use rust_decimal::{prelude::FromPrimitive, Decimal};
@@ -176,12 +231,17 @@ mod tests {
         let source = SourceId::empty();
         let len = code.chars().count();
         let eoi = Span::new(source.clone(), len, len);
-        line_parser().parse(chumsky::Stream::from_iter(
-            eoi,
-            code.chars()
-                .enumerate()
-                .map(|(i, c)| (c, Span::new(source.clone(), i, i + 1))),
-        ))
+        let tokens: Vec<(char, Span)> = code
+            .chars()
+            .enumerate()
+            .map(|(i, c)| (c, Span::new(source.clone(), i, i + 1)))
+            .collect();
+        let stream =
+            Stream::from_iter(tokens).map(eoi, |(t, s): (char, Span)| (t, s));
+        line_parser()
+            .parse(stream)
+            .into_result()
+            .map_err(|errs| errs.into_iter().map(|e| e.into_owned()).collect())
     }
 
     #[test]
@@ -325,18 +385,6 @@ mod tests {
         // test_number(".3", 0.3);
     }
 
-    /*
-    fn assert_errors(actual: Result<Vec<(Token, Span)>, Vec<Error>>, expected: Vec<String>) {
-        assert!(actual.is_err());
-        let errors = actual.unwrap_err();
-        for index in 0..expected.len() {
-            let actual_msg = &errors[index].to_string();
-            let expected_msg = &expected[index];
-            assert_eq!(actual_msg, expected_msg);
-        }
-    }
-    */
-
     #[test]
     fn err_unknown_token_1() {
         let actual = test("^&#");
@@ -348,9 +396,6 @@ mod tests {
     fn err_unterminated_string() {
         let actual = test("\"hello\" + \"world");
 
-        // let expected_errs = vec!["found end of input but expected one of \"\\\\\", \"\\\"\"".into()];
-
         assert!(actual.is_err());
-        // assert_errors(actual, expected_errs);
     }
 }

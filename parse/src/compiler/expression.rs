@@ -1,11 +1,11 @@
 // with help from
 //
-// - https://github.com/zesterer/chumsky/blob/40fe7d1966f375b3c676d01e04c5dca08f7615ac/examples/nano_rust.rs
+// - https://github.com/zesterer/chumsky/blob/0.12/examples/nano_rust.rs
 // - https://github.com/zesterer/tao/blob/6e7be425ba98cb36582b9c836b3b5b120d13194a/syntax/src/parse.rs
 // - https://github.com/noir-lang/noir/blob/master/crates/noirc_frontend/src/parser/parser.rs
 // - https://github.com/DennisPrediger/SLAC/blob/main/src/compiler.rs
 
-use chumsky::prelude::*;
+use chumsky::{extra, input::ValueInput, prelude::*};
 use rimu_ast::{BinaryOperator, Expression, SpannedExpression, UnaryOperator};
 use rimu_meta::{Span, Spanned};
 
@@ -20,13 +20,18 @@ pub(crate) fn compile_expression(
     tokens: Vec<SpannedToken>,
     eoi: Span,
 ) -> (Option<SpannedExpression>, Vec<CompilerError>) {
-    expression_parser().parse_recovery(chumsky::Stream::from_iter(
-        eoi,
-        tokens.into_iter().map(|token| token.take()),
-    ))
+    let stream = chumsky::input::Stream::from_iter(tokens.into_iter().map(|t| t.take()))
+        .map(eoi, |(t, s): (Token, Span)| (t, s));
+    let (output, errors) = expression_parser().parse(stream).into_output_errors();
+    let errors = errors.into_iter().map(|e| e.into_owned()).collect();
+    (output, errors)
 }
 
-pub(crate) fn expression_parser() -> impl Compiler<SpannedExpression> {
+pub(crate) fn expression_parser<'src, I>(
+) -> impl Parser<'src, I, SpannedExpression, extra::Err<Rich<'src, Token, Span>>> + Clone
+where
+    I: ValueInput<'src, Token = Token, Span = Span> + 'src,
+{
     recursive(|expr| {
         // Begin precedence order:
 
@@ -40,22 +45,23 @@ pub(crate) fn expression_parser() -> impl Compiler<SpannedExpression> {
         let op = just(Token::Dash)
             .to(UnaryOperator::Negate)
             .or(just(Token::Not).to(UnaryOperator::Not))
-            .map_with_span(Spanned::new)
+            .map_with(|v, e| Spanned::new(v, e.span()))
             .labelled("unary operator");
         let left_unary = op
             .repeated()
-            .then(right_unary.labelled("unary right operand"))
-            .clone()
-            .foldr(|op, expr| {
-                let span = op.span().union(expr.span());
-                Spanned::new(
-                    Expression::Unary {
-                        operator: op.into_inner(),
-                        right: Box::new(expr),
-                    },
-                    span,
-                )
-            })
+            .foldr(
+                right_unary.labelled("unary right operand"),
+                |op, expr| {
+                    let span = op.span().union(expr.span());
+                    Spanned::new(
+                        Expression::Unary {
+                            operator: op.into_inner(),
+                            right: Box::new(expr),
+                        },
+                        span,
+                    )
+                },
+            )
             .boxed();
 
         // Next precedence: "factor" operators: "*", "/", "%"
@@ -112,9 +118,12 @@ pub(crate) fn expression_parser() -> impl Compiler<SpannedExpression> {
     // .then_ignore(just(Token::EndOfLine).to(()).or(end()))
 }
 
-fn atom_parser<'a>(
-    expr: impl Compiler<SpannedExpression> + 'a,
-) -> impl Compiler<SpannedExpression> + 'a {
+fn atom_parser<'src, I>(
+    expr: impl Compiler<'src, I, SpannedExpression> + 'src,
+) -> impl Compiler<'src, I, SpannedExpression> + 'src
+where
+    I: ValueInput<'src, Token = Token, Span = Span> + 'src,
+{
     let scalar = scalar_parser();
     let identifier = identifier_parser();
     let list = list_parser(expr.clone());
@@ -134,11 +143,14 @@ fn atom_parser<'a>(
         .or(object)
         .or(function)
         .or(nested_expr)
-        .map_with_span(Spanned::new)
+        .map_with(|v, e| Spanned::new(v, e.span()))
         .boxed()
 }
 
-fn scalar_parser() -> impl Compiler<Expression> {
+fn scalar_parser<'src, I>() -> impl Compiler<'src, I, Expression>
+where
+    I: ValueInput<'src, Token = Token, Span = Span> + 'src,
+{
     select! {
         Token::Null => Expression::Null,
         Token::Boolean(x) => Expression::Boolean(x),
@@ -148,20 +160,27 @@ fn scalar_parser() -> impl Compiler<Expression> {
     .labelled("scalar")
 }
 
-fn identifier_parser() -> impl Compiler<Expression> {
+fn identifier_parser<'src, I>() -> impl Compiler<'src, I, Expression>
+where
+    I: ValueInput<'src, Token = Token, Span = Span> + 'src,
+{
     select! { Token::Identifier(identifier) => Expression::Identifier(identifier) }
         .labelled("identifier")
 }
 
-fn nested_parser<'a, T: 'a>(
-    parser: impl Compiler<T> + 'a,
+fn nested_parser<'src, I, T>(
+    parser: impl Compiler<'src, I, T> + 'src,
     open: Token,
     close: Token,
-    f: impl Fn(Span) -> T + Clone + 'a,
-) -> impl Compiler<T> + 'a {
+    f: impl Fn(Span) -> T + Clone + 'src,
+) -> impl Compiler<'src, I, T> + 'src
+where
+    I: ValueInput<'src, Token = Token, Span = Span> + 'src,
+    T: 'src,
+{
     parser
         .delimited_by(just(open.clone()), just(close.clone()))
-        .recover_with(nested_delimiters(
+        .recover_with(via_parser(nested_delimiters(
             open.clone(),
             close.clone(),
             [
@@ -170,20 +189,29 @@ fn nested_parser<'a, T: 'a>(
                 (Token::LeftBrace, Token::RightBrace),
             ],
             f,
-        ))
+        )))
         .boxed()
 }
 
-fn items_parser<'a>(
-    expr: impl Compiler<SpannedExpression> + 'a,
-) -> impl Compiler<Option<Vec<SpannedExpression>>> + 'a {
+fn items_parser<'src, I>(
+    expr: impl Compiler<'src, I, SpannedExpression> + 'src,
+) -> impl Compiler<'src, I, Option<Vec<SpannedExpression>>> + 'src
+where
+    I: ValueInput<'src, Token = Token, Span = Span> + 'src,
+{
     expr.separated_by(just(Token::Comma))
         .allow_trailing()
+        .collect::<Vec<_>>()
         .map(Some)
         .boxed()
 }
 
-fn list_parser<'a>(expr: impl Compiler<SpannedExpression> + 'a) -> impl Compiler<Expression> + 'a {
+fn list_parser<'src, I>(
+    expr: impl Compiler<'src, I, SpannedExpression> + 'src,
+) -> impl Compiler<'src, I, Expression> + 'src
+where
+    I: ValueInput<'src, Token = Token, Span = Span> + 'src,
+{
     let items = items_parser(expr);
     nested_parser(items, Token::LeftBrack, Token::RightBrack, |_| None)
         .map(|x| match x {
@@ -193,15 +221,18 @@ fn list_parser<'a>(expr: impl Compiler<SpannedExpression> + 'a) -> impl Compiler
         .labelled("list")
 }
 
-fn object_parser<'a>(
-    expr: impl Compiler<SpannedExpression> + 'a,
-) -> impl Compiler<Expression> + 'a {
+fn object_parser<'src, I>(
+    expr: impl Compiler<'src, I, SpannedExpression> + 'src,
+) -> impl Compiler<'src, I, Expression> + 'src
+where
+    I: ValueInput<'src, Token = Token, Span = Span> + 'src,
+{
     nested_parser(
         select! {
             Token::Identifier(key) => key,
             Token::String(key) => key
         }
-        .map_with_span(Spanned::new)
+        .map_with(|v, e| Spanned::new(v, e.span()))
         .then(just(Token::Colon).ignore_then(expr.clone().or_not()))
         .map(|(key, value)| match value {
             Some(value) => (key, value),
@@ -213,6 +244,7 @@ fn object_parser<'a>(
         })
         .separated_by(just(Token::Comma))
         .allow_trailing()
+        .collect::<Vec<_>>()
         .map(Some)
         .boxed(),
         Token::LeftBrace,
@@ -223,16 +255,20 @@ fn object_parser<'a>(
     .labelled("object")
 }
 
-pub(crate) fn function_parser<'a>(
-    expr: impl Compiler<SpannedExpression> + 'a,
-) -> impl Compiler<Expression> + 'a {
+pub(crate) fn function_parser<'src, I>(
+    expr: impl Compiler<'src, I, SpannedExpression> + 'src,
+) -> impl Compiler<'src, I, Expression> + 'src
+where
+    I: ValueInput<'src, Token = Token, Span = Span> + 'src,
+{
     let arg_name = select! {
         Token::Identifier(arg_name) => arg_name
     }
-    .map_with_span(Spanned::new);
+    .map_with(|v, e| Spanned::new(v, e.span()));
     let arg_items = arg_name
         .separated_by(just(Token::Comma))
         .allow_trailing()
+        .collect::<Vec<_>>()
         .boxed();
     let args = arg_items.delimited_by(just(Token::LeftParen), just(Token::RightParen));
     let arrow = just(Token::FatArrow);
@@ -247,10 +283,13 @@ pub(crate) fn function_parser<'a>(
         .boxed()
 }
 
-fn right_unary_parser<'a>(
-    expr: impl Compiler<SpannedExpression> + 'a,
-    atom: impl Compiler<SpannedExpression> + 'a,
-) -> impl Compiler<SpannedExpression> + 'a {
+fn right_unary_parser<'src, I>(
+    expr: impl Compiler<'src, I, SpannedExpression> + 'src,
+    atom: impl Compiler<'src, I, SpannedExpression> + 'src,
+) -> impl Compiler<'src, I, SpannedExpression> + 'src
+where
+    I: ValueInput<'src, Token = Token, Span = Span> + 'src,
+{
     let items = items_parser(expr.clone());
     #[derive(Clone)]
     enum RightUnary {
@@ -268,7 +307,7 @@ fn right_unary_parser<'a>(
         .delimited_by(just(Token::LeftBrack), just(Token::RightBrack))
         .map(RightUnary::GetIndex);
     let get_key = just(Token::Dot)
-        .then(select! { Token::Identifier(key) => key }.map_with_span(Spanned::new))
+        .then(select! { Token::Identifier(key) => key }.map_with(|v, e| Spanned::new(v, e.span())))
         .map(|(_, key)| RightUnary::GetKey(key));
     let get_slice = expr
         .clone()
@@ -278,61 +317,66 @@ fn right_unary_parser<'a>(
         .delimited_by(just(Token::LeftBrack), just(Token::RightBrack))
         .map(|((start, _), end)| RightUnary::GetSlice(start, end));
 
-    atom.then(
+    atom.foldl(
         call.or(get_index)
             .or(get_key)
             .or(get_slice)
-            .map_with_span(Spanned::new)
+            .map_with(|v, e| Spanned::new(v, e.span()))
             .repeated(),
+        |left, right| {
+            let span = left.span().union(right.span());
+            let expr = match right.into_inner() {
+                RightUnary::Call(args) => Expression::Call {
+                    function: Box::new(left),
+                    args,
+                },
+                RightUnary::GetIndex(index) => Expression::GetIndex {
+                    container: Box::new(left),
+                    index: Box::new(index),
+                },
+                RightUnary::GetKey(key) => Expression::GetKey {
+                    container: Box::new(left),
+                    key,
+                },
+                RightUnary::GetSlice(start, end) => Expression::GetSlice {
+                    container: Box::new(left),
+                    start: start.map(Box::new),
+                    end: end.map(Box::new),
+                },
+            };
+            Spanned::new(expr, span)
+        },
     )
-    .foldl(|left, right| {
-        let span = left.span().union(right.span());
-        let expr = match right.into_inner() {
-            RightUnary::Call(args) => Expression::Call {
-                function: Box::new(left),
-                args,
-            },
-            RightUnary::GetIndex(index) => Expression::GetIndex {
-                container: Box::new(left),
-                index: Box::new(index),
-            },
-            RightUnary::GetKey(key) => Expression::GetKey {
-                container: Box::new(left),
-                key,
-            },
-            RightUnary::GetSlice(start, end) => Expression::GetSlice {
-                container: Box::new(left),
-                start: start.map(Box::new),
-                end: end.map(Box::new),
-            },
-        };
-        Spanned::new(expr, span)
-    })
     .boxed()
 }
 
-fn binary_operator_parser<'a>(
-    prev: impl Compiler<SpannedExpression> + 'a,
-    op: impl Compiler<BinaryOperator> + 'a,
-) -> impl Compiler<SpannedExpression> + 'a {
+fn binary_operator_parser<'src, I>(
+    prev: impl Compiler<'src, I, SpannedExpression> + 'src,
+    op: impl Compiler<'src, I, BinaryOperator> + 'src,
+) -> impl Compiler<'src, I, SpannedExpression> + 'src
+where
+    I: ValueInput<'src, Token = Token, Span = Span> + 'src,
+{
     prev.clone()
         .labelled("left operand")
-        .then(op.then(prev.clone().labelled("right operand")).repeated())
-        .foldl(|left, (op, right)| {
-            let span = left.span().union(right.span());
-            let expr = Expression::Binary {
-                left: Box::new(left),
-                operator: op,
-                right: Box::new(right),
-            };
-            Spanned::new(expr, span)
-        })
+        .foldl(
+            op.then(prev.labelled("right operand")).repeated(),
+            |left, (op, right)| {
+                let span = left.span().union(right.span());
+                let expr = Expression::Binary {
+                    left: Box::new(left),
+                    operator: op,
+                    right: Box::new(right),
+                };
+                Spanned::new(expr, span)
+            },
+        )
         .boxed()
 }
 
 #[cfg(test)]
 mod tests {
-    use chumsky::Parser;
+    use chumsky::{input::Input, Parser};
     use pretty_assertions::assert_eq;
     use rimu_ast::{BinaryOperator, Expression, SpannedExpression, UnaryOperator};
     use rimu_meta::{SourceId, Span, Spanned};
@@ -351,13 +395,17 @@ mod tests {
         let source = SourceId::empty();
         let len = tokens.len();
         let eoi = Span::new(source.clone(), len, len);
-        expression_parser().parse(chumsky::Stream::from_iter(
-            eoi,
+        let stream = chumsky::input::Stream::from_iter(
             tokens
                 .into_iter()
                 .enumerate()
-                .map(|(i, c)| (c, Span::new(source.clone(), i, i + 1))),
-        ))
+                .map(move |(i, t)| (t, Span::new(source.clone(), i, i + 1))),
+        )
+        .map(eoi, |(t, s): (Token, Span)| (t, s));
+        expression_parser()
+            .parse(stream)
+            .into_result()
+            .map_err(|errs| errs.into_iter().map(|e| e.into_owned()).collect())
     }
 
     #[test]
