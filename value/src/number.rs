@@ -63,6 +63,24 @@ impl<'de> Deserialize<'de> for Number {
     }
 }
 
+fn visit_number<'de, V>(number: &Decimal, visitor: V) -> Result<V::Value, SerdeValueError>
+where
+    V: Visitor<'de>,
+{
+    if number.fract().is_zero() {
+        if let Some(u) = number.to_u64() {
+            return visitor.visit_u64(u);
+        }
+        if let Some(i) = number.to_i64() {
+            return visitor.visit_i64(i);
+        }
+    }
+    let Some(f) = number.to_f64() else {
+        return Err(SerdeValueError::NumberOutOfRange);
+    };
+    visitor.visit_f64(f)
+}
+
 impl<'de> Deserializer<'de> for Number {
     type Error = SerdeValueError;
 
@@ -71,10 +89,7 @@ impl<'de> Deserializer<'de> for Number {
     where
         V: Visitor<'de>,
     {
-        let Some(f) = self.0.to_f64() else {
-            return Err(SerdeValueError::NumberOutOfRange);
-        };
-        visitor.visit_f64(f)
+        visit_number(&self.0, visitor)
     }
 
     forward_to_deserialize_any! {
@@ -92,10 +107,7 @@ impl<'de> Deserializer<'de> for &Number {
     where
         V: Visitor<'de>,
     {
-        let Some(f) = self.0.to_f64() else {
-            return Err(SerdeValueError::NumberOutOfRange);
-        };
-        visitor.visit_f64(f)
+        visit_number(&self.0, visitor)
     }
 
     forward_to_deserialize_any! {
@@ -213,5 +225,40 @@ impl Rem for Number {
 
     fn rem(self, rhs: Self) -> Self::Output {
         self.0.rem(rhs.0).into()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Number;
+    use rust_decimal_macros::dec;
+    use serde::Deserialize;
+
+    #[test]
+    fn integer_decimal_deserializes_into_u32() {
+        let n: Number = dec!(420).into();
+        let value: u32 = u32::deserialize(n).unwrap();
+        assert_eq!(value, 420);
+    }
+
+    #[test]
+    fn integer_decimal_deserializes_into_i32() {
+        let n: Number = dec!(-420).into();
+        let value: i32 = i32::deserialize(n).unwrap();
+        assert_eq!(value, -420);
+    }
+
+    #[test]
+    fn fractional_decimal_deserializes_into_f64() {
+        let n: Number = dec!(4.2).into();
+        let value: f64 = f64::deserialize(n).unwrap();
+        assert_eq!(value, 4.2);
+    }
+
+    #[test]
+    fn integer_decimal_deserializes_into_f64() {
+        let n: Number = dec!(420).into();
+        let value: f64 = f64::deserialize(n).unwrap();
+        assert_eq!(value, 420.0);
     }
 }
