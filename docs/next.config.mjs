@@ -31,8 +31,9 @@ function highlight(code, lang) {
   const tree = parser.parse(code)
   const element = fromLezer(code, tree)
   const html = toHtml(element)
-  return html
-    .split('\n')
+  const lines = html.split('\n')
+  if (lines.length > 0 && lines[lines.length - 1] === '') lines.pop()
+  return lines
     .map((line) => {
       if (line.length == 0) line = ' '
       return `<span class="line">${line}</span>`
