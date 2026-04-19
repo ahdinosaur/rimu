@@ -2,6 +2,17 @@
 
 Rimu is structured as blocks similar to [Yaml](https://yaml.org/), with some important differences.
 
+## Comments
+
+Anything from `#` to the end of a line is a comment and is ignored by the parser. Comments may appear on their own line or trail other content on the same line.
+
+```rimu
+# this whole line is a comment
+mikey:
+  # comments may also be indented
+  name: "Mikey" # trailing comments are ok too
+```
+
 ## Expressions
 
 Unlike Yaml, scalars (values) are [Rimu expressions](./expressions).

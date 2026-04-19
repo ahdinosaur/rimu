@@ -85,6 +85,11 @@ impl<'src> LinesLexer<'src> {
                 continue;
             };
 
+            // Skip full-line comments without affecting indentation tracking.
+            if rest.inner().starts_with('#') {
+                continue;
+            }
+
             let dents = self.get_dents(space.clone())?;
             tokens.extend(dents);
 
@@ -373,6 +378,29 @@ j: k
             Spanned::new(LinesToken::Dedent, span(40..40)),
             Spanned::new(LinesToken::Line("j: k"), span(40..44)),
             Spanned::new(LinesToken::EndOfLine, span(44..45)),
+        ]);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn full_line_comments_skipped() {
+        let actual = test(
+            "
+# top-level comment
+a:
+  # nested comment
+  b: c
+",
+        );
+
+        let expected = Ok(vec![
+            Spanned::new(LinesToken::Line("a:"), span(21..23)),
+            Spanned::new(LinesToken::EndOfLine, span(23..24)),
+            Spanned::new(LinesToken::Indent, span(43..45)),
+            Spanned::new(LinesToken::Line("b: c"), span(45..49)),
+            Spanned::new(LinesToken::EndOfLine, span(49..50)),
+            Spanned::new(LinesToken::Dedent, span(50..50)),
         ]);
 
         assert_eq!(actual, expected);

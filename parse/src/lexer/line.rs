@@ -185,11 +185,26 @@ where
     let token = choice((number, string, delimiter, control, operator, identifier))
         .recover_with(skip_then_retry_until(any().ignored(), end()));
 
+    let padding = || {
+        let inline_whitespace = any::<I, _>()
+            .filter(|c: &char| c.is_whitespace())
+            .ignored();
+        let comment = just('#')
+            .ignore_then(
+                any::<I, _>()
+                    .filter(|c: &char| *c != '\n' && *c != '\r')
+                    .repeated(),
+            )
+            .ignored();
+        choice((inline_whitespace, comment)).repeated().ignored()
+    };
+
     token
         .map_with(|v, e| Spanned::new(v, e.span()))
-        .padded()
+        .padded_by(padding())
         .repeated()
         .collect::<Vec<_>>()
+        .then_ignore(padding())
         .then_ignore(end())
 }
 
@@ -385,7 +400,7 @@ mod tests {
 
     #[test]
     fn err_unknown_token_1() {
-        let actual = test("^&#");
+        let actual = test("^&");
 
         assert!(actual.is_err());
     }
@@ -395,5 +410,36 @@ mod tests {
         let actual = test("\"hello\" + \"world");
 
         assert!(actual.is_err());
+    }
+
+    #[test]
+    fn comment_only() {
+        let actual = test("# just a comment");
+
+        let expected = Ok(vec![]);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn comment_after_tokens() {
+        let actual = test("1 + 1 # add one and one");
+
+        let expected = Ok(vec![
+            Spanned::new(Token::Number(Decimal::from_u8(1).unwrap()), span(0..1)),
+            Spanned::new(Token::Plus, span(2..3)),
+            Spanned::new(Token::Number(Decimal::from_u8(1).unwrap()), span(4..5)),
+        ]);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn comment_before_tokens() {
+        let actual = test("# leading comment");
+
+        let expected = Ok(vec![]);
+
+        assert_eq!(actual, expected);
     }
 }
