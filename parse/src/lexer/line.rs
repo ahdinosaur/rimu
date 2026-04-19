@@ -75,6 +75,7 @@ where
     I: ValueInput<'src, Token = char, Span = Span> + 'src,
 {
     let digit = any::<I, _>().filter(|c: &char| c.is_ascii_digit());
+    let octal_digit = any::<I, _>().filter(|c: &char| matches!(c, '0'..='7'));
 
     // Integer part: a single `0`, or a non-zero digit followed by any digits.
     // Leading zeros are rejected so `0o..`, `0x..`, etc. remain available as future number prefixes.
@@ -93,7 +94,15 @@ where
 
     let frac = just('.').ignore_then(digit.repeated().at_least(1).collect::<String>());
 
-    let number = int
+    let octal = just("0o")
+        .ignore_then(octal_digit.repeated().at_least(1).collect::<String>())
+        .try_map(|s: String, span| {
+            u64::from_str_radix(&s, 8)
+                .map(Decimal::from)
+                .map_err(|e| Rich::custom(span, format!("{}", e)))
+        });
+
+    let decimal = int
         .then(frac.or_not())
         .map(
             |(int_part, frac_part): (String, Option<String>)| match frac_part {
@@ -101,9 +110,9 @@ where
                 None => int_part,
             },
         )
-        .try_map(|s, span| Decimal::from_str(&s).map_err(|e| Rich::custom(span, format!("{}", e))))
-        .map(Token::Number)
-        .labelled("number");
+        .try_map(|s, span| Decimal::from_str(&s).map_err(|e| Rich::custom(span, format!("{}", e))));
+
+    let number = choice((octal, decimal)).map(Token::Number).labelled("number");
 
     let escape = just('\\')
         .ignore_then(choice((
@@ -381,6 +390,70 @@ mod tests {
         test_number("20.4", 20.4);
         // test_number("30.", 30.0);
         // test_number(".3", 0.3);
+    }
+
+    #[test]
+    fn simple_octal() {
+        let actual = test("0o755");
+
+        let expected = Ok(vec![Spanned::new(
+            Token::Number(Decimal::from_u32(0o755).unwrap()),
+            span(0..5),
+        )]);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn octal_zero() {
+        let actual = test("0o0");
+
+        let expected = Ok(vec![Spanned::new(
+            Token::Number(Decimal::from_u32(0).unwrap()),
+            span(0..3),
+        )]);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn octal_in_expression() {
+        let actual = test("0o10 + 0o2");
+
+        let expected = Ok(vec![
+            Spanned::new(Token::Number(Decimal::from_u32(0o10).unwrap()), span(0..4)),
+            Spanned::new(Token::Plus, span(5..6)),
+            Spanned::new(Token::Number(Decimal::from_u32(0o2).unwrap()), span(7..10)),
+        ]);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn err_octal_invalid_digit() {
+        let actual = test("0o8");
+
+        // `8` is not a valid octal digit, so `0o8` must not tokenize as a
+        // single octal number with value 0o10.
+        let ok_as_octal = Ok(vec![Spanned::new(
+            Token::Number(Decimal::from_u32(0o10).unwrap()),
+            span(0..3),
+        )]);
+        assert_ne!(actual, ok_as_octal);
+    }
+
+    #[test]
+    fn err_octal_no_digits() {
+        let actual = test("0o");
+
+        // `0o` with no following octal digits must not produce a number token
+        // worth `0` spanning the whole `0o` — the `o` should not be silently
+        // swallowed into the number.
+        let ok_as_zero_over_full_span = Ok(vec![Spanned::new(
+            Token::Number(Decimal::from_u32(0).unwrap()),
+            span(0..2),
+        )]);
+        assert_ne!(actual, ok_as_zero_over_full_span);
     }
 
     #[test]
