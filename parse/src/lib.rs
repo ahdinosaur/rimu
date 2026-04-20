@@ -179,4 +179,53 @@ a:
         assert_eq!(actual_block, expected_block);
         assert_eq!(errors.len(), 0);
     }
+
+    #[test]
+    fn block_with_comments() {
+        let (actual_block, errors) = test_block(
+            "
+# greet the world
+a:
+  # nested comment
+  b: c # trailing comment
+",
+        );
+
+        let expected_block = Some(Spanned::new(
+            Block::Object(vec![(
+                Spanned::new("a".into(), span(19..20)),
+                Spanned::new(
+                    Block::Object(vec![(
+                        Spanned::new("b".into(), span(43..44)),
+                        Spanned::new(
+                            Block::Expression(Expression::Identifier("c".into())),
+                            span(46..47),
+                        ),
+                    )]),
+                    span(43..67),
+                ),
+            )]),
+            span(19..67),
+        ));
+
+        assert_eq!(actual_block, expected_block);
+        assert_eq!(errors.len(), 0);
+    }
+
+    #[test]
+    fn expr_with_comment() {
+        let (actual_expr, errors) = test_expression("x + y # add them");
+
+        let expected_expr = Some(Spanned::new(
+            Expression::Binary {
+                left: Box::new(Spanned::new(Expression::Identifier("x".into()), span(0..1))),
+                right: Box::new(Spanned::new(Expression::Identifier("y".into()), span(4..5))),
+                operator: BinaryOperator::Add,
+            },
+            span(0..5),
+        ));
+
+        assert_eq!(actual_expr, expected_expr);
+        assert_eq!(errors.len(), 0);
+    }
 }
