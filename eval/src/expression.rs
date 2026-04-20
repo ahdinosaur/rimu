@@ -113,21 +113,21 @@ impl Evaluator {
         operator: &UnaryOperator,
     ) -> Result<SpannedValue> {
         let (right, right_span) = self.expression(right)?.take();
-        let (unwrapped, tag_meta) = match right {
+        let (right, tag_meta) = match right {
             Value::Tagged { tag, inner, meta } => (inner.into_inner(), Some((tag, meta))),
             other => (other, None),
         };
         let value = match operator {
-            UnaryOperator::Negate => match unwrapped.clone() {
+            UnaryOperator::Negate => match right.clone() {
                 Value::Number(number) => Ok(Value::Number(-number)),
                 _ => Err(EvalError::TypeError {
                     span: right_span,
                     expected: "number".into(),
-                    got: Box::new(unwrapped.into()),
+                    got: Box::new(right.into()),
                 }),
             },
             UnaryOperator::Not => {
-                let boolean: bool = unwrapped.into();
+                let boolean: bool = right.into();
                 Ok(Value::Boolean(!boolean))
             }
         }?;
