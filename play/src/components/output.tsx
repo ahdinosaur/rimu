@@ -20,7 +20,7 @@ export function Output(props: OutputProps) {
   return (
     <Flex height={height} flexDirection="column" width="100%">
       <FormatSelect format={format} setFormat={setFormat} />
-      <Code width="100%" flexGrow={1} bg="ctp.mantle">
+      <Code display="block" width="100%" flexGrow={1} bg="ctp.mantle">
         <pre>{output}</pre>
       </Code>
     </Flex>

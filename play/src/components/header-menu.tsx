@@ -236,7 +236,7 @@ function ColorModeSwitch() {
       fontSize="lg"
       aria-label={`Switch to ${text} mode`}
       variant="ghost"
-      color="current"
+      color="ctp.text"
       onClick={toggleColorMode}
     >
       <Icon>{switchIcon}</Icon>
