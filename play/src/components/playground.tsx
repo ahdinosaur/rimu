@@ -35,7 +35,7 @@ export function Playground() {
   })
 
   const headerHeight = '2.5rem'
-  const bodyHeight = `calc(100dvh - ${headerHeight} - var(--chakra-sizes-8))`
+  const bodyHeight = `calc(100dvh - ${headerHeight} - var(--chakra-sizes-9))`
 
   const isMobile = useBreakpointValue({ base: true, md: false })
 
@@ -77,7 +77,7 @@ function PlaygroundPanesDesktop(props: PlaygroundPanesProps) {
     <Group orientation="horizontal" style={{ flexGrow: 1 }}>
       <Panel defaultSize={50}>
         <PanelTabs
-          tabsProps={{ height: 8, colorPalette: 'gray', variant: 'plain' }}
+          tabsProps={{ colorPalette: 'gray', variant: 'plain' }}
           tabs={[{ label: 'Template', element: editorElement }]}
         />
       </Panel>
@@ -86,7 +86,7 @@ function PlaygroundPanesDesktop(props: PlaygroundPanesProps) {
       />
       <Panel defaultSize={50}>
         <PanelTabs
-          tabsProps={{ height: 8, colorPalette: 'gray', variant: 'plain' }}
+          tabsProps={{ colorPalette: 'gray', variant: 'plain' }}
           tabs={[{ label: 'Output', element: outputElement }]}
         />
       </Panel>

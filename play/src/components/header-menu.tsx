@@ -82,7 +82,12 @@ function ExamplesMenu(props: ExamplesMenuProps) {
   return (
     <Menu.Root>
       <Menu.Trigger asChild>
-        <Button variant="subtle" colorPalette="gray" size={{ base: 'xs', md: 'sm' }}>
+        <Button
+          bg="ctp"
+          color="ctp.text"
+          _hover={{ bg: 'ctp.mantle' }}
+          size={{ base: 'xs', md: 'sm' }}
+        >
           Examples
           <Icon marginStart={2}>
             <FaChevronDown />
@@ -117,7 +122,12 @@ function HelpButton() {
   return (
     <Dialog.Root open={open} onOpenChange={(d) => (d.open ? onOpen() : onClose())}>
       <Dialog.Trigger asChild>
-        <Button variant="subtle" colorPalette="gray" size={{ base: 'xs', md: 'sm' }}>
+        <Button
+          bg="ctp"
+          color="ctp.text"
+          _hover={{ bg: 'ctp.mantle' }}
+          size={{ base: 'xs', md: 'sm' }}
+        >
           Help
         </Button>
       </Dialog.Trigger>
@@ -146,7 +156,12 @@ function HelpButton() {
             </Dialog.Body>
             <Dialog.Footer>
               <Dialog.CloseTrigger asChild>
-                <Button colorPalette="teal" mr={3}>
+                <Button
+                  bg="ctp.teal"
+                  color="ctp"
+                  _hover={{ bg: 'ctp.sky' }}
+                  mr={3}
+                >
                   Close
                 </Button>
               </Dialog.CloseTrigger>
@@ -177,7 +192,12 @@ function SharePopover() {
   return (
     <Popover.Root>
       <Popover.Trigger asChild>
-        <Button variant="subtle" colorPalette="gray" size={{ base: 'xs', md: 'sm' }}>
+        <Button
+          bg="ctp"
+          color="ctp.text"
+          _hover={{ bg: 'ctp.mantle' }}
+          size={{ base: 'xs', md: 'sm' }}
+        >
           Share
         </Button>
       </Popover.Trigger>
@@ -203,7 +223,13 @@ function SharePopover() {
                     padding={1}
                   />
                 </HStack>
-                <Button alignSelf="center" onClick={onCopy}>
+                <Button
+                  alignSelf="center"
+                  onClick={onCopy}
+                  bg="ctp.teal"
+                  color="ctp"
+                  _hover={{ bg: 'ctp.sky' }}
+                >
                   Copy to clipboard
                   <Icon marginStart={2}>
                     <FaClipboard />
