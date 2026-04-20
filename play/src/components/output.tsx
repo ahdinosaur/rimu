@@ -20,7 +20,7 @@ export function Output(props: OutputProps) {
   return (
     <Flex height={height} flexDirection="column" width="100%">
       <FormatSelect format={format} setFormat={setFormat} />
-      <Code display="block" width="100%" flexGrow={1} bg="ctp.mantle">
+      <Code size="md" display="block" width="100%" flexGrow={1} bg="ctp.mantle">
         <pre>{output}</pre>
       </Code>
     </Flex>
@@ -56,7 +56,7 @@ export function FormatSelect(props: FormatSelectProps) {
           value={format}
           onChange={handleChange}
           aria-label="Format"
-          color="ctp.base"
+          color="ctp"
           borderColor="ctp.text"
           bg="ctp.lavender"
         >

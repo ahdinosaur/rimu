@@ -51,7 +51,7 @@ export function HeaderMenu(props: HeaderMenuProps) {
       <HStack gap={4} alignItems="center">
         <Heading
           as="h1"
-          size={{ base: 'md', md: 'lg' }}
+          size={{ base: '2xl', md: '3xl' }}
           lineHeight="normal"
           color="ctp.text"
         >
@@ -82,7 +82,7 @@ function ExamplesMenu(props: ExamplesMenuProps) {
   return (
     <Menu.Root>
       <Menu.Trigger asChild>
-        <Button size={{ base: 'xs', md: 'sm' }}>
+        <Button variant="subtle" colorPalette="gray" size={{ base: 'xs', md: 'sm' }}>
           Examples
           <Icon marginStart={2}>
             <FaChevronDown />
@@ -117,7 +117,9 @@ function HelpButton() {
   return (
     <Dialog.Root open={open} onOpenChange={(d) => (d.open ? onOpen() : onClose())}>
       <Dialog.Trigger asChild>
-        <Button size={{ base: 'xs', md: 'sm' }}>Help</Button>
+        <Button variant="subtle" colorPalette="gray" size={{ base: 'xs', md: 'sm' }}>
+          Help
+        </Button>
       </Dialog.Trigger>
       <Portal>
         <Dialog.Backdrop />
@@ -175,7 +177,9 @@ function SharePopover() {
   return (
     <Popover.Root>
       <Popover.Trigger asChild>
-        <Button size={{ base: 'xs', md: 'sm' }}>Share</Button>
+        <Button variant="subtle" colorPalette="gray" size={{ base: 'xs', md: 'sm' }}>
+          Share
+        </Button>
       </Popover.Trigger>
       <Portal>
         <Popover.Positioner>
