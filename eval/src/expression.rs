@@ -12,60 +12,6 @@ use std::{cell::RefCell, ops::Deref, rc::Rc};
 
 use crate::{common, EvalError, Result};
 
-/// Tag + meta pulled off a tagged operand, for later re-wrapping.
-type TagMeta = (String, ValueMeta);
-
-/// If either side is [`Value::Tagged`], unwrap it and return the tag/meta to
-/// re-wrap with. Both-tagged always errors per the [`Value::Tagged`] contract.
-fn combine_tags(
-    left: Value,
-    left_span: Span,
-    right: Value,
-    right_span: Span,
-) -> Result<(Value, Value, Option<TagMeta>)> {
-    match (&left, &right) {
-        (Value::Tagged { tag: lt, .. }, Value::Tagged { tag: rt, .. }) => {
-            Err(EvalError::BothTagged(Box::new(BothTagged {
-                left_span,
-                right_span,
-                left_tag: lt.clone(),
-                right_tag: rt.clone(),
-            })))
-        }
-        (Value::Tagged { .. }, _) => {
-            let Value::Tagged { tag, inner, meta } = left else {
-                unreachable!()
-            };
-            Ok((inner.into_inner(), right, Some((tag, meta))))
-        }
-        (_, Value::Tagged { .. }) => {
-            let Value::Tagged { tag, inner, meta } = right else {
-                unreachable!()
-            };
-            Ok((left, inner.into_inner(), Some((tag, meta))))
-        }
-        _ => Ok((left, right, None)),
-    }
-}
-
-/// Re-attach a tag + meta to a computed value, if present.
-fn rewrap(span: Span, value: Value, tag_meta: Option<TagMeta>) -> SpannedValue {
-    match tag_meta {
-        None => Spanned::new(value, span),
-        Some((tag, meta)) => {
-            let inner = Spanned::new(value, span.clone());
-            Spanned::new(
-                Value::Tagged {
-                    tag,
-                    inner: Box::new(inner),
-                    meta,
-                },
-                span,
-            )
-        }
-    }
-}
-
 pub fn evaluate(
     expression: &SpannedExpression,
     env: Rc<RefCell<Environment>>,
@@ -199,9 +145,7 @@ impl Evaluator {
         match operator {
             BinaryOperator::And => self.boolean(span, left, right, true),
             BinaryOperator::Or => self.boolean(span, left, right, false),
-            // Equality is structural — tag + meta are included via derived
-            // PartialEq, so two HostPaths with different origin_dir are not
-            // equal.
+            // `PartialEq` on `Value` compares tag + meta structurally.
             BinaryOperator::Equal => {
                 let right = self.expression(right)?.into_inner();
                 Ok(Spanned::new(Value::Boolean(left == right), span))
@@ -210,7 +154,6 @@ impl Evaluator {
                 let right = self.expression(right)?.into_inner();
                 Ok(Spanned::new(Value::Boolean(left != right), span))
             }
-            // Ordering comparisons error if either side is tagged.
             BinaryOperator::Greater
             | BinaryOperator::GreaterEqual
             | BinaryOperator::Less
@@ -293,21 +236,17 @@ impl Evaluator {
                 }?;
                 Ok(Spanned::new(value, span))
             }
-            // Arithmetic / concat operators — tags unwrap and re-wrap so a
-            // tagged operand carries its tag through to the result.
-            _ => {
+            // Arithmetic / concat: a tagged operand's tag + meta carries through to the result.
+            BinaryOperator::Add
+            | BinaryOperator::Subtract
+            | BinaryOperator::Multiply
+            | BinaryOperator::Divide
+            | BinaryOperator::Rem
+            | BinaryOperator::Xor => {
                 let (right, right_span) = self.expression(right)?.take();
                 let (left, right, tag_meta) =
                     combine_tags(left, left_span.clone(), right, right_span.clone())?;
                 let value = match operator {
-                    BinaryOperator::Or => unreachable!(),
-                    BinaryOperator::And => unreachable!(),
-                    BinaryOperator::Equal => unreachable!(),
-                    BinaryOperator::NotEqual => unreachable!(),
-                    BinaryOperator::Greater => unreachable!(),
-                    BinaryOperator::GreaterEqual => unreachable!(),
-                    BinaryOperator::Less => unreachable!(),
-                    BinaryOperator::LessEqual => unreachable!(),
                     BinaryOperator::Add => match (left.clone(), right.clone()) {
                         (Value::Number(left), Value::Number(right)) => {
                             Ok(Value::Number(left + right))
@@ -414,6 +353,7 @@ impl Evaluator {
                             got: Box::new(left.into()),
                         }),
                     },
+                    _ => unreachable!(),
                 }?;
                 Ok(rewrap(span, value, tag_meta))
             }
@@ -730,6 +670,58 @@ fn get_index(
     Ok(index as usize)
 }
 
+type TagMeta = (String, ValueMeta);
+
+/// Unwraps a tagged operand so the inner can be computed on. Errors if both
+/// sides are tagged (see [`Value::Tagged`]).
+fn combine_tags(
+    left: Value,
+    left_span: Span,
+    right: Value,
+    right_span: Span,
+) -> Result<(Value, Value, Option<TagMeta>)> {
+    match (&left, &right) {
+        (Value::Tagged { tag: lt, .. }, Value::Tagged { tag: rt, .. }) => {
+            Err(EvalError::BothTagged(Box::new(BothTagged {
+                left_span,
+                right_span,
+                left_tag: lt.clone(),
+                right_tag: rt.clone(),
+            })))
+        }
+        (Value::Tagged { .. }, _) => {
+            let Value::Tagged { tag, inner, meta } = left else {
+                unreachable!()
+            };
+            Ok((inner.into_inner(), right, Some((tag, meta))))
+        }
+        (_, Value::Tagged { .. }) => {
+            let Value::Tagged { tag, inner, meta } = right else {
+                unreachable!()
+            };
+            Ok((left, inner.into_inner(), Some((tag, meta))))
+        }
+        _ => Ok((left, right, None)),
+    }
+}
+
+fn rewrap(span: Span, value: Value, tag_meta: Option<TagMeta>) -> SpannedValue {
+    match tag_meta {
+        None => Spanned::new(value, span),
+        Some((tag, meta)) => {
+            let inner = Spanned::new(value, span.clone());
+            Spanned::new(
+                Value::Tagged {
+                    tag,
+                    inner: Box::new(inner),
+                    meta,
+                },
+                span,
+            )
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use indexmap::IndexMap;
@@ -995,6 +987,7 @@ mod tests {
     mod tagged {
         use pretty_assertions::assert_eq;
         use rimu_value::{SerdeValue, SerdeValueMeta, SerdeValueObject};
+        use rust_decimal_macros::dec;
 
         use super::super::EvalError;
         use super::test_code;
@@ -1056,6 +1049,50 @@ mod tests {
             assert!(matches!(
                 actual,
                 Err(EvalError::TaggedOrderingComparison { .. })
+            ));
+        }
+
+        #[test]
+        fn ordering_on_tagged_right_errors() {
+            let env = host_path_env("/abs/a", "/src");
+            let actual = test_code(r#""z" < p"#, Some(env));
+            assert!(matches!(
+                actual,
+                Err(EvalError::TaggedOrderingComparison { .. })
+            ));
+        }
+
+        #[test]
+        fn unary_negate_preserves_tag() {
+            let n = tagged("host_path", SerdeValue::Number(dec!(5).into()), &[]);
+            let mut env = SerdeValueObject::new();
+            env.insert("n".into(), n);
+            let actual = test_code("-n", Some(env)).unwrap();
+
+            let expected = tagged("host_path", SerdeValue::Number(dec!(-5).into()), &[]);
+            assert_eq!(actual, expected);
+        }
+
+        #[test]
+        fn unary_not_preserves_tag() {
+            let env = host_path_env("/abs/a", "/src");
+            let actual = test_code("!p", Some(env)).unwrap();
+
+            let expected = tagged(
+                "host_path",
+                SerdeValue::Boolean(false),
+                &[("origin_dir", SerdeValue::String("/src".into()))],
+            );
+            assert_eq!(actual, expected);
+        }
+
+        #[test]
+        fn slice_on_tagged_errors() {
+            let env = host_path_env("/abs/a", "/src");
+            let actual = test_code("p[0:2]", Some(env));
+            assert!(matches!(
+                actual,
+                Err(EvalError::TaggedStructuralOp { op: "slice", .. })
             ));
         }
 

@@ -131,11 +131,11 @@ impl SerdeValue {
     }
 }
 
-/// Reconstruct a [`SerdeValue::Tagged`] if the object is a tag envelope.
+/// Promotes a tag-envelope object to [`SerdeValue::Tagged`].
 ///
-/// An object is treated as a tag envelope iff it has exactly the three
-/// reserved keys [`TAGGED_KEY`], [`TAGGED_VALUE_KEY`], [`TAGGED_META_KEY`],
-/// the tag entry is a string, and the meta entry is an object.
+/// Note(cc): this is an implicit reinterpretation — any deserialized object
+/// whose keys + types match the envelope becomes `Tagged`. The `__rimu_tag`
+/// prefix on [`TAGGED_KEY`] is what keeps collisions with user data unlikely.
 fn object_to_value(mut object: SerdeValueObject) -> SerdeValue {
     if object.len() == 3
         && object.contains_key(TAGGED_KEY)
@@ -145,11 +145,8 @@ fn object_to_value(mut object: SerdeValueObject) -> SerdeValue {
         let tag = object.shift_remove(TAGGED_KEY);
         let inner = object.shift_remove(TAGGED_VALUE_KEY);
         let meta = object.shift_remove(TAGGED_META_KEY);
-        if let (
-            Some(SerdeValue::String(tag)),
-            Some(inner),
-            Some(SerdeValue::Object(meta)),
-        ) = (tag, inner, meta)
+        if let (Some(SerdeValue::String(tag)), Some(inner), Some(SerdeValue::Object(meta))) =
+            (tag, inner, meta)
         {
             return SerdeValue::Tagged {
                 tag,
@@ -221,8 +218,8 @@ impl<'de> Deserializer<'de> for SerdeValue {
             SerdeValue::Object(v) => visit_object(v, visitor),
             SerdeValue::Function(_f) => todo!(),
             SerdeValue::Tagged { tag, inner, meta } => {
-                // Round-trip through the envelope object shape. Callers that
-                // want the typed Tagged value should match on it directly.
+                // Deserialize target sees the envelope shape. Callers wanting
+                // the typed `Tagged` should match on it directly.
                 let mut envelope = SerdeValueObject::new();
                 envelope.insert(TAGGED_KEY.to_string(), SerdeValue::String(tag));
                 envelope.insert(TAGGED_VALUE_KEY.to_string(), *inner);

@@ -25,9 +25,9 @@ pub type ValueList = Vec<SpannedValue>;
 pub type ValueObject = IndexMap<String, SpannedValue>;
 pub type ValueMeta = IndexMap<String, SpannedValue>;
 
-/// Reserved key used when (de)serializing [`Value::Tagged`] / [`SerdeValue::Tagged`]
-/// as a JSON-safe object. A plain object with this key is interpreted as a tagged
-/// value when the rest of the object also conforms to the envelope shape.
+/// Reserved keys used to (de)serialize tagged values through a JSON-safe
+/// envelope object. A deserialized object with all three keys in the expected
+/// shapes is promoted back to [`Value::Tagged`].
 pub const TAGGED_KEY: &str = "__rimu_tag";
 pub const TAGGED_VALUE_KEY: &str = "value";
 pub const TAGGED_META_KEY: &str = "meta";
@@ -42,14 +42,15 @@ pub enum Value {
     Function(Function),
     List(ValueList),
     Object(ValueObject),
-    /// A value annotated with a consumer-defined `tag` and arbitrary `meta`
-    /// object. Tags are opaque to the evaluator: they propagate through unary
-    /// ops and through arithmetic/concatenation against a raw value (producing
-    /// a tagged result with the same tag + meta), but two tagged operands
-    /// always error, ordering comparisons on tagged values error, and
-    /// structural ops (index/slice/key) on tagged values error. Equality is
-    /// structural: two tagged values are equal only if tag, inner, and meta
-    /// all match.
+    /// A value annotated with a consumer-defined `tag` and arbitrary `meta`.
+    /// Tags are opaque to the evaluator:
+    ///
+    /// - unary ops and arithmetic/concat against a raw value propagate the
+    ///   tag + meta to the result,
+    /// - two tagged operands error (see [`BothTagged`]),
+    /// - ordering comparisons on tagged values error,
+    /// - structural ops (index/slice/key) on tagged values error,
+    /// - equality is structural over tag, inner, and meta.
     Tagged {
         tag: String,
         inner: Box<SpannedValue>,
@@ -59,10 +60,8 @@ pub enum Value {
 
 pub type SpannedValue = Spanned<Value>;
 
-/// Structural equality for [`Value`]. Spans on nested [`SpannedValue`]s are
-/// ignored so that two values constructed at different source locations (e.g.
-/// two bindings of the same tagged value under different variable names)
-/// compare equal.
+/// Spans on nested [`SpannedValue`]s are ignored, so values built at
+/// different source locations still compare equal.
 impl PartialEq for Value {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
@@ -72,10 +71,7 @@ impl PartialEq for Value {
             (Value::Number(a), Value::Number(b)) => a == b,
             (Value::Function(a), Value::Function(b)) => a == b,
             (Value::List(a), Value::List(b)) => {
-                a.len() == b.len()
-                    && a.iter()
-                        .zip(b.iter())
-                        .all(|(x, y)| x.inner() == y.inner())
+                a.len() == b.len() && a.iter().zip(b.iter()).all(|(x, y)| x.inner() == y.inner())
             }
             (Value::Object(a), Value::Object(b)) => object_eq(a, b),
             (

@@ -25,7 +25,10 @@ impl Serialize for SerdeValue {
                 let mut envelope = SerdeValueObject::new();
                 envelope.insert(TAGGED_KEY.to_string(), SerdeValue::String(tag.clone()));
                 envelope.insert(TAGGED_VALUE_KEY.to_string(), (**inner).clone());
-                envelope.insert(TAGGED_META_KEY.to_string(), SerdeValue::Object(meta.clone()));
+                envelope.insert(
+                    TAGGED_META_KEY.to_string(),
+                    SerdeValue::Object(meta.clone()),
+                );
                 envelope.serialize(serializer)
             }
         }
