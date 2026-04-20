@@ -3,9 +3,12 @@ import { Box, useColorModeValue } from '@chakra-ui/react'
 import { EditorState } from '@codemirror/state'
 import { EditorView } from 'codemirror'
 import { Variant } from 'codemirror-theme-catppuccin'
+// @ts-ignore
+import { useResplit } from 'react-resplit'
 
 import { CodeMirror, updateCode, updateTheme } from '@/codemirror'
 import { Report, setReports } from '@/codemirror/diagnostics'
+import { DiagnosticPanel } from './diagnostic'
 
 export type EditorProps = {
   height: string
@@ -63,7 +66,7 @@ export function Editor(props: EditorProps) {
   // on reports change
   useEffect(() => {
     if (view == null) return
-    view.dispatch(setReports(view.state, reports))
+    view.dispatch(setReports(reports))
   }, [view, reports])
 
   // on theme change
@@ -80,22 +83,34 @@ export function Editor(props: EditorProps) {
     resetCodeToLoad()
   }, [view, codeToLoad, resetCodeToLoad])
 
+  const { getContainerProps, getSplitterProps, getPaneProps } = useResplit({
+    direction: 'vertical',
+  })
+
   return (
-    <Box
-      sx={{
-        width: '100%',
-        height,
+    <Box {...getContainerProps()} sx={{ height }}>
+      <Box {...getPaneProps(0, { initialSize: '0.8fr' })}>
+        <Box
+          sx={{
+            width: '100%',
+            height: '100%',
 
-        '.cm-editor': {
-          height: '100%',
-        },
+            '.cm-editor': {
+              height: '100%',
+            },
 
-        '.cm-scroller': {
-          height: '100%',
-          overflowY: 'auto',
-        },
-      }}
-      ref={parentRef}
-    />
+            '.cm-scroller': {
+              height: '100%',
+              overflowY: 'auto',
+            },
+          }}
+          ref={parentRef}
+        />
+      </Box>
+      <Box {...getSplitterProps(1, { size: '12px' })} sx={{ backgroundColor: 'ctp.surface0' }} />
+      <Box {...getPaneProps(2, { initialSize: '0.2fr' })}>
+        <DiagnosticPanel reports={reports} />
+      </Box>
+    </Box>
   )
 }
