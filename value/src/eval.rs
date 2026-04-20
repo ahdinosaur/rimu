@@ -52,16 +52,6 @@ pub enum EvalError {
 
     #[error("cannot combine tagged values with different tags: {} and {}", .0.left_tag, .0.right_tag)]
     BothTagged(Box<BothTagged>),
-
-    #[error("ordering comparison not supported on tagged value: {tag}")]
-    TaggedOrderingComparison { span: Span, tag: String },
-
-    #[error("{op} not supported on tagged value: {tag}")]
-    TaggedStructuralOp {
-        span: Span,
-        tag: String,
-        op: &'static str,
-    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -188,18 +178,6 @@ impl From<EvalError> for ErrorReport {
                     vec![],
                 )
             }
-            EvalError::TaggedOrderingComparison { span, tag } => (
-                span.clone(),
-                "Eval: Ordering comparison not supported on tagged value",
-                vec![(span.clone(), format!("Tag: {}", tag))],
-                vec![],
-            ),
-            EvalError::TaggedStructuralOp { span, tag, op } => (
-                span.clone(),
-                "Eval: Structural operation not supported on tagged value",
-                vec![(span.clone(), format!("Op: {}, tag: {}", op, tag))],
-                vec![],
-            ),
         };
 
         ErrorReport {

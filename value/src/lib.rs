@@ -5,6 +5,7 @@ mod function;
 mod native;
 mod number;
 mod serde;
+mod tag;
 
 use indexmap::IndexMap;
 use rimu_meta::{Span, Spanned};
@@ -20,6 +21,7 @@ pub use self::serde::{
     convert, from_serde_value, to_serde_value, SerdeValue, SerdeValueError, SerdeValueList,
     SerdeValueMeta, SerdeValueObject,
 };
+pub use self::tag::{merge_tag_metas, peel_tag, rewrap_tag, TagMeta};
 
 pub type ValueList = Vec<SpannedValue>;
 pub type ValueObject = IndexMap<String, SpannedValue>;
@@ -44,18 +46,18 @@ pub enum Value {
     List(ValueList),
     Object(ValueObject),
     /// A value annotated with a consumer-defined `tag` and arbitrary `meta`.
-    /// Tags are opaque to the evaluator:
+    /// Tags are opaque to the evaluator. Every op that reads a value first
+    /// peels the outer tag (if any), operates on the inner, and re-wraps:
     ///
-    /// - unary ops, arithmetic/concat, short-circuiting `&&` / `||`, and
-    ///   function calls against a raw value propagate the tag + meta to the
-    ///   result,
-    /// - two tagged operands with the same tag combine: tag is kept and metas
-    ///   are merged (right-wins on key collision),
-    /// - two tagged operands with different tags error (see [`BothTagged`]),
-    ///   except when a short-circuiting `&&` / `||` never evaluates the
-    ///   right-hand side,
-    /// - ordering comparisons on tagged values error,
-    /// - structural ops (index/slice/key) on tagged values error,
+    /// - unary, arithmetic/concat, boolean short-circuit, index/key/slice,
+    ///   and function calls propagate the tag + meta to the result,
+    /// - same-tag operands combine: tag is kept, metas are merged
+    ///   (right-wins on key collision),
+    /// - different-tag operands error ([`BothTagged`]), except when a
+    ///   short-circuiting `&&` / `||` never evaluates the right-hand side,
+    /// - ordering comparisons (`<`, `>`, `<=`, `>=`) peel and return a plain
+    ///   boolean (tag is dropped — the result is a truth value, not a member
+    ///   of the tagged domain),
     /// - equality is structural over tag, inner, and meta.
     ///
     /// Nested tagging (`Tagged { inner: Tagged { ... } }`) is not supported —

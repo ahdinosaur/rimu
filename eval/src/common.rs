@@ -1,12 +1,15 @@
 use std::{cell::RefCell, rc::Rc};
 
 use rimu_meta::{Span, Spanned};
-use rimu_value::{BothTagged, Environment, Function, FunctionBody, SpannedValue, Value, ValueMeta};
+use rimu_value::{
+    merge_tag_metas, peel_tag, rewrap_tag, Environment, Function, FunctionBody, SpannedValue,
+    TagMeta,
+};
 
 use crate::{evaluate_block, evaluate_expression, EvalError, Result};
 
 pub fn call(span: Span, function: Function, args: &[SpannedValue]) -> Result<SpannedValue> {
-    let (args, tag_meta) = unwrap_tagged_args(args)?;
+    let (args, tag_meta) = peel_call_args(args)?;
 
     let value = if let FunctionBody::Native(native) = function.body {
         for index in 0..function.args.len() {
@@ -48,56 +51,33 @@ pub fn call(span: Span, function: Function, args: &[SpannedValue]) -> Result<Spa
         }
     };
 
-    Ok(rewrap_tagged(span, value, tag_meta))
+    Ok(rewrap_tag(span, value, tag_meta))
 }
 
-type TagMeta = (String, ValueMeta);
-
-/// Unwraps tagged arguments so the callee sees raw values, and collects a
-/// single tag + merged meta to re-wrap onto the result. Same-tag metas are
-/// merged (right-wins on key collision); differing tags error.
-fn unwrap_tagged_args(args: &[SpannedValue]) -> Result<(Vec<SpannedValue>, Option<TagMeta>)> {
-    let mut unwrapped = Vec::with_capacity(args.len());
-    let mut combined: Option<(String, ValueMeta, Span)> = None;
+/// Peels tags off each argument (so the callee sees raw values) and folds
+/// the tags into a single tag + merged meta to re-wrap onto the result.
+fn peel_call_args(args: &[SpannedValue]) -> Result<(Vec<SpannedValue>, Option<TagMeta>)> {
+    let mut peeled = Vec::with_capacity(args.len());
+    let mut acc: Option<(TagMeta, Span)> = None;
     for arg in args {
         let (value, span) = arg.clone().take();
-        match value {
-            Value::Tagged { tag, inner, meta } => {
-                combined = Some(match combined {
-                    None => (tag, meta, span),
-                    Some((existing_tag, mut existing_meta, existing_span)) => {
-                        if existing_tag != tag {
-                            return Err(EvalError::BothTagged(Box::new(BothTagged {
-                                left_span: existing_span,
-                                right_span: span,
-                                left_tag: existing_tag,
-                                right_tag: tag,
-                            })));
-                        }
-                        for (key, value) in meta {
-                            existing_meta.insert(key, value);
-                        }
-                        (existing_tag, existing_meta, existing_span)
-                    }
-                });
-                unwrapped.push(*inner);
-            }
-            other => unwrapped.push(Spanned::new(other, span)),
+        let (inner, tag_meta) = peel_tag(value);
+        peeled.push(Spanned::new(inner, span.clone()));
+        if let Some(current) = tag_meta {
+            acc = Some(match acc {
+                None => (current, span),
+                Some((prev, prev_span)) => {
+                    let merged = merge_tag_metas(
+                        Some(prev),
+                        prev_span.clone(),
+                        Some(current),
+                        span.clone(),
+                    )?
+                    .expect("both sides Some -> merge_tag_metas returns Some");
+                    (merged, prev_span)
+                }
+            });
         }
     }
-    Ok((unwrapped, combined.map(|(tag, meta, _)| (tag, meta))))
-}
-
-fn rewrap_tagged(span: Span, value: SpannedValue, tag_meta: Option<TagMeta>) -> SpannedValue {
-    match tag_meta {
-        None => value,
-        Some((tag, meta)) => Spanned::new(
-            Value::Tagged {
-                tag,
-                inner: Box::new(value),
-                meta,
-            },
-            span,
-        ),
-    }
+    Ok((peeled, acc.map(|(tm, _)| tm)))
 }

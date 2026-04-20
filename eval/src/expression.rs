@@ -4,8 +4,8 @@
 use rimu_ast::{BinaryOperator, Expression, SpannedExpression, UnaryOperator};
 use rimu_meta::{Span, Spanned};
 use rimu_value::{
-    convert_value_object_to_serde_value_object, BothTagged, Environment, Function, FunctionBody,
-    Number, SpannedValue, Value, ValueMeta, ValueObject,
+    convert_value_object_to_serde_value_object, merge_tag_metas, peel_tag, rewrap_tag, Environment,
+    Function, FunctionBody, Number, SpannedValue, TagMeta, Value, ValueObject,
 };
 use rust_decimal::prelude::ToPrimitive;
 use std::{cell::RefCell, ops::Deref, rc::Rc};
@@ -113,10 +113,7 @@ impl Evaluator {
         operator: &UnaryOperator,
     ) -> Result<SpannedValue> {
         let (right, right_span) = self.expression(right)?.take();
-        let (right, tag_meta) = match right {
-            Value::Tagged { tag, inner, meta } => (inner.into_inner(), Some((tag, meta))),
-            other => (other, None),
-        };
+        let (right, tag_meta) = peel_tag(right);
         let value = match operator {
             UnaryOperator::Negate => match right.clone() {
                 Value::Number(number) => Ok(Value::Number(-number)),
@@ -131,7 +128,7 @@ impl Evaluator {
                 Ok(Value::Boolean(!boolean))
             }
         }?;
-        Ok(rewrap(span, value, tag_meta))
+        Ok(rewrap_fresh(span, value, tag_meta))
     }
 
     fn binary(
@@ -158,19 +155,11 @@ impl Evaluator {
             | BinaryOperator::GreaterEqual
             | BinaryOperator::Less
             | BinaryOperator::LessEqual => {
-                if let Value::Tagged { tag, .. } = &left {
-                    return Err(EvalError::TaggedOrderingComparison {
-                        span: left_span,
-                        tag: tag.clone(),
-                    });
-                }
+                // Ordering peels and discards tags — the result is a plain
+                // truth value, not a member of the tagged domain.
+                let (left, _) = peel_tag(left);
                 let (right, right_span) = self.expression(right)?.take();
-                if let Value::Tagged { tag, .. } = &right {
-                    return Err(EvalError::TaggedOrderingComparison {
-                        span: right_span,
-                        tag: tag.clone(),
-                    });
-                }
+                let (right, _) = peel_tag(right);
                 let value = match operator {
                     BinaryOperator::Greater => match (left.clone(), right.clone()) {
                         (Value::Number(left), Value::Number(right)) => {
@@ -244,8 +233,10 @@ impl Evaluator {
             | BinaryOperator::Rem
             | BinaryOperator::Xor => {
                 let (right, right_span) = self.expression(right)?.take();
-                let (left, right, tag_meta) =
-                    combine_tags(left, left_span.clone(), right, right_span.clone())?;
+                let (left, left_tag) = peel_tag(left);
+                let (right, right_tag) = peel_tag(right);
+                let tag_meta =
+                    merge_tag_metas(left_tag, left_span.clone(), right_tag, right_span.clone())?;
                 let value = match operator {
                     BinaryOperator::Add => match (left.clone(), right.clone()) {
                         (Value::Number(left), Value::Number(right)) => {
@@ -355,7 +346,7 @@ impl Evaluator {
                     },
                     _ => unreachable!(),
                 }?;
-                Ok(rewrap(span, value, tag_meta))
+                Ok(rewrap_fresh(span, value, tag_meta))
             }
         }
     }
@@ -373,23 +364,17 @@ impl Evaluator {
         right: &SpannedExpression,
         full_evaluate_on: bool,
     ) -> Result<SpannedValue> {
-        let (left_inner, left_tag_meta) = match left {
-            Value::Tagged { tag, inner, meta } => (inner.into_inner(), Some((tag, meta))),
-            other => (other, None),
-        };
+        let (left_inner, left_tag_meta) = peel_tag(left);
         let left_bool: bool = left_inner.into();
         if left_bool != full_evaluate_on {
             // short circuit — tag on left (if any) still carries through
-            return Ok(rewrap(span, Value::Boolean(left_bool), left_tag_meta));
+            return Ok(rewrap_fresh(span, Value::Boolean(left_bool), left_tag_meta));
         }
         let (right, right_span) = self.expression(right)?.take();
-        let (right_inner, right_tag_meta) = match right {
-            Value::Tagged { tag, inner, meta } => (inner.into_inner(), Some((tag, meta))),
-            other => (other, None),
-        };
+        let (right_inner, right_tag_meta) = peel_tag(right);
         let right_bool: bool = right_inner.into();
         let tag_meta = merge_tag_metas(left_tag_meta, left_span, right_tag_meta, right_span)?;
-        Ok(rewrap(span, Value::Boolean(right_bool), tag_meta))
+        Ok(rewrap_fresh(span, Value::Boolean(right_bool), tag_meta))
     }
 
     fn list(&self, span: Span, items: &Vec<SpannedExpression>) -> Result<SpannedValue> {
@@ -457,13 +442,7 @@ impl Evaluator {
         index: &SpannedExpression,
     ) -> Result<SpannedValue> {
         let (container, container_span) = self.expression(container)?.take();
-        if let Value::Tagged { tag, .. } = &container {
-            return Err(EvalError::TaggedStructuralOp {
-                span: container_span,
-                tag: tag.clone(),
-                op: "index",
-            });
-        }
+        let (container, tag_meta) = peel_tag(container);
         let (index, index_span) = self.expression(index)?.take();
 
         let value = match (container.clone(), index.clone()) {
@@ -504,7 +483,7 @@ impl Evaluator {
             }
         };
 
-        Ok(Spanned::new(value.into_inner(), span))
+        Ok(rewrap_fresh(span, value.into_inner(), tag_meta))
     }
 
     fn get_key(
@@ -514,14 +493,7 @@ impl Evaluator {
         key: &Spanned<String>,
     ) -> Result<SpannedValue> {
         let (container, container_span) = self.expression(container)?.take();
-
-        if let Value::Tagged { tag, .. } = &container {
-            return Err(EvalError::TaggedStructuralOp {
-                span: container_span,
-                tag: tag.clone(),
-                op: "key access",
-            });
-        }
+        let (container, tag_meta) = peel_tag(container);
 
         let Value::Object(object) = container.clone() else {
             return Err(EvalError::TypeError {
@@ -541,7 +513,7 @@ impl Evaluator {
             })
             .cloned()?;
 
-        Ok(Spanned::new(value.into_inner(), span))
+        Ok(rewrap_fresh(span, value.into_inner(), tag_meta))
     }
 
     fn get_slice(
@@ -552,13 +524,7 @@ impl Evaluator {
         end: Option<&SpannedExpression>,
     ) -> Result<SpannedValue> {
         let (container, container_span) = self.expression(container)?.take();
-        if let Value::Tagged { tag, .. } = &container {
-            return Err(EvalError::TaggedStructuralOp {
-                span: container_span,
-                tag: tag.clone(),
-                op: "slice",
-            });
-        }
+        let (container, tag_meta) = peel_tag(container);
         let start = match start {
             Some(start) => Some(self.expression(start)?.take()),
             None => None,
@@ -632,7 +598,7 @@ impl Evaluator {
             }
         };
 
-        Ok(Spanned::new(value, span))
+        Ok(rewrap_fresh(span, value, tag_meta))
     }
 }
 
@@ -683,81 +649,13 @@ fn get_index(
     Ok(index as usize)
 }
 
-type TagMeta = (String, ValueMeta);
-
-/// Unwraps a tagged operand so the inner can be computed on. If both sides are
-/// tagged with the same tag, their metas are merged (right-wins on key
-/// collision) and the tag is carried through. Tag mismatch errors — see
-/// [`Value::Tagged`].
-fn combine_tags(
-    left: Value,
-    left_span: Span,
-    right: Value,
-    right_span: Span,
-) -> Result<(Value, Value, Option<TagMeta>)> {
-    let (left_inner, left_tag_meta) = match left {
-        Value::Tagged { tag, inner, meta } => (inner.into_inner(), Some((tag, meta))),
-        other => (other, None),
-    };
-    let (right_inner, right_tag_meta) = match right {
-        Value::Tagged { tag, inner, meta } => (inner.into_inner(), Some((tag, meta))),
-        other => (other, None),
-    };
-    let tag_meta = merge_tag_metas(left_tag_meta, left_span, right_tag_meta, right_span)?;
-    Ok((left_inner, right_inner, tag_meta))
-}
-
-/// Merge two already-extracted tag+meta pairs. Same-tag merges metas
-/// (right-wins on collision); different tags error; `None` contributes nothing.
-/// Used by both [`combine_tags`] (which extracts from `Value::Tagged` operands)
-/// and by [`Evaluator::boolean`] (which extracts eagerly for short-circuit).
-fn merge_tag_metas(
-    left: Option<TagMeta>,
-    left_span: Span,
-    right: Option<TagMeta>,
-    right_span: Span,
-) -> Result<Option<TagMeta>> {
-    match (left, right) {
-        (None, None) => Ok(None),
-        (Some(lt), None) => Ok(Some(lt)),
-        (None, Some(rt)) => Ok(Some(rt)),
-        (Some((left_tag, mut left_meta)), Some((right_tag, right_meta))) => {
-            if left_tag != right_tag {
-                return Err(EvalError::BothTagged(Box::new(BothTagged {
-                    left_span,
-                    right_span,
-                    left_tag,
-                    right_tag,
-                })));
-            }
-            for (key, value) in right_meta {
-                left_meta.insert(key, value);
-            }
-            Ok(Some((left_tag, left_meta)))
-        }
-    }
-}
-
-/// Note(cc): both the outer `Spanned` and the inner `Spanned<Value>` are stamped
-/// with the whole-operation `span`. A tighter source span for the unwrapped
-/// inner value isn't available at this point (the op just produced a fresh
-/// `Value`), and downstream consumers only surface the outer span in
-/// diagnostics, so the duplication is harmless today.
-fn rewrap(span: Span, value: Value, tag_meta: Option<TagMeta>) -> SpannedValue {
-    match tag_meta {
-        None => Spanned::new(value, span),
-        Some((tag, meta)) => {
-            let inner = Spanned::new(value, span.clone());
-            Spanned::new(
-                Value::Tagged {
-                    tag,
-                    inner: Box::new(inner),
-                    meta,
-                },
-                span,
-            )
-        }
-    }
+/// Stamps a fresh computed [`Value`] with `span`, then re-wraps it via
+/// [`rewrap_tag`] if there's a tag to carry. Both the outer `Spanned` and the
+/// inner `Spanned<Value>` end up with the same whole-operation `span` — a
+/// tighter source span for the unwrapped inner value isn't available at this
+/// point, and the duplication is harmless in diagnostics.
+fn rewrap_fresh(span: Span, value: Value, tag_meta: Option<TagMeta>) -> SpannedValue {
+    rewrap_tag(span.clone(), Spanned::new(value, span), tag_meta)
 }
 
 #[cfg(test)]
@@ -1136,23 +1034,35 @@ mod tests {
         }
 
         #[test]
-        fn ordering_on_tagged_errors() {
-            let env = host_path_env("/abs/a", "/src");
-            let actual = test_code(r#"p < "z""#, Some(env));
-            assert!(matches!(
-                actual,
-                Err(EvalError::TaggedOrderingComparison { .. })
-            ));
+        fn ordering_on_tagged_auto_unwraps_to_plain_bool() {
+            let n = tagged("bytes", SerdeValue::Number(dec!(3).into()), &[]);
+            let mut env = SerdeValueObject::new();
+            env.insert("n".into(), n);
+            let actual = test_code("n < 10", Some(env)).unwrap();
+            assert_eq!(actual, SerdeValue::Boolean(true));
         }
 
         #[test]
-        fn ordering_on_tagged_right_errors() {
-            let env = host_path_env("/abs/a", "/src");
-            let actual = test_code(r#""z" < p"#, Some(env));
-            assert!(matches!(
-                actual,
-                Err(EvalError::TaggedOrderingComparison { .. })
-            ));
+        fn ordering_on_tagged_right_auto_unwraps_to_plain_bool() {
+            let n = tagged("bytes", SerdeValue::Number(dec!(3).into()), &[]);
+            let mut env = SerdeValueObject::new();
+            env.insert("n".into(), n);
+            let actual = test_code("10 < n", Some(env)).unwrap();
+            assert_eq!(actual, SerdeValue::Boolean(false));
+        }
+
+        #[test]
+        fn ordering_drops_mismatched_tags_without_error() {
+            // Both sides tagged but with different tags — still fine for
+            // ordering since tags are dropped, not combined.
+            let a = tagged("host_path", SerdeValue::Number(dec!(1).into()), &[]);
+            let b = tagged("target_path", SerdeValue::Number(dec!(2).into()), &[]);
+            let mut env = SerdeValueObject::new();
+            env.insert("a".into(), a);
+            env.insert("b".into(), b);
+
+            let actual = test_code("a < b", Some(env)).unwrap();
+            assert_eq!(actual, SerdeValue::Boolean(true));
         }
 
         #[test]
@@ -1279,13 +1189,16 @@ mod tests {
         }
 
         #[test]
-        fn slice_on_tagged_errors() {
+        fn slice_on_tagged_auto_unwraps_and_propagates() {
             let env = host_path_env("/abs/a", "/src");
-            let actual = test_code("p[0:2]", Some(env));
-            assert!(matches!(
-                actual,
-                Err(EvalError::TaggedStructuralOp { op: "slice", .. })
-            ));
+            let actual = test_code("p[0:2]", Some(env)).unwrap();
+
+            let expected = tagged(
+                "host_path",
+                SerdeValue::String("/a".into()),
+                &[("origin_dir", SerdeValue::String("/src".into()))],
+            );
+            assert_eq!(actual, expected);
         }
 
         #[test]
@@ -1310,26 +1223,39 @@ mod tests {
         }
 
         #[test]
-        fn index_on_tagged_errors() {
+        fn index_on_tagged_auto_unwraps_and_propagates() {
             let env = host_path_env("/abs/a", "/src");
-            let actual = test_code("p[0]", Some(env));
-            assert!(matches!(
-                actual,
-                Err(EvalError::TaggedStructuralOp { op: "index", .. })
-            ));
+            // p[0] on tagged "/abs/a" returns tagged "/" — first char.
+            let actual = test_code("p[0]", Some(env)).unwrap();
+
+            let expected = tagged(
+                "host_path",
+                SerdeValue::String("/".into()),
+                &[("origin_dir", SerdeValue::String("/src".into()))],
+            );
+            assert_eq!(actual, expected);
         }
 
         #[test]
-        fn key_on_tagged_errors() {
-            let env = host_path_env("/abs/a", "/src");
-            let actual = test_code("p.foo", Some(env));
-            assert!(matches!(
-                actual,
-                Err(EvalError::TaggedStructuralOp {
-                    op: "key access",
-                    ..
-                })
-            ));
+        fn key_on_tagged_auto_unwraps_and_propagates() {
+            let mut inner = SerdeValueObject::new();
+            inner.insert("foo".into(), SerdeValue::String("bar".into()));
+            let tagged_obj = tagged(
+                "secret",
+                SerdeValue::Object(inner),
+                &[("source", SerdeValue::String("env".into()))],
+            );
+            let mut env = SerdeValueObject::new();
+            env.insert("p".into(), tagged_obj);
+
+            let actual = test_code("p.foo", Some(env)).unwrap();
+
+            let expected = tagged(
+                "secret",
+                SerdeValue::String("bar".into()),
+                &[("source", SerdeValue::String("env".into()))],
+            );
+            assert_eq!(actual, expected);
         }
 
         mod call {
