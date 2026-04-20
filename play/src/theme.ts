@@ -1,58 +1,44 @@
-import { extendBaseTheme, ThemeConfig } from '@chakra-ui/react'
-import { theme as baseTheme } from '@chakra-ui/theme'
+import { createSystem, defaultConfig, defineConfig } from '@chakra-ui/react'
 import { flavors, type ColorName } from '@catppuccin/palette'
 
-const { Button, List, Heading, Link, Spinner, Code, Kbd, Modal, Select, Menu, Popover, Tabs } =
-  baseTheme.components
+type SemanticColorTokens = Record<ColorName, { value: { _light: string; _dark: string } }>
 
-const config: ThemeConfig = {
-  initialColorMode: 'system',
-  useSystemColorMode: true,
-}
-
-type ColorValue = {
-  _light: string
-  _dark: string
-}
-type Colors = Record<ColorName, ColorValue>
-const ctp = flavors.latte.colorEntries.reduce((sofar, [name, color]) => {
-  sofar[name] = {
-    _light: color.hex,
-    _dark: flavors.macchiato.colors[name].hex,
+const ctp = flavors.latte.colorEntries.reduce((acc, [name, color]) => {
+  acc[name] = {
+    value: {
+      _light: color.hex,
+      _dark: flavors.macchiato.colors[name].hex,
+    },
   }
-  return sofar
-}, {} as Colors)
+  return acc
+}, {} as SemanticColorTokens)
 
-const semanticTokens = {
-  colors: {
-    // https://github.com/chakra-ui/chakra-ui/blob/eb0316d/packages/components/theme/src/semantic-tokens.ts
-    'chakra-body-text': ctp['text'],
-    'chakra-body-bg': ctp['base'],
-    'chakra-border-color': ctp['surface0'],
-    'chakra-inverse-text': ctp['base'],
-    'chakra-subtle-bg': ctp['surface0'],
-    'chakra-subtle-text': ctp['overlay1'],
-    'chakra-placeholder-color': ctp['subtext1'],
-
-    ctp,
-  },
-}
-
-export const theme = extendBaseTheme({
-  config,
-  semanticTokens,
-  components: {
-    Button,
-    List,
-    Heading,
-    Link,
-    Spinner,
-    Code,
-    Kbd,
-    Modal,
-    Select,
-    Menu,
-    Popover,
-    Tabs,
+const config = defineConfig({
+  theme: {
+    semanticTokens: {
+      colors: {
+        ctp,
+        bg: {
+          DEFAULT: { value: { _light: ctp.base.value._light, _dark: ctp.base.value._dark } },
+          subtle: {
+            value: { _light: ctp.mantle.value._light, _dark: ctp.mantle.value._dark },
+          },
+          muted: {
+            value: { _light: ctp.surface0.value._light, _dark: ctp.surface0.value._dark },
+          },
+        },
+        fg: {
+          DEFAULT: { value: { _light: ctp.text.value._light, _dark: ctp.text.value._dark } },
+          muted: {
+            value: { _light: ctp.subtext1.value._light, _dark: ctp.subtext1.value._dark },
+          },
+        },
+        border: {
+          value: { _light: ctp.surface0.value._light, _dark: ctp.surface0.value._dark },
+        },
+      },
+    },
   },
 })
+
+export const system = createSystem(defaultConfig, config)

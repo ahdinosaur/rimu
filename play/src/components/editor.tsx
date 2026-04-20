@@ -1,11 +1,12 @@
 import React, { useRef, useEffect, useState } from 'react'
-import { Box, useColorModeValue } from '@chakra-ui/react'
+import { Box } from '@chakra-ui/react'
 import { EditorState } from '@codemirror/state'
 import { EditorView } from 'codemirror'
 import { Variant } from 'codemirror-theme-catppuccin'
 
 import { CodeMirror, updateCode, updateTheme } from '@/codemirror'
 import { Report, setReports } from '@/codemirror/diagnostics'
+import { useColorModeValue } from '@/hooks/use-color-mode'
 
 export type EditorProps = {
   height: string
@@ -32,7 +33,7 @@ export function Editor(props: EditorProps) {
 
   const parentRef = useRef(null)
   const [view, setView] = useState<EditorView | null>(null)
-  const theme = useColorModeValue<Variant>('latte', 'mocha') as Variant
+  const theme = useColorModeValue<Variant>('latte', 'mocha')
 
   // on init
   useEffect(() => {
@@ -82,15 +83,13 @@ export function Editor(props: EditorProps) {
 
   return (
     <Box
-      sx={{
-        width: '100%',
-        height,
-
-        '.cm-editor': {
+      width="100%"
+      height={height}
+      css={{
+        '& .cm-editor': {
           height: '100%',
         },
-
-        '.cm-scroller': {
+        '& .cm-scroller': {
           height: '100%',
           overflowY: 'auto',
         },

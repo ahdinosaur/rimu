@@ -2,19 +2,7 @@
 
 import { useCallback, useState } from 'react'
 import { EditorState } from '@codemirror/state'
-import {
-  Flex,
-  Tab,
-  TabIndicator,
-  TabIndicatorProps,
-  TabList,
-  TabPanel,
-  TabPanels,
-  TabProps,
-  Tabs,
-  TabsProps,
-  useBreakpointValue,
-} from '@chakra-ui/react'
+import { Flex, Tabs, useBreakpointValue } from '@chakra-ui/react'
 import { Group, Panel, Separator } from 'react-resizable-panels'
 
 import { Editor } from './editor'
@@ -70,7 +58,7 @@ export function Playground() {
   const Panels = isMobile ? PlaygroundPanesMobile : PlaygroundPanesDesktop
 
   return (
-    <Flex sx={{ flexDirection: 'column', height: '100dvh', alignItems: 'stretch' }}>
+    <Flex flexDirection="column" height="100dvh" alignItems="stretch">
       <HeaderMenu height={headerHeight} setCodeToLoad={setCodeToLoad} />
       <Panels editorElement={editorElement} outputElement={outputElement} />
     </Flex>
@@ -89,17 +77,8 @@ function PlaygroundPanesDesktop(props: PlaygroundPanesProps) {
     <Group orientation="horizontal" style={{ flexGrow: 1 }}>
       <Panel defaultSize={50}>
         <PanelTabs
-          tabsProps={{
-            height: 8,
-            colorScheme: 'gray',
-            variant: 'unstyled',
-          }}
-          tabs={[
-            {
-              label: 'Template',
-              element: editorElement,
-            },
-          ]}
+          tabsProps={{ height: 8, colorPalette: 'gray', variant: 'plain' }}
+          tabs={[{ label: 'Template', element: editorElement }]}
         />
       </Panel>
       <Separator
@@ -107,17 +86,8 @@ function PlaygroundPanesDesktop(props: PlaygroundPanesProps) {
       />
       <Panel defaultSize={50}>
         <PanelTabs
-          tabsProps={{
-            height: 8,
-            colorScheme: 'gray',
-            variant: 'unstyled',
-          }}
-          tabs={[
-            {
-              label: 'Output',
-              element: outputElement,
-            },
-          ]}
+          tabsProps={{ height: 8, colorPalette: 'gray', variant: 'plain' }}
+          tabs={[{ label: 'Output', element: outputElement }]}
         />
       </Panel>
     </Group>
@@ -129,18 +99,10 @@ function PlaygroundPanesMobile(props: PlaygroundPanesProps) {
 
   return (
     <PanelTabs
-      tabsProps={{
-        colorScheme: 'purple',
-      }}
+      tabsProps={{ colorPalette: 'purple' }}
       tabs={[
-        {
-          label: 'Template',
-          element: editorElement,
-        },
-        {
-          label: 'Output',
-          element: outputElement,
-        },
+        { label: 'Template', element: editorElement },
+        { label: 'Output', element: outputElement },
       ]}
     />
   )
@@ -153,33 +115,28 @@ type PanelTab = {
 
 type PanelTabsProps = {
   tabs: Array<PanelTab>
-  tabsProps?: Omit<TabsProps, 'children'>
-  tabProps?: Omit<TabProps, 'children'>
-  tabIndicatorProps?: TabIndicatorProps
+  tabsProps?: Omit<Tabs.RootProps, 'children'>
 }
 
 function PanelTabs(props: PanelTabsProps) {
-  const { tabs, tabsProps = {}, tabProps = {}, tabIndicatorProps } = props
+  const { tabs, tabsProps = {} } = props
+  const defaultValue = tabs[0]?.label
 
   return (
-    <Tabs variant="enclosed" isFitted size="sm" {...tabsProps}>
-      <TabList>
-        {tabs.map((t, i) => (
-          <Tab key={i} {...tabProps}>
+    <Tabs.Root variant="enclosed" fitted size="sm" defaultValue={defaultValue} {...tabsProps}>
+      <Tabs.List>
+        {tabs.map((t) => (
+          <Tabs.Trigger key={t.label} value={t.label}>
             {t.label}
-          </Tab>
+          </Tabs.Trigger>
         ))}
-      </TabList>
+      </Tabs.List>
 
-      {tabIndicatorProps && <TabIndicator {...tabIndicatorProps} />}
-
-      <TabPanels>
-        {tabs.map((t, i) => (
-          <TabPanel key={i} sx={{ padding: 0 }}>
-            {t.element}
-          </TabPanel>
-        ))}
-      </TabPanels>
-    </Tabs>
+      {tabs.map((t) => (
+        <Tabs.Content key={t.label} value={t.label} padding={0}>
+          {t.element}
+        </Tabs.Content>
+      ))}
+    </Tabs.Root>
   )
 }
