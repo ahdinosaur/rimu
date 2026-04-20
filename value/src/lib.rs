@@ -27,10 +27,11 @@ pub type ValueMeta = IndexMap<String, SpannedValue>;
 
 /// Reserved keys used to (de)serialize tagged values through a JSON-safe
 /// envelope object. A deserialized object with all three keys in the expected
-/// shapes is promoted back to [`Value::Tagged`].
+/// shapes is promoted back to [`Value::Tagged`]. All three keys carry the
+/// `__rimu_` prefix so a plain user object is extremely unlikely to collide.
 pub const TAGGED_KEY: &str = "__rimu_tag";
-pub const TAGGED_VALUE_KEY: &str = "value";
-pub const TAGGED_META_KEY: &str = "meta";
+pub const TAGGED_VALUE_KEY: &str = "__rimu_value";
+pub const TAGGED_META_KEY: &str = "__rimu_meta";
 
 #[derive(Default, Clone)]
 pub enum Value {
@@ -45,9 +46,11 @@ pub enum Value {
     /// A value annotated with a consumer-defined `tag` and arbitrary `meta`.
     /// Tags are opaque to the evaluator:
     ///
-    /// - unary ops and arithmetic/concat against a raw value propagate the
-    ///   tag + meta to the result,
-    /// - two tagged operands error (see [`BothTagged`]),
+    /// - unary ops, arithmetic/concat, and function calls against a raw value
+    ///   propagate the tag + meta to the result,
+    /// - two tagged operands with the same tag combine: tag is kept and metas
+    ///   are merged (right-wins on key collision),
+    /// - two tagged operands with different tags error (see [`BothTagged`]),
     /// - ordering comparisons on tagged values error,
     /// - structural ops (index/slice/key) on tagged values error,
     /// - equality is structural over tag, inner, and meta.

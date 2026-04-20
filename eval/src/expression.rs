@@ -672,8 +672,10 @@ fn get_index(
 
 type TagMeta = (String, ValueMeta);
 
-/// Unwraps a tagged operand so the inner can be computed on. Errors if both
-/// sides are tagged (see [`Value::Tagged`]).
+/// Unwraps a tagged operand so the inner can be computed on. If both sides are
+/// tagged with the same tag, their metas are merged (right-wins on key
+/// collision) and the tag is carried through. Tag mismatch errors — see
+/// [`Value::Tagged`].
 fn combine_tags(
     left: Value,
     left_span: Span,
@@ -682,12 +684,37 @@ fn combine_tags(
 ) -> Result<(Value, Value, Option<TagMeta>)> {
     match (&left, &right) {
         (Value::Tagged { tag: lt, .. }, Value::Tagged { tag: rt, .. }) => {
-            Err(EvalError::BothTagged(Box::new(BothTagged {
-                left_span,
-                right_span,
-                left_tag: lt.clone(),
-                right_tag: rt.clone(),
-            })))
+            if lt != rt {
+                return Err(EvalError::BothTagged(Box::new(BothTagged {
+                    left_span,
+                    right_span,
+                    left_tag: lt.clone(),
+                    right_tag: rt.clone(),
+                })));
+            }
+            let (
+                Value::Tagged {
+                    tag,
+                    inner: left_inner,
+                    meta: mut merged_meta,
+                },
+                Value::Tagged {
+                    inner: right_inner,
+                    meta: right_meta,
+                    ..
+                },
+            ) = (left, right)
+            else {
+                unreachable!()
+            };
+            for (key, value) in right_meta {
+                merged_meta.insert(key, value);
+            }
+            Ok((
+                left_inner.into_inner(),
+                right_inner.into_inner(),
+                Some((tag, merged_meta)),
+            ))
         }
         (Value::Tagged { .. }, _) => {
             let Value::Tagged { tag, inner, meta } = left else {
@@ -1029,10 +1056,10 @@ mod tests {
         }
 
         #[test]
-        fn both_tagged_errors() {
+        fn mismatched_tags_error() {
             let mut env = host_path_env("/abs/a", "/src");
             let q = tagged(
-                "host_path",
+                "target_path",
                 SerdeValue::String("/abs/b".into()),
                 &[("origin_dir", SerdeValue::String("/src".into()))],
             );
@@ -1040,6 +1067,61 @@ mod tests {
 
             let actual = test_code("p + q", Some(env));
             assert!(matches!(actual, Err(EvalError::BothTagged(_))));
+        }
+
+        #[test]
+        fn same_tag_merges_meta() {
+            let a = tagged(
+                "secret",
+                SerdeValue::String("user:".into()),
+                &[("source", SerdeValue::String("env".into()))],
+            );
+            let b = tagged(
+                "secret",
+                SerdeValue::String("hunter2".into()),
+                &[("name", SerdeValue::String("password".into()))],
+            );
+            let mut env = SerdeValueObject::new();
+            env.insert("a".into(), a);
+            env.insert("b".into(), b);
+
+            let actual = test_code("a + b", Some(env)).unwrap();
+
+            let expected = tagged(
+                "secret",
+                SerdeValue::String("user:hunter2".into()),
+                &[
+                    ("source", SerdeValue::String("env".into())),
+                    ("name", SerdeValue::String("password".into())),
+                ],
+            );
+            assert_eq!(actual, expected);
+        }
+
+        #[test]
+        fn same_tag_meta_right_wins_on_collision() {
+            let a = tagged(
+                "secret",
+                SerdeValue::String("a".into()),
+                &[("source", SerdeValue::String("left".into()))],
+            );
+            let b = tagged(
+                "secret",
+                SerdeValue::String("b".into()),
+                &[("source", SerdeValue::String("right".into()))],
+            );
+            let mut env = SerdeValueObject::new();
+            env.insert("a".into(), a);
+            env.insert("b".into(), b);
+
+            let actual = test_code("a + b", Some(env)).unwrap();
+
+            let expected = tagged(
+                "secret",
+                SerdeValue::String("ab".into()),
+                &[("source", SerdeValue::String("right".into()))],
+            );
+            assert_eq!(actual, expected);
         }
 
         #[test]
@@ -1138,6 +1220,144 @@ mod tests {
                     ..
                 })
             ));
+        }
+
+        mod call {
+            use std::{cell::RefCell, rc::Rc};
+
+            use pretty_assertions::assert_eq;
+            use rimu_meta::{SourceId, Spanned};
+            use rimu_parse::parse_expression;
+            use rimu_value::{
+                Environment, EvalError, Function, FunctionBody, NativeFunction, SerdeValue,
+                SerdeValueObject, SpannedValue, Value,
+            };
+
+            use super::super::super::EvalError as TopEvalError;
+            use super::super::test_code;
+            use super::{host_path_env, tagged};
+
+            fn user_fn(arg_names: &[&str], body_code: &str) -> SerdeValue {
+                let (Some(body), errors) = parse_expression(body_code, SourceId::empty()) else {
+                    panic!("failed to parse function body");
+                };
+                assert_eq!(errors.len(), 0);
+                SerdeValue::Function(Function {
+                    args: arg_names.iter().map(|s| (*s).to_string()).collect(),
+                    body: FunctionBody::Expression(body),
+                    env: Rc::new(RefCell::new(Environment::new())),
+                })
+            }
+
+            #[test]
+            fn user_fn_propagates_single_tagged_arg() {
+                let mut env = host_path_env("/abs/a", "/src");
+                env.insert("append_bang".into(), user_fn(&["x"], r#"x + "!""#));
+
+                let actual = test_code("append_bang(p)", Some(env)).unwrap();
+                let expected = tagged(
+                    "host_path",
+                    SerdeValue::String("/abs/a!".into()),
+                    &[("origin_dir", SerdeValue::String("/src".into()))],
+                );
+                assert_eq!(actual, expected);
+            }
+
+            #[test]
+            fn user_fn_merges_matching_tag_metas() {
+                let a = tagged(
+                    "secret",
+                    SerdeValue::String("user:".into()),
+                    &[("source", SerdeValue::String("env".into()))],
+                );
+                let b = tagged(
+                    "secret",
+                    SerdeValue::String("hunter2".into()),
+                    &[("name", SerdeValue::String("password".into()))],
+                );
+                let mut env = SerdeValueObject::new();
+                env.insert("a".into(), a);
+                env.insert("b".into(), b);
+                env.insert("concat".into(), user_fn(&["x", "y"], "x + y"));
+
+                let actual = test_code("concat(a, b)", Some(env)).unwrap();
+
+                let expected = tagged(
+                    "secret",
+                    SerdeValue::String("user:hunter2".into()),
+                    &[
+                        ("source", SerdeValue::String("env".into())),
+                        ("name", SerdeValue::String("password".into())),
+                    ],
+                );
+                assert_eq!(actual, expected);
+            }
+
+            #[test]
+            fn user_fn_errors_on_mismatched_tags() {
+                let a = tagged("host_path", SerdeValue::String("/a".into()), &[]);
+                let b = tagged("target_path", SerdeValue::String("/b".into()), &[]);
+                let mut env = SerdeValueObject::new();
+                env.insert("a".into(), a);
+                env.insert("b".into(), b);
+                env.insert("concat".into(), user_fn(&["x", "y"], "x + y"));
+
+                let actual = test_code("concat(a, b)", Some(env));
+                assert!(matches!(actual, Err(TopEvalError::BothTagged(_))));
+            }
+
+            fn first_arg(
+                span: rimu_meta::Span,
+                args: &[SpannedValue],
+            ) -> Result<SpannedValue, EvalError> {
+                let arg = args.first().cloned().ok_or(EvalError::MissingArgument {
+                    span: span.clone(),
+                    index: 0,
+                })?;
+                Ok(Spanned::new(arg.into_inner(), span))
+            }
+
+            #[test]
+            fn native_fn_propagates_tag_and_unwraps_input() {
+                let native = SerdeValue::Function(Function {
+                    args: vec!["x".into()],
+                    body: FunctionBody::Native(NativeFunction::new("first_arg", first_arg)),
+                    env: Rc::new(RefCell::new(Environment::new())),
+                });
+                let probe = SerdeValue::Function(Function {
+                    args: vec!["x".into()],
+                    body: FunctionBody::Native(NativeFunction::new(
+                        "assert_untagged_string",
+                        |span, args| {
+                            let (arg, _) = args[0].clone().take();
+                            assert!(
+                                matches!(arg, Value::String(_)),
+                                "native should receive unwrapped value, got {:?}",
+                                arg
+                            );
+                            Ok(Spanned::new(arg, span))
+                        },
+                    )),
+                    env: Rc::new(RefCell::new(Environment::new())),
+                });
+
+                let mut env = host_path_env("/abs/a", "/src");
+                env.insert("id".into(), native);
+                env.insert("probe".into(), probe);
+
+                let actual = test_code("id(p)", Some(env.clone())).unwrap();
+                let expected = tagged(
+                    "host_path",
+                    SerdeValue::String("/abs/a".into()),
+                    &[("origin_dir", SerdeValue::String("/src".into()))],
+                );
+                assert_eq!(actual, expected);
+
+                // Independently confirm the native callee sees the unwrapped
+                // inner (not a Tagged), so it can't accidentally branch on tags.
+                let probed = test_code("probe(p)", Some(env)).unwrap();
+                assert_eq!(probed, expected);
+            }
         }
     }
 }

@@ -50,7 +50,7 @@ pub enum EvalError {
     #[error("error expression")]
     ErrorExpression { span: Span },
 
-    #[error("cannot combine two tagged values: {} and {}", .0.left_tag, .0.right_tag)]
+    #[error("cannot combine tagged values with different tags: {} and {}", .0.left_tag, .0.right_tag)]
     BothTagged(Box<BothTagged>),
 
     #[error("ordering comparison not supported on tagged value: {tag}")]
@@ -180,7 +180,7 @@ impl From<EvalError> for ErrorReport {
                 } = *data;
                 (
                     left_span.clone().union(right_span.clone()),
-                    "Eval: Cannot combine two tagged values",
+                    "Eval: Cannot combine tagged values with different tags",
                     vec![
                         (left_span.clone(), format!("Tag: {}", left_tag)),
                         (right_span.clone(), format!("Tag: {}", right_tag)),
