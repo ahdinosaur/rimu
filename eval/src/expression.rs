@@ -143,8 +143,8 @@ impl Evaluator {
     ) -> Result<SpannedValue> {
         let (left, left_span) = self.expression(left)?.take();
         match operator {
-            BinaryOperator::And => self.boolean(span, left, right, true),
-            BinaryOperator::Or => self.boolean(span, left, right, false),
+            BinaryOperator::And => self.boolean(span, left, left_span, right, true),
+            BinaryOperator::Or => self.boolean(span, left, left_span, right, false),
             // `PartialEq` on `Value` compares tag + meta structurally.
             BinaryOperator::Equal => {
                 let right = self.expression(right)?.into_inner();
@@ -360,23 +360,36 @@ impl Evaluator {
         }
     }
 
+    /// Short-circuiting `&&` / `||`. Tags propagate: an untagged side contributes
+    /// nothing; same-tag sides merge metas (right-wins on collision); different
+    /// tags error via [`BothTagged`]. Because right is only evaluated when left
+    /// doesn't determine the result, `tagged("a", false) && tagged("b", ...)`
+    /// short-circuits to `tagged("a", false)` without observing the mismatch.
     fn boolean(
         &self,
         span: Span,
         left: Value,
+        left_span: Span,
         right: &SpannedExpression,
         full_evaluate_on: bool,
     ) -> Result<SpannedValue> {
-        let left: bool = left.into();
-        let value = if left == full_evaluate_on {
-            // if `left` is not the result we need, evaluate `right`
-            let right = self.expression(right)?.into_inner();
-            let right: bool = right.into();
-            Value::Boolean(right)
-        } else {
-            Value::Boolean(left) // short circuit
+        let (left_inner, left_tag_meta) = match left {
+            Value::Tagged { tag, inner, meta } => (inner.into_inner(), Some((tag, meta))),
+            other => (other, None),
         };
-        Ok(Spanned::new(value, span))
+        let left_bool: bool = left_inner.into();
+        if left_bool != full_evaluate_on {
+            // short circuit — tag on left (if any) still carries through
+            return Ok(rewrap(span, Value::Boolean(left_bool), left_tag_meta));
+        }
+        let (right, right_span) = self.expression(right)?.take();
+        let (right_inner, right_tag_meta) = match right {
+            Value::Tagged { tag, inner, meta } => (inner.into_inner(), Some((tag, meta))),
+            other => (other, None),
+        };
+        let right_bool: bool = right_inner.into();
+        let tag_meta = merge_tag_metas(left_tag_meta, left_span, right_tag_meta, right_span)?;
+        Ok(rewrap(span, Value::Boolean(right_bool), tag_meta))
     }
 
     fn list(&self, span: Span, items: &Vec<SpannedExpression>) -> Result<SpannedValue> {
@@ -682,56 +695,54 @@ fn combine_tags(
     right: Value,
     right_span: Span,
 ) -> Result<(Value, Value, Option<TagMeta>)> {
-    match (&left, &right) {
-        (Value::Tagged { tag: lt, .. }, Value::Tagged { tag: rt, .. }) => {
-            if lt != rt {
+    let (left_inner, left_tag_meta) = match left {
+        Value::Tagged { tag, inner, meta } => (inner.into_inner(), Some((tag, meta))),
+        other => (other, None),
+    };
+    let (right_inner, right_tag_meta) = match right {
+        Value::Tagged { tag, inner, meta } => (inner.into_inner(), Some((tag, meta))),
+        other => (other, None),
+    };
+    let tag_meta = merge_tag_metas(left_tag_meta, left_span, right_tag_meta, right_span)?;
+    Ok((left_inner, right_inner, tag_meta))
+}
+
+/// Merge two already-extracted tag+meta pairs. Same-tag merges metas
+/// (right-wins on collision); different tags error; `None` contributes nothing.
+/// Used by both [`combine_tags`] (which extracts from `Value::Tagged` operands)
+/// and by [`Evaluator::boolean`] (which extracts eagerly for short-circuit).
+fn merge_tag_metas(
+    left: Option<TagMeta>,
+    left_span: Span,
+    right: Option<TagMeta>,
+    right_span: Span,
+) -> Result<Option<TagMeta>> {
+    match (left, right) {
+        (None, None) => Ok(None),
+        (Some(lt), None) => Ok(Some(lt)),
+        (None, Some(rt)) => Ok(Some(rt)),
+        (Some((left_tag, mut left_meta)), Some((right_tag, right_meta))) => {
+            if left_tag != right_tag {
                 return Err(EvalError::BothTagged(Box::new(BothTagged {
                     left_span,
                     right_span,
-                    left_tag: lt.clone(),
-                    right_tag: rt.clone(),
+                    left_tag,
+                    right_tag,
                 })));
             }
-            let (
-                Value::Tagged {
-                    tag,
-                    inner: left_inner,
-                    meta: mut merged_meta,
-                },
-                Value::Tagged {
-                    inner: right_inner,
-                    meta: right_meta,
-                    ..
-                },
-            ) = (left, right)
-            else {
-                unreachable!()
-            };
             for (key, value) in right_meta {
-                merged_meta.insert(key, value);
+                left_meta.insert(key, value);
             }
-            Ok((
-                left_inner.into_inner(),
-                right_inner.into_inner(),
-                Some((tag, merged_meta)),
-            ))
+            Ok(Some((left_tag, left_meta)))
         }
-        (Value::Tagged { .. }, _) => {
-            let Value::Tagged { tag, inner, meta } = left else {
-                unreachable!()
-            };
-            Ok((inner.into_inner(), right, Some((tag, meta))))
-        }
-        (_, Value::Tagged { .. }) => {
-            let Value::Tagged { tag, inner, meta } = right else {
-                unreachable!()
-            };
-            Ok((left, inner.into_inner(), Some((tag, meta))))
-        }
-        _ => Ok((left, right, None)),
     }
 }
 
+/// Note(cc): both the outer `Spanned` and the inner `Spanned<Value>` are stamped
+/// with the whole-operation `span`. A tighter source span for the unwrapped
+/// inner value isn't available at this point (the op just produced a fresh
+/// `Value`), and downstream consumers only surface the outer span in
+/// diagnostics, so the duplication is harmless today.
 fn rewrap(span: Span, value: Value, tag_meta: Option<TagMeta>) -> SpannedValue {
     match tag_meta {
         None => Spanned::new(value, span),
@@ -1163,6 +1174,105 @@ mod tests {
             let expected = tagged(
                 "host_path",
                 SerdeValue::Boolean(false),
+                &[("origin_dir", SerdeValue::String("/src".into()))],
+            );
+            assert_eq!(actual, expected);
+        }
+
+        #[test]
+        fn and_short_circuit_on_left_false_keeps_left_tag() {
+            // tagged false short-circuits: right is never evaluated, left tag
+            // survives. A right-hand tag mismatch can't surface here.
+            let left = tagged(
+                "host_path",
+                SerdeValue::Boolean(false),
+                &[("origin_dir", SerdeValue::String("/src".into()))],
+            );
+            let mut env = SerdeValueObject::new();
+            env.insert("left".into(), left);
+            let actual = test_code("left && true", Some(env)).unwrap();
+
+            let expected = tagged(
+                "host_path",
+                SerdeValue::Boolean(false),
+                &[("origin_dir", SerdeValue::String("/src".into()))],
+            );
+            assert_eq!(actual, expected);
+        }
+
+        #[test]
+        fn and_evaluated_right_carries_right_tag() {
+            let right = tagged(
+                "host_path",
+                SerdeValue::Boolean(true),
+                &[("origin_dir", SerdeValue::String("/src".into()))],
+            );
+            let mut env = SerdeValueObject::new();
+            env.insert("right".into(), right);
+            let actual = test_code("true && right", Some(env)).unwrap();
+
+            let expected = tagged(
+                "host_path",
+                SerdeValue::Boolean(true),
+                &[("origin_dir", SerdeValue::String("/src".into()))],
+            );
+            assert_eq!(actual, expected);
+        }
+
+        #[test]
+        fn and_merges_matching_tag_metas() {
+            let left = tagged(
+                "secret",
+                SerdeValue::Boolean(true),
+                &[("source", SerdeValue::String("env".into()))],
+            );
+            let right = tagged(
+                "secret",
+                SerdeValue::Boolean(true),
+                &[("name", SerdeValue::String("password".into()))],
+            );
+            let mut env = SerdeValueObject::new();
+            env.insert("a".into(), left);
+            env.insert("b".into(), right);
+            let actual = test_code("a && b", Some(env)).unwrap();
+
+            let expected = tagged(
+                "secret",
+                SerdeValue::Boolean(true),
+                &[
+                    ("source", SerdeValue::String("env".into())),
+                    ("name", SerdeValue::String("password".into())),
+                ],
+            );
+            assert_eq!(actual, expected);
+        }
+
+        #[test]
+        fn and_mismatched_tags_error_when_right_evaluated() {
+            // Left is true, so right IS evaluated; mismatched tags surface.
+            let left = tagged("host_path", SerdeValue::Boolean(true), &[]);
+            let right = tagged("secret", SerdeValue::Boolean(true), &[]);
+            let mut env = SerdeValueObject::new();
+            env.insert("a".into(), left);
+            env.insert("b".into(), right);
+            let actual = test_code("a && b", Some(env));
+            assert!(matches!(actual, Err(EvalError::BothTagged(_))));
+        }
+
+        #[test]
+        fn or_short_circuit_on_left_true_keeps_left_tag() {
+            let left = tagged(
+                "host_path",
+                SerdeValue::Boolean(true),
+                &[("origin_dir", SerdeValue::String("/src".into()))],
+            );
+            let mut env = SerdeValueObject::new();
+            env.insert("left".into(), left);
+            let actual = test_code("left || false", Some(env)).unwrap();
+
+            let expected = tagged(
+                "host_path",
+                SerdeValue::Boolean(true),
                 &[("origin_dir", SerdeValue::String("/src".into()))],
             );
             assert_eq!(actual, expected);

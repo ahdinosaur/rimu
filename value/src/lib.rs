@@ -46,14 +46,21 @@ pub enum Value {
     /// A value annotated with a consumer-defined `tag` and arbitrary `meta`.
     /// Tags are opaque to the evaluator:
     ///
-    /// - unary ops, arithmetic/concat, and function calls against a raw value
-    ///   propagate the tag + meta to the result,
+    /// - unary ops, arithmetic/concat, short-circuiting `&&` / `||`, and
+    ///   function calls against a raw value propagate the tag + meta to the
+    ///   result,
     /// - two tagged operands with the same tag combine: tag is kept and metas
     ///   are merged (right-wins on key collision),
     /// - two tagged operands with different tags error (see [`BothTagged`]),
+    ///   except when a short-circuiting `&&` / `||` never evaluates the
+    ///   right-hand side,
     /// - ordering comparisons on tagged values error,
     /// - structural ops (index/slice/key) on tagged values error,
     /// - equality is structural over tag, inner, and meta.
+    ///
+    /// Nested tagging (`Tagged { inner: Tagged { ... } }`) is not supported —
+    /// operations unwrap at most one level and will `TypeError` on the inner
+    /// tagged value. Producers are expected to keep tagging flat.
     Tagged {
         tag: String,
         inner: Box<SpannedValue>,
