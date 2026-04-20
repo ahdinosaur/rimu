@@ -41,7 +41,7 @@ import {
   FormLabel,
   VStack,
 } from '@chakra-ui/react'
-import { useEffect, useState } from 'react'
+import { useCallback, useSyncExternalStore } from 'react'
 import { useClipboard } from 'use-clipboard-copy'
 import { usePathname, useSearchParams } from 'next/navigation'
 
@@ -149,7 +149,11 @@ function HelpButton() {
 }
 
 function SharePopover() {
-  const [origin, setOrigin] = useState('')
+  const origin = useSyncExternalStore(
+    () => () => {},
+    () => window.location.origin,
+    () => '',
+  )
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const url =
@@ -157,11 +161,8 @@ function SharePopover() {
       ? `${origin}${pathname}`
       : `${origin}${pathname}?${searchParams}`
 
-  useEffect(() => {
-    setOrigin(location.origin)
-  }, [])
-
   const clipboard = useClipboard()
+  const onCopy = useCallback(() => clipboard.copy(), [clipboard])
 
   return (
     <Popover>
@@ -177,6 +178,7 @@ function SharePopover() {
             <HStack spacing={3} sx={{ alignSelf: 'stretch' }}>
               <FormLabel>URL:</FormLabel>
               <Input
+                // eslint-disable-next-line react-hooks/refs
                 ref={clipboard.target}
                 type="text"
                 variant="outline"
@@ -188,7 +190,7 @@ function SharePopover() {
             <Button
               rightIcon={<Icon as={FaClipboard} />}
               sx={{ alignSelf: 'center' }}
-              onClick={clipboard.copy}
+              onClick={onCopy}
             >
               Copy to clipboard
             </Button>
@@ -211,7 +213,7 @@ function ColorModeSwitch() {
   const { toggleColorMode } = useColorMode()
 
   const text = useColorModeValue('dark', 'light')
-  const SwitchIcon = useColorModeValue(FaMoon, FaSun)
+  const switchIcon = useColorModeValue(<FaMoon />, <FaSun />)
 
   return (
     <IconButton
@@ -220,7 +222,7 @@ function ColorModeSwitch() {
       variant="ghost"
       color="current"
       onClick={toggleColorMode}
-      icon={<SwitchIcon />}
+      icon={switchIcon}
     />
   )
 }

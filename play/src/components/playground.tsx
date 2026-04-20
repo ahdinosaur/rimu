@@ -3,7 +3,6 @@
 import { useCallback, useState } from 'react'
 import { EditorState } from '@codemirror/state'
 import {
-  Box,
   Flex,
   Tab,
   TabIndicator,
@@ -16,8 +15,7 @@ import {
   TabsProps,
   useBreakpointValue,
 } from '@chakra-ui/react'
-// @ts-ignore
-import { useResplit } from 'react-resplit'
+import { Group, Panel, Separator } from 'react-resizable-panels'
 
 import { Editor } from './editor'
 import { Output, Format } from './output'
@@ -87,13 +85,9 @@ type PlaygroundPanesProps = {
 function PlaygroundPanesDesktop(props: PlaygroundPanesProps) {
   const { editorElement, outputElement } = props
 
-  const { getContainerProps, getSplitterProps, getPaneProps } = useResplit({
-    direction: 'horizontal',
-  })
-
   return (
-    <Box {...getContainerProps()} sx={{ flexGrow: 1 }}>
-      <Box {...getPaneProps(0, { initialSize: '0.5fr' })}>
+    <Group orientation="horizontal" style={{ flexGrow: 1 }}>
+      <Panel defaultSize={50}>
         <PanelTabs
           tabsProps={{
             height: 8,
@@ -107,9 +101,11 @@ function PlaygroundPanesDesktop(props: PlaygroundPanesProps) {
             },
           ]}
         />
-      </Box>
-      <Box {...getSplitterProps(1, { size: '12px' })} sx={{ backgroundColor: 'ctp.surface0' }} />
-      <Box {...getPaneProps(2, { initialSize: '0.5fr' })}>
+      </Panel>
+      <Separator
+        style={{ width: '12px', backgroundColor: 'var(--chakra-colors-ctp-surface0)' }}
+      />
+      <Panel defaultSize={50}>
         <PanelTabs
           tabsProps={{
             height: 8,
@@ -123,8 +119,8 @@ function PlaygroundPanesDesktop(props: PlaygroundPanesProps) {
             },
           ]}
         />
-      </Box>
-    </Box>
+      </Panel>
+    </Group>
   )
 }
 

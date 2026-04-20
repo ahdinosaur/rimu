@@ -1,6 +1,6 @@
 import { extendBaseTheme, ThemeConfig } from '@chakra-ui/react'
 import { theme as baseTheme } from '@chakra-ui/theme'
-import { variants, labels, Labels } from '@catppuccin/palette'
+import { flavors, type ColorName } from '@catppuccin/palette'
 
 const { Button, List, Heading, Link, Spinner, Code, Kbd, Modal, Select, Menu, Popover, Tabs } =
   baseTheme.components
@@ -10,21 +10,18 @@ const config: ThemeConfig = {
   useSystemColorMode: true,
 }
 
-type ColorName = keyof typeof labels
 type ColorValue = {
   _light: string
   _dark: string
 }
 type Colors = Record<ColorName, ColorValue>
-const ctp = Object.entries(labels).reduce((sofar, [name, palette]) => {
-  const color = {
-    _light: palette.latte.hex,
-    _dark: palette.macchiato.hex,
+const ctp = flavors.latte.colorEntries.reduce((sofar, [name, color]) => {
+  sofar[name] = {
+    _light: color.hex,
+    _dark: flavors.macchiato.colors[name].hex,
   }
-  // @ts-ignore
-  sofar[name] = color
   return sofar
-}, {}) as Colors
+}, {} as Colors)
 
 const semanticTokens = {
   colors: {
