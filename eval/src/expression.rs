@@ -4,13 +4,67 @@
 use rimu_ast::{BinaryOperator, Expression, SpannedExpression, UnaryOperator};
 use rimu_meta::{Span, Spanned};
 use rimu_value::{
-    convert_value_object_to_serde_value_object, Environment, Function, FunctionBody, Number,
-    SpannedValue, Value, ValueObject,
+    convert_value_object_to_serde_value_object, BothTagged, Environment, Function, FunctionBody,
+    Number, SpannedValue, Value, ValueMeta, ValueObject,
 };
 use rust_decimal::prelude::ToPrimitive;
 use std::{cell::RefCell, ops::Deref, rc::Rc};
 
 use crate::{common, EvalError, Result};
+
+/// Tag + meta pulled off a tagged operand, for later re-wrapping.
+type TagMeta = (String, ValueMeta);
+
+/// If either side is [`Value::Tagged`], unwrap it and return the tag/meta to
+/// re-wrap with. Both-tagged always errors per the [`Value::Tagged`] contract.
+fn combine_tags(
+    left: Value,
+    left_span: Span,
+    right: Value,
+    right_span: Span,
+) -> Result<(Value, Value, Option<TagMeta>)> {
+    match (&left, &right) {
+        (Value::Tagged { tag: lt, .. }, Value::Tagged { tag: rt, .. }) => {
+            Err(EvalError::BothTagged(Box::new(BothTagged {
+                left_span,
+                right_span,
+                left_tag: lt.clone(),
+                right_tag: rt.clone(),
+            })))
+        }
+        (Value::Tagged { .. }, _) => {
+            let Value::Tagged { tag, inner, meta } = left else {
+                unreachable!()
+            };
+            Ok((inner.into_inner(), right, Some((tag, meta))))
+        }
+        (_, Value::Tagged { .. }) => {
+            let Value::Tagged { tag, inner, meta } = right else {
+                unreachable!()
+            };
+            Ok((left, inner.into_inner(), Some((tag, meta))))
+        }
+        _ => Ok((left, right, None)),
+    }
+}
+
+/// Re-attach a tag + meta to a computed value, if present.
+fn rewrap(span: Span, value: Value, tag_meta: Option<TagMeta>) -> SpannedValue {
+    match tag_meta {
+        None => Spanned::new(value, span),
+        Some((tag, meta)) => {
+            let inner = Spanned::new(value, span.clone());
+            Spanned::new(
+                Value::Tagged {
+                    tag,
+                    inner: Box::new(inner),
+                    meta,
+                },
+                span,
+            )
+        }
+    }
+}
 
 pub fn evaluate(
     expression: &SpannedExpression,
@@ -113,21 +167,25 @@ impl Evaluator {
         operator: &UnaryOperator,
     ) -> Result<SpannedValue> {
         let (right, right_span) = self.expression(right)?.take();
+        let (unwrapped, tag_meta) = match right {
+            Value::Tagged { tag, inner, meta } => (inner.into_inner(), Some((tag, meta))),
+            other => (other, None),
+        };
         let value = match operator {
-            UnaryOperator::Negate => match right.clone() {
+            UnaryOperator::Negate => match unwrapped.clone() {
                 Value::Number(number) => Ok(Value::Number(-number)),
                 _ => Err(EvalError::TypeError {
                     span: right_span,
                     expected: "number".into(),
-                    got: Box::new(right.into()),
+                    got: Box::new(unwrapped.into()),
                 }),
             },
             UnaryOperator::Not => {
-                let boolean: bool = right.into();
+                let boolean: bool = unwrapped.into();
                 Ok(Value::Boolean(!boolean))
             }
         }?;
-        Ok(Spanned::new(value, span))
+        Ok(rewrap(span, value, tag_meta))
     }
 
     fn binary(
@@ -141,11 +199,115 @@ impl Evaluator {
         match operator {
             BinaryOperator::And => self.boolean(span, left, right, true),
             BinaryOperator::Or => self.boolean(span, left, right, false),
+            // Equality is structural — tag + meta are included via derived
+            // PartialEq, so two HostPaths with different origin_dir are not
+            // equal.
+            BinaryOperator::Equal => {
+                let right = self.expression(right)?.into_inner();
+                Ok(Spanned::new(Value::Boolean(left == right), span))
+            }
+            BinaryOperator::NotEqual => {
+                let right = self.expression(right)?.into_inner();
+                Ok(Spanned::new(Value::Boolean(left != right), span))
+            }
+            // Ordering comparisons error if either side is tagged.
+            BinaryOperator::Greater
+            | BinaryOperator::GreaterEqual
+            | BinaryOperator::Less
+            | BinaryOperator::LessEqual => {
+                if let Value::Tagged { tag, .. } = &left {
+                    return Err(EvalError::TaggedOrderingComparison {
+                        span: left_span,
+                        tag: tag.clone(),
+                    });
+                }
+                let (right, right_span) = self.expression(right)?.take();
+                if let Value::Tagged { tag, .. } = &right {
+                    return Err(EvalError::TaggedOrderingComparison {
+                        span: right_span,
+                        tag: tag.clone(),
+                    });
+                }
+                let value = match operator {
+                    BinaryOperator::Greater => match (left.clone(), right.clone()) {
+                        (Value::Number(left), Value::Number(right)) => {
+                            Ok(Value::Boolean(left > right))
+                        }
+                        (Value::Number(_left), right) => Err(EvalError::TypeError {
+                            span: right_span,
+                            expected: "number".into(),
+                            got: Box::new(right.into()),
+                        }),
+                        _ => Err(EvalError::TypeError {
+                            span: left_span,
+                            expected: "number".into(),
+                            got: Box::new(left.into()),
+                        }),
+                    },
+                    BinaryOperator::GreaterEqual => match (left.clone(), right.clone()) {
+                        (Value::Number(left), Value::Number(right)) => {
+                            Ok(Value::Boolean(left >= right))
+                        }
+                        (Value::Number(_left), right) => Err(EvalError::TypeError {
+                            span: right_span,
+                            expected: "number".into(),
+                            got: Box::new(right.into()),
+                        }),
+                        _ => Err(EvalError::TypeError {
+                            span: left_span,
+                            expected: "number".into(),
+                            got: Box::new(left.into()),
+                        }),
+                    },
+                    BinaryOperator::Less => match (left.clone(), right.clone()) {
+                        (Value::Number(left), Value::Number(right)) => {
+                            Ok(Value::Boolean(left < right))
+                        }
+                        (Value::Number(_left), right) => Err(EvalError::TypeError {
+                            span: right_span,
+                            expected: "number".into(),
+                            got: Box::new(right.into()),
+                        }),
+                        _ => Err(EvalError::TypeError {
+                            span: left_span,
+                            expected: "number".into(),
+                            got: Box::new(left.into()),
+                        }),
+                    },
+                    BinaryOperator::LessEqual => match (left.clone(), right.clone()) {
+                        (Value::Number(left), Value::Number(right)) => {
+                            Ok(Value::Boolean(left <= right))
+                        }
+                        (Value::Number(_left), right) => Err(EvalError::TypeError {
+                            span: right_span,
+                            expected: "number".into(),
+                            got: Box::new(right.into()),
+                        }),
+                        _ => Err(EvalError::TypeError {
+                            span: left_span,
+                            expected: "number".into(),
+                            got: Box::new(left.into()),
+                        }),
+                    },
+                    _ => unreachable!(),
+                }?;
+                Ok(Spanned::new(value, span))
+            }
+            // Arithmetic / concat operators — tags unwrap and re-wrap so a
+            // tagged operand carries its tag through to the result.
             _ => {
                 let (right, right_span) = self.expression(right)?.take();
+                let (left, right, tag_meta) =
+                    combine_tags(left, left_span.clone(), right, right_span.clone())?;
                 let value = match operator {
                     BinaryOperator::Or => unreachable!(),
                     BinaryOperator::And => unreachable!(),
+                    BinaryOperator::Equal => unreachable!(),
+                    BinaryOperator::NotEqual => unreachable!(),
+                    BinaryOperator::Greater => unreachable!(),
+                    BinaryOperator::GreaterEqual => unreachable!(),
+                    BinaryOperator::Less => unreachable!(),
+                    BinaryOperator::LessEqual => unreachable!(),
                     BinaryOperator::Add => match (left.clone(), right.clone()) {
                         (Value::Number(left), Value::Number(right)) => {
                             Ok(Value::Number(left + right))
@@ -252,70 +414,8 @@ impl Evaluator {
                             got: Box::new(left.into()),
                         }),
                     },
-                    BinaryOperator::Greater => match (left.clone(), right.clone()) {
-                        (Value::Number(left), Value::Number(right)) => {
-                            Ok(Value::Boolean(left > right))
-                        }
-                        (Value::Number(_left), right) => Err(EvalError::TypeError {
-                            span: right_span,
-                            expected: "number".into(),
-                            got: Box::new(right.into()),
-                        }),
-                        _ => Err(EvalError::TypeError {
-                            span: left_span,
-                            expected: "number".into(),
-                            got: Box::new(left.into()),
-                        }),
-                    },
-                    BinaryOperator::GreaterEqual => match (left.clone(), right.clone()) {
-                        (Value::Number(left), Value::Number(right)) => {
-                            Ok(Value::Boolean(left >= right))
-                        }
-                        (Value::Number(_left), right) => Err(EvalError::TypeError {
-                            span: right_span,
-                            expected: "number".into(),
-                            got: Box::new(right.into()),
-                        }),
-                        _ => Err(EvalError::TypeError {
-                            span: left_span,
-                            expected: "number".into(),
-                            got: Box::new(left.into()),
-                        }),
-                    },
-                    BinaryOperator::Less => match (left.clone(), right.clone()) {
-                        (Value::Number(left), Value::Number(right)) => {
-                            Ok(Value::Boolean(left < right))
-                        }
-                        (Value::Number(_left), right) => Err(EvalError::TypeError {
-                            span: right_span,
-                            expected: "number".into(),
-                            got: Box::new(right.into()),
-                        }),
-                        _ => Err(EvalError::TypeError {
-                            span: left_span,
-                            expected: "number".into(),
-                            got: Box::new(left.into()),
-                        }),
-                    },
-                    BinaryOperator::LessEqual => match (left.clone(), right.clone()) {
-                        (Value::Number(left), Value::Number(right)) => {
-                            Ok(Value::Boolean(left <= right))
-                        }
-                        (Value::Number(_left), right) => Err(EvalError::TypeError {
-                            span: right_span,
-                            expected: "number".into(),
-                            got: Box::new(right.into()),
-                        }),
-                        _ => Err(EvalError::TypeError {
-                            span: left_span,
-                            expected: "number".into(),
-                            got: Box::new(left.into()),
-                        }),
-                    },
-                    BinaryOperator::Equal => Ok(Value::Boolean(left == right)),
-                    BinaryOperator::NotEqual => Ok(Value::Boolean(left != right)),
                 }?;
-                Ok(Spanned::new(value, span))
+                Ok(rewrap(span, value, tag_meta))
             }
         }
     }
@@ -404,6 +504,13 @@ impl Evaluator {
         index: &SpannedExpression,
     ) -> Result<SpannedValue> {
         let (container, container_span) = self.expression(container)?.take();
+        if let Value::Tagged { tag, .. } = &container {
+            return Err(EvalError::TaggedStructuralOp {
+                span: container_span,
+                tag: tag.clone(),
+                op: "index",
+            });
+        }
         let (index, index_span) = self.expression(index)?.take();
 
         let value = match (container.clone(), index.clone()) {
@@ -455,6 +562,14 @@ impl Evaluator {
     ) -> Result<SpannedValue> {
         let (container, container_span) = self.expression(container)?.take();
 
+        if let Value::Tagged { tag, .. } = &container {
+            return Err(EvalError::TaggedStructuralOp {
+                span: container_span,
+                tag: tag.clone(),
+                op: "key access",
+            });
+        }
+
         let Value::Object(object) = container.clone() else {
             return Err(EvalError::TypeError {
                 span: container_span,
@@ -484,6 +599,13 @@ impl Evaluator {
         end: Option<&SpannedExpression>,
     ) -> Result<SpannedValue> {
         let (container, container_span) = self.expression(container)?.take();
+        if let Value::Tagged { tag, .. } = &container {
+            return Err(EvalError::TaggedStructuralOp {
+                span: container_span,
+                tag: tag.clone(),
+                op: "slice",
+            });
+        }
         let start = match start {
             Some(start) => Some(self.expression(start)?.take()),
             None => None,
@@ -868,5 +990,117 @@ mod tests {
         ]));
 
         assert_eq!(actual, expected);
+    }
+
+    mod tagged {
+        use pretty_assertions::assert_eq;
+        use rimu_value::{SerdeValue, SerdeValueMeta, SerdeValueObject};
+
+        use super::super::EvalError;
+        use super::test_code;
+
+        fn tagged(tag: &str, inner: SerdeValue, meta_pairs: &[(&str, SerdeValue)]) -> SerdeValue {
+            let mut meta = SerdeValueMeta::new();
+            for (key, value) in meta_pairs {
+                meta.insert((*key).into(), value.clone());
+            }
+            SerdeValue::Tagged {
+                tag: tag.into(),
+                inner: Box::new(inner),
+                meta,
+            }
+        }
+
+        fn host_path_env(abs: &str, origin_dir: &str) -> SerdeValueObject {
+            let p = tagged(
+                "host_path",
+                SerdeValue::String(abs.into()),
+                &[("origin_dir", SerdeValue::String(origin_dir.into()))],
+            );
+            let mut env = SerdeValueObject::new();
+            env.insert("p".into(), p);
+            env
+        }
+
+        #[test]
+        fn add_preserves_tag() {
+            let env = host_path_env("/abs/foo.txt", "/src");
+            let actual = test_code(r#"p + "/hello""#, Some(env)).unwrap();
+
+            let expected = tagged(
+                "host_path",
+                SerdeValue::String("/abs/foo.txt/hello".into()),
+                &[("origin_dir", SerdeValue::String("/src".into()))],
+            );
+            assert_eq!(actual, expected);
+        }
+
+        #[test]
+        fn both_tagged_errors() {
+            let mut env = host_path_env("/abs/a", "/src");
+            let q = tagged(
+                "host_path",
+                SerdeValue::String("/abs/b".into()),
+                &[("origin_dir", SerdeValue::String("/src".into()))],
+            );
+            env.insert("q".into(), q);
+
+            let actual = test_code("p + q", Some(env));
+            assert!(matches!(actual, Err(EvalError::BothTagged(_))));
+        }
+
+        #[test]
+        fn ordering_on_tagged_errors() {
+            let env = host_path_env("/abs/a", "/src");
+            let actual = test_code(r#"p < "z""#, Some(env));
+            assert!(matches!(
+                actual,
+                Err(EvalError::TaggedOrderingComparison { .. })
+            ));
+        }
+
+        #[test]
+        fn equality_respects_meta() {
+            let build = |origin: &str| -> SerdeValue {
+                tagged(
+                    "host_path",
+                    SerdeValue::String("/same/path".into()),
+                    &[("origin_dir", SerdeValue::String(origin.into()))],
+                )
+            };
+            let mut env = SerdeValueObject::new();
+            env.insert("a".into(), build("/root-a"));
+            env.insert("b".into(), build("/root-b"));
+
+            let actual = test_code("a == b", Some(env.clone())).unwrap();
+            assert_eq!(actual, SerdeValue::Boolean(false));
+
+            env.insert("c".into(), build("/root-a"));
+            let actual = test_code("a == c", Some(env)).unwrap();
+            assert_eq!(actual, SerdeValue::Boolean(true));
+        }
+
+        #[test]
+        fn index_on_tagged_errors() {
+            let env = host_path_env("/abs/a", "/src");
+            let actual = test_code("p[0]", Some(env));
+            assert!(matches!(
+                actual,
+                Err(EvalError::TaggedStructuralOp { op: "index", .. })
+            ));
+        }
+
+        #[test]
+        fn key_on_tagged_errors() {
+            let env = host_path_env("/abs/a", "/src");
+            let actual = test_code("p.foo", Some(env));
+            assert!(matches!(
+                actual,
+                Err(EvalError::TaggedStructuralOp {
+                    op: "key access",
+                    ..
+                })
+            ));
+        }
     }
 }

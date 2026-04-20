@@ -6,7 +6,10 @@ use serde::de::{
 use serde::forward_to_deserialize_any;
 use std::{fmt, vec};
 
-use crate::{number, SerdeValue, SerdeValueError, SerdeValueList, SerdeValueObject};
+use crate::{
+    number, SerdeValue, SerdeValueError, SerdeValueList, SerdeValueObject, TAGGED_KEY,
+    TAGGED_META_KEY, TAGGED_VALUE_KEY,
+};
 
 impl<'de> Deserialize<'de> for SerdeValue {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -108,7 +111,7 @@ impl<'de> Deserialize<'de> for SerdeValue {
                     values.insert(key, value);
                 }
 
-                Ok(Self::Value::Object(values))
+                Ok(object_to_value(values))
             }
         }
 
@@ -126,6 +129,36 @@ impl SerdeValue {
             _ => Err(self.invalid_type(&visitor)),
         }
     }
+}
+
+/// Reconstruct a [`SerdeValue::Tagged`] if the object is a tag envelope.
+///
+/// An object is treated as a tag envelope iff it has exactly the three
+/// reserved keys [`TAGGED_KEY`], [`TAGGED_VALUE_KEY`], [`TAGGED_META_KEY`],
+/// the tag entry is a string, and the meta entry is an object.
+fn object_to_value(mut object: SerdeValueObject) -> SerdeValue {
+    if object.len() == 3
+        && object.contains_key(TAGGED_KEY)
+        && object.contains_key(TAGGED_VALUE_KEY)
+        && object.contains_key(TAGGED_META_KEY)
+    {
+        let tag = object.shift_remove(TAGGED_KEY);
+        let inner = object.shift_remove(TAGGED_VALUE_KEY);
+        let meta = object.shift_remove(TAGGED_META_KEY);
+        if let (
+            Some(SerdeValue::String(tag)),
+            Some(inner),
+            Some(SerdeValue::Object(meta)),
+        ) = (tag, inner, meta)
+        {
+            return SerdeValue::Tagged {
+                tag,
+                inner: Box::new(inner),
+                meta,
+            };
+        }
+    }
+    SerdeValue::Object(object)
 }
 
 fn visit_list<'de, V>(list: SerdeValueList, visitor: V) -> Result<V::Value, SerdeValueError>
@@ -187,6 +220,15 @@ impl<'de> Deserializer<'de> for SerdeValue {
             SerdeValue::List(v) => visit_list(v, visitor),
             SerdeValue::Object(v) => visit_object(v, visitor),
             SerdeValue::Function(_f) => todo!(),
+            SerdeValue::Tagged { tag, inner, meta } => {
+                // Round-trip through the envelope object shape. Callers that
+                // want the typed Tagged value should match on it directly.
+                let mut envelope = SerdeValueObject::new();
+                envelope.insert(TAGGED_KEY.to_string(), SerdeValue::String(tag));
+                envelope.insert(TAGGED_VALUE_KEY.to_string(), *inner);
+                envelope.insert(TAGGED_META_KEY.to_string(), SerdeValue::Object(meta));
+                visit_object(envelope, visitor)
+            }
         }
     }
 
@@ -735,6 +777,7 @@ impl SerdeValue {
             SerdeValue::List(_) => Unexpected::Seq,
             SerdeValue::Object(_) => Unexpected::Map,
             SerdeValue::Function(_f) => todo!(),
+            SerdeValue::Tagged { .. } => Unexpected::Map,
         }
     }
 }

@@ -19,6 +19,7 @@ use self::ser::Serializer;
 
 pub type SerdeValueList = Vec<SerdeValue>;
 pub type SerdeValueObject = IndexMap<String, SerdeValue>;
+pub type SerdeValueMeta = IndexMap<String, SerdeValue>;
 
 #[derive(Default, Clone, PartialEq)]
 pub enum SerdeValue {
@@ -30,6 +31,14 @@ pub enum SerdeValue {
     Function(Function),
     List(SerdeValueList),
     Object(SerdeValueObject),
+    /// See [`crate::Value::Tagged`]. Serializes as a JSON object with the
+    /// reserved key [`crate::TAGGED_KEY`] (`"__rimu_tag"`) so values round-trip
+    /// through JSON interchange.
+    Tagged {
+        tag: String,
+        inner: Box<SerdeValue>,
+        meta: SerdeValueMeta,
+    },
 }
 
 pub fn to_serde_value<T>(value: T) -> Result<SerdeValue, SerdeValueError>
@@ -67,6 +76,15 @@ impl Debug for SerdeValue {
                 formatter.write_str("Object ")?;
                 formatter.debug_map().entries(object).finish()
             }
+            SerdeValue::Tagged { tag, inner, meta } => {
+                formatter.write_str("Tagged ")?;
+                formatter
+                    .debug_struct("")
+                    .field("tag", tag)
+                    .field("inner", inner)
+                    .field("meta", meta)
+                    .finish()
+            }
         }
     }
 }
@@ -94,6 +112,18 @@ impl Display for SerdeValue {
                     .collect::<Vec<String>>()
                     .join(", ");
                 write!(f, "{{{}}}", entries)
+            }
+            SerdeValue::Tagged { tag, inner, meta } => {
+                if meta.is_empty() {
+                    write!(f, "<{} {}>", tag, inner)
+                } else {
+                    let m = meta
+                        .iter()
+                        .map(|(key, value)| format!("{}: {}", key, value))
+                        .collect::<Vec<String>>()
+                        .join(", ");
+                    write!(f, "<{} {} {{{}}}>", tag, inner, m)
+                }
             }
         }
     }

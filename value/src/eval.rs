@@ -49,6 +49,27 @@ pub enum EvalError {
     InvalidInterpolationValue { span: Span, value: Box<SerdeValue> },
     #[error("error expression")]
     ErrorExpression { span: Span },
+
+    #[error("cannot combine two tagged values: {} and {}", .0.left_tag, .0.right_tag)]
+    BothTagged(Box<BothTagged>),
+
+    #[error("ordering comparison not supported on tagged value: {tag}")]
+    TaggedOrderingComparison { span: Span, tag: String },
+
+    #[error("{op} not supported on tagged value: {tag}")]
+    TaggedStructuralOp {
+        span: Span,
+        tag: String,
+        op: &'static str,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct BothTagged {
+    pub left_span: Span,
+    pub right_span: Span,
+    pub left_tag: String,
+    pub right_tag: String,
 }
 
 impl From<EvalError> for ErrorReport {
@@ -148,6 +169,35 @@ impl From<EvalError> for ErrorReport {
                 span.clone(),
                 "Eval: Expression error",
                 vec![(span.clone(), "Error".to_string())],
+                vec![],
+            ),
+            EvalError::BothTagged(data) => {
+                let BothTagged {
+                    left_span,
+                    right_span,
+                    left_tag,
+                    right_tag,
+                } = *data;
+                (
+                    left_span.clone().union(right_span.clone()),
+                    "Eval: Cannot combine two tagged values",
+                    vec![
+                        (left_span.clone(), format!("Tag: {}", left_tag)),
+                        (right_span.clone(), format!("Tag: {}", right_tag)),
+                    ],
+                    vec![],
+                )
+            }
+            EvalError::TaggedOrderingComparison { span, tag } => (
+                span.clone(),
+                "Eval: Ordering comparison not supported on tagged value",
+                vec![(span.clone(), format!("Tag: {}", tag))],
+                vec![],
+            ),
+            EvalError::TaggedStructuralOp { span, tag, op } => (
+                span.clone(),
+                "Eval: Structural operation not supported on tagged value",
+                vec![(span.clone(), format!("Op: {}, tag: {}", op, tag))],
                 vec![],
             ),
         };
