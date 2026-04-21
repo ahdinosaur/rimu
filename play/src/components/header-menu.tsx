@@ -1,4 +1,4 @@
-import { useCallback, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
 import {
   FaChevronDown,
   FaClipboard,
@@ -249,16 +249,19 @@ function ColorModeSwitch() {
   const { toggleColorMode } = useColorMode()
   const text = useColorModeValue('dark', 'light')
   const switchIcon = useColorModeValue(<FaMoon />, <FaSun />)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => setMounted(true), [])
 
   return (
     <IconButton
       fontSize="lg"
-      aria-label={`Switch to ${text} mode`}
+      aria-label={mounted ? `Switch to ${text} mode` : 'Switch color mode'}
       variant="ghost"
       color="ctp.text"
       onClick={toggleColorMode}
     >
-      <Icon>{switchIcon}</Icon>
+      <Icon>{mounted ? switchIcon : <FaMoon />}</Icon>
     </IconButton>
   )
 }
