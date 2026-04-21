@@ -49,12 +49,7 @@ export function HeaderMenu(props: HeaderMenuProps) {
       paddingX={1}
     >
       <HStack gap={4} alignItems="center">
-        <Heading
-          as="h1"
-          size={{ base: '2xl', md: '3xl' }}
-          lineHeight="normal"
-          color="ctp.text"
-        >
+        <Heading as="h1" size={{ base: '2xl', md: '3xl' }} lineHeight="normal" color="ctp.text">
           Rimu
         </Heading>
         <ExamplesMenu setCodeToLoad={setCodeToLoad} />
@@ -85,6 +80,7 @@ function ExamplesMenu(props: ExamplesMenuProps) {
         <Button
           bg="ctp"
           color="ctp.text"
+          fontWeight="bold"
           _hover={{ bg: 'ctp.mantle' }}
           size={{ base: 'xs', md: 'sm' }}
         >
@@ -100,11 +96,7 @@ function ExamplesMenu(props: ExamplesMenuProps) {
             {examples.map((example: Example, index: number) => {
               const { name, code } = example
               return (
-                <Menu.Item
-                  key={index}
-                  value={name}
-                  onClick={() => setCodeToLoad(code)}
-                >
+                <Menu.Item key={index} value={name} onClick={() => setCodeToLoad(code)}>
                   {name}
                 </Menu.Item>
               )
@@ -125,6 +117,7 @@ function HelpButton() {
         <Button
           bg="ctp"
           color="ctp.text"
+          fontWeight="bold"
           _hover={{ bg: 'ctp.mantle' }}
           size={{ base: 'xs', md: 'sm' }}
         >
@@ -156,12 +149,7 @@ function HelpButton() {
             </Dialog.Body>
             <Dialog.Footer>
               <Dialog.CloseTrigger asChild>
-                <Button
-                  bg="ctp.teal"
-                  color="ctp"
-                  _hover={{ bg: 'ctp.sky' }}
-                  mr={3}
-                >
+                <Button bg="ctp.teal" color="ctp" _hover={{ bg: 'ctp.sky' }} mr={3}>
                   Close
                 </Button>
               </Dialog.CloseTrigger>
@@ -195,6 +183,7 @@ function SharePopover() {
         <Button
           bg="ctp"
           color="ctp.text"
+          fontWeight="bold"
           _hover={{ bg: 'ctp.mantle' }}
           size={{ base: 'xs', md: 'sm' }}
         >

@@ -19,22 +19,23 @@ const config = defineConfig({
       colors: {
         ctp,
         bg: {
-          DEFAULT: { value: { _light: ctp.base.value._light, _dark: ctp.base.value._dark } },
-          subtle: {
-            value: { _light: ctp.mantle.value._light, _dark: ctp.mantle.value._dark },
-          },
-          muted: {
-            value: { _light: ctp.surface0.value._light, _dark: ctp.surface0.value._dark },
-          },
+          DEFAULT: ctp.base,
+          subtle: ctp.mantle,
+          muted: ctp.surface0,
+          emphasized: ctp.surface1,
+          panel: ctp.crust,
+          inverted: ctp.text,
         },
         fg: {
-          DEFAULT: { value: { _light: ctp.text.value._light, _dark: ctp.text.value._dark } },
-          muted: {
-            value: { _light: ctp.subtext1.value._light, _dark: ctp.subtext1.value._dark },
-          },
+          DEFAULT: ctp.text,
+          subtle: ctp.subtext0,
+          muted: ctp.subtext1,
+          inverted: ctp.base,
         },
         border: {
-          value: { _light: ctp.surface0.value._light, _dark: ctp.surface0.value._dark },
+          DEFAULT: ctp.surface1,
+          muted: ctp.surface0,
+          emphasized: ctp.overlay0,
         },
       },
     },
