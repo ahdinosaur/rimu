@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
 import {
   FaChevronDown,
   FaClipboard,
@@ -9,43 +10,26 @@ import {
 import {
   Box,
   Button,
+  Dialog,
   Flex,
   HStack,
   Heading,
-  IconButton,
-  Menu,
-  MenuButton,
-  MenuItem,
-  MenuList,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  useColorMode,
-  useColorModeValue,
-  useDisclosure,
-  Text,
-  Link,
   Icon,
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-  PopoverArrow,
-  PopoverCloseButton,
-  PopoverHeader,
-  PopoverBody,
+  IconButton,
   Input,
-  FormLabel,
+  Link,
+  Menu,
+  Popover,
+  Portal,
+  Text,
   VStack,
+  useClipboard,
+  useDisclosure,
 } from '@chakra-ui/react'
-import { useEffect, useState } from 'react'
-import { useClipboard } from 'use-clipboard-copy'
 import { usePathname, useSearchParams } from 'next/navigation'
 
 import { Example, examples } from '@/examples'
+import { useColorMode, useColorModeValue } from '@/hooks/use-color-mode'
 
 export type HeaderMenuProps = {
   height: string
@@ -57,17 +41,15 @@ export function HeaderMenu(props: HeaderMenuProps) {
 
   return (
     <Flex
-      sx={{
-        height,
-        flexDirection: 'row',
-        alignItems: 'center',
-        width: '100%',
-        backgroundColor: 'ctp.crust',
-        paddingX: 1,
-      }}
+      height={height}
+      flexDirection="row"
+      alignItems="center"
+      width="100%"
+      bg="ctp.crust"
+      paddingX={1}
     >
-      <HStack spacing={4} sx={{ alignItems: 'center' }}>
-        <Heading as="h1" size={{ base: 'md', md: 'lg' }} sx={{ lineHeight: 'normal' }}>
+      <HStack gap={4} alignItems="center">
+        <Heading as="h1" size={{ base: '2xl', md: '3xl' }} lineHeight="normal" color="ctp.text">
           Rimu
         </Heading>
         <ExamplesMenu setCodeToLoad={setCodeToLoad} />
@@ -75,9 +57,9 @@ export function HeaderMenu(props: HeaderMenuProps) {
         <SharePopover />
       </HStack>
 
-      <Box sx={{ flexGrow: 1 }} />
+      <Box flexGrow={1} />
 
-      <Flex sx={{ flexDirection: 'row', alignItems: 'center' }}>
+      <Flex flexDirection="row" alignItems="center">
         <GitHubSourceButton />
         <ColorModeSwitch />
       </Flex>
@@ -93,63 +75,98 @@ function ExamplesMenu(props: ExamplesMenuProps) {
   const { setCodeToLoad } = props
 
   return (
-    <Menu>
-      <MenuButton as={Button} size={{ base: 'xs', md: 'sm' }} rightIcon={<FaChevronDown />}>
-        Examples
-      </MenuButton>
-      <MenuList>
-        {examples.map((example, index) => {
-          const { name, code } = example
-          return (
-            <MenuItem key={index} onClick={() => setCodeToLoad(code)}>
-              {name}
-            </MenuItem>
-          )
-        })}
-      </MenuList>
-    </Menu>
+    <Menu.Root>
+      <Menu.Trigger asChild>
+        <Button
+          bg="ctp"
+          color="ctp.text"
+          fontWeight="bold"
+          _hover={{ bg: 'ctp.mantle' }}
+          size={{ base: 'xs', md: 'sm' }}
+        >
+          Examples
+          <Icon marginStart={2}>
+            <FaChevronDown />
+          </Icon>
+        </Button>
+      </Menu.Trigger>
+      <Portal>
+        <Menu.Positioner>
+          <Menu.Content>
+            {examples.map((example: Example, index: number) => {
+              const { name, code } = example
+              return (
+                <Menu.Item key={index} value={name} onClick={() => setCodeToLoad(code)}>
+                  {name}
+                </Menu.Item>
+              )
+            })}
+          </Menu.Content>
+        </Menu.Positioner>
+      </Portal>
+    </Menu.Root>
   )
 }
 
 function HelpButton() {
-  const { isOpen, onOpen, onClose } = useDisclosure()
+  const { open, onOpen, onClose } = useDisclosure()
 
   return (
-    <>
-      <Button size={{ base: 'xs', md: 'sm' }} onClick={onOpen}>
-        Help
-      </Button>
-
-      <Modal isOpen={isOpen} onClose={onClose}>
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Help</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            <Text>
-              Learn about Rimu:{' '}
-              <Link href="https://rimu.dev" sx={{ color: 'ctp.teal' }} isExternal>
-                rimu.dev
-                <Icon sx={{ marginX: 1 }} as={FaExternalLinkAlt} />
-              </Link>
-            </Text>
-
-            <Text></Text>
-          </ModalBody>
-
-          <ModalFooter>
-            <Button colorScheme="teal" mr={3} onClick={onClose}>
-              Close
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-    </>
+    <Dialog.Root open={open} onOpenChange={(d) => (d.open ? onOpen() : onClose())}>
+      <Dialog.Trigger asChild>
+        <Button
+          bg="ctp"
+          color="ctp.text"
+          fontWeight="bold"
+          _hover={{ bg: 'ctp.mantle' }}
+          size={{ base: 'xs', md: 'sm' }}
+        >
+          Help
+        </Button>
+      </Dialog.Trigger>
+      <Portal>
+        <Dialog.Backdrop />
+        <Dialog.Positioner>
+          <Dialog.Content>
+            <Dialog.Header>
+              <Dialog.Title>Help</Dialog.Title>
+            </Dialog.Header>
+            <Dialog.Body>
+              <Text>
+                Learn about Rimu:{' '}
+                <Link
+                  href="https://rimu.dev"
+                  color="ctp.teal"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  rimu.dev
+                  <Icon marginX={1}>
+                    <FaExternalLinkAlt />
+                  </Icon>
+                </Link>
+              </Text>
+            </Dialog.Body>
+            <Dialog.Footer>
+              <Dialog.CloseTrigger asChild>
+                <Button bg="ctp.teal" color="ctp" _hover={{ bg: 'ctp.sky' }} mr={3}>
+                  Close
+                </Button>
+              </Dialog.CloseTrigger>
+            </Dialog.Footer>
+          </Dialog.Content>
+        </Dialog.Positioner>
+      </Portal>
+    </Dialog.Root>
   )
 }
 
 function SharePopover() {
-  const [origin, setOrigin] = useState('')
+  const origin = useSyncExternalStore(
+    () => () => {},
+    () => window.location.origin,
+    () => '',
+  )
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const url =
@@ -157,70 +174,94 @@ function SharePopover() {
       ? `${origin}${pathname}`
       : `${origin}${pathname}?${searchParams}`
 
-  useEffect(() => {
-    setOrigin(location.origin)
-  }, [])
-
-  const clipboard = useClipboard()
+  const clipboard = useClipboard({ value: url })
+  const onCopy = useCallback(() => clipboard.copy(), [clipboard])
 
   return (
-    <Popover>
-      <PopoverTrigger>
-        <Button size={{ base: 'xs', md: 'sm' }}>Share</Button>
-      </PopoverTrigger>
-      <PopoverContent>
-        <PopoverArrow />
-        <PopoverCloseButton />
-        <PopoverHeader>Share your code!</PopoverHeader>
-        <PopoverBody>
-          <VStack>
-            <HStack spacing={3} sx={{ alignSelf: 'stretch' }}>
-              <FormLabel>URL:</FormLabel>
-              <Input
-                ref={clipboard.target}
-                type="text"
-                variant="outline"
-                value={url}
-                readOnly
-                sx={{ width: '100%', borderRadius: 4, padding: 1 }}
-              />
-            </HStack>
-            <Button
-              rightIcon={<Icon as={FaClipboard} />}
-              sx={{ alignSelf: 'center' }}
-              onClick={clipboard.copy}
-            >
-              Copy to clipboard
-            </Button>
-          </VStack>
-        </PopoverBody>
-      </PopoverContent>
-    </Popover>
+    <Popover.Root>
+      <Popover.Trigger asChild>
+        <Button
+          bg="ctp"
+          color="ctp.text"
+          fontWeight="bold"
+          _hover={{ bg: 'ctp.mantle' }}
+          size={{ base: 'xs', md: 'sm' }}
+        >
+          Share
+        </Button>
+      </Popover.Trigger>
+      <Portal>
+        <Popover.Positioner>
+          <Popover.Content>
+            <Popover.Arrow />
+            <Popover.CloseTrigger />
+            <Popover.Header>Share your code!</Popover.Header>
+            <Popover.Body>
+              <VStack>
+                <HStack gap={3} alignSelf="stretch">
+                  <Text as="label" minWidth="3rem">
+                    URL:
+                  </Text>
+                  <Input
+                    type="text"
+                    variant="outline"
+                    value={url}
+                    readOnly
+                    width="100%"
+                    borderRadius={4}
+                    padding={1}
+                  />
+                </HStack>
+                <Button
+                  alignSelf="center"
+                  onClick={onCopy}
+                  bg="ctp.teal"
+                  color="ctp"
+                  _hover={{ bg: 'ctp.sky' }}
+                >
+                  Copy to clipboard
+                  <Icon marginStart={2}>
+                    <FaClipboard />
+                  </Icon>
+                </Button>
+              </VStack>
+            </Popover.Body>
+          </Popover.Content>
+        </Popover.Positioner>
+      </Portal>
+    </Popover.Root>
   )
 }
 
 function GitHubSourceButton() {
   return (
-    <Link href="https://github.com/ahdinosaur/rimu">
-      <IconButton aria-label="GitHub source" icon={<Icon as={FaGithub} />} variant="ghost" />
+    <Link href="https://github.com/ahdinosaur/rimu" target="_blank" rel="noopener noreferrer">
+      <IconButton aria-label="GitHub source" variant="ghost">
+        <Icon>
+          <FaGithub />
+        </Icon>
+      </IconButton>
     </Link>
   )
 }
 
 function ColorModeSwitch() {
   const { toggleColorMode } = useColorMode()
-
   const text = useColorModeValue('dark', 'light')
-  const SwitchIcon = useColorModeValue(FaMoon, FaSun)
+  const switchIcon = useColorModeValue(<FaMoon />, <FaSun />)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => setMounted(true), [])
 
   return (
     <IconButton
       fontSize="lg"
-      aria-label={`Switch to ${text} mode`}
+      aria-label={mounted ? `Switch to ${text} mode` : 'Switch color mode'}
       variant="ghost"
-      color="current"
+      color="ctp.text"
       onClick={toggleColorMode}
-      icon={<SwitchIcon />}
-    />
+    >
+      <Icon>{mounted ? switchIcon : <FaMoon />}</Icon>
+    </IconButton>
   )
 }

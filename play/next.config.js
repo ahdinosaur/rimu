@@ -7,7 +7,7 @@ const nextConfig = {
     config.plugins.push(
       new WasmPackPlugin({
         crateDirectory: resolve(__dirname, 'wasm'),
-        args: '--target web',
+        extraArgs: '--target web',
       }),
     )
 

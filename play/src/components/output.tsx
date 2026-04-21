@@ -1,11 +1,11 @@
 'use client'
 
 import { useCallback, ChangeEventHandler } from 'react'
-import { Code, Flex, Text, Select, Box, HStack } from '@chakra-ui/react'
+import { Code, Flex, NativeSelect, HStack } from '@chakra-ui/react'
 
 export type Format = 'json' | 'yaml' | 'toml'
 
-export type OutputData = any
+export type OutputData = string
 
 export type OutputProps = {
   height: string
@@ -18,9 +18,9 @@ export function Output(props: OutputProps) {
   const { height, output, format, setFormat } = props
 
   return (
-    <Flex sx={{ height, flexDirection: 'column', width: '100%' }}>
+    <Flex height={height} flexDirection="column" width="100%">
       <FormatSelect format={format} setFormat={setFormat} />
-      <Code sx={{ width: '100%', flexGrow: 1, backgroundColor: 'ctp.mantle' }}>
+      <Code size="md" display="block" width="100%" flexGrow={1} bg="ctp.mantle">
         <pre>{output}</pre>
       </Code>
     </Flex>
@@ -44,34 +44,28 @@ export function FormatSelect(props: FormatSelectProps) {
 
   return (
     <HStack
-      spacing={4}
-      sx={{
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'baseline',
-        backgroundColor: 'ctp.mantle',
-        padding: 1,
-      }}
+      gap={4}
+      flexDirection="row"
+      justifyContent="center"
+      alignItems="baseline"
+      bg="ctp.mantle"
+      padding={1}
     >
-      <Box>
-        <Select
-          size="xs"
-          variant="outline"
+      <NativeSelect.Root size="xs" variant="outline" width="auto">
+        <NativeSelect.Field
           value={format}
           onChange={handleChange}
           aria-label="Format"
-          sx={{
-            flexGrow: 1,
-            color: 'ctp.base',
-            borderColor: 'ctp.text',
-            backgroundColor: 'ctp.lavender',
-          }}
+          color="ctp"
+          borderColor="ctp.text"
+          bg="ctp.lavender"
         >
           <option value="json">JSON</option>
           <option value="yaml">YAML</option>
           <option value="toml">TOML</option>
-        </Select>
-      </Box>
+        </NativeSelect.Field>
+        <NativeSelect.Indicator />
+      </NativeSelect.Root>
     </HStack>
   )
 }

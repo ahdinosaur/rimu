@@ -1,8 +1,9 @@
 'use client'
 
-import { ChakraBaseProvider, ColorModeScript } from '@chakra-ui/react'
+import { ChakraProvider } from '@chakra-ui/react'
+import { ThemeProvider } from 'next-themes'
 
-import { theme } from '@/theme'
+import { system } from '@/theme'
 
 export type AppProps = {
   children: React.ReactNode
@@ -12,10 +13,10 @@ export function App(props: AppProps) {
   const { children } = props
 
   return (
-    <ChakraBaseProvider theme={theme}>
-      <ColorModeScript initialColorMode={theme.config.initialColorMode} />
-
-      {children}
-    </ChakraBaseProvider>
+    <ChakraProvider value={system}>
+      <ThemeProvider attribute="class" disableTransitionOnChange>
+        {children}
+      </ThemeProvider>
+    </ChakraProvider>
   )
 }

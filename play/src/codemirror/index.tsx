@@ -3,7 +3,7 @@ import { basicSetup } from 'codemirror'
 import { EditorView, keymap } from '@codemirror/view'
 import { indentWithTab } from '@codemirror/commands'
 import { catppuccin, Variant } from 'codemirror-theme-catppuccin'
-import { variants } from '@catppuccin/palette'
+import { flavors } from '@catppuccin/palette'
 
 import { syntax } from './syntax'
 import { createDiagnostics, createDiagnosticGutter } from './diagnostics'
@@ -42,8 +42,8 @@ export function CodeMirror(options: CodeMirrorOptions) {
       keymap.of([indentWithTab]),
       themeCompartment.of([
         catppuccin(theme),
-        createDiagnosticTheme(variants[theme]),
-        createDiagnosticGutterTheme(variants[theme]),
+        createDiagnosticTheme(flavors[theme].colors),
+        createDiagnosticGutterTheme(flavors[theme].colors),
       ]),
       syntax(),
       idler,
@@ -58,8 +58,8 @@ export function updateTheme(view: EditorView, theme: Variant) {
     effects: [
       themeCompartment.reconfigure([
         catppuccin(theme),
-        createDiagnosticTheme(variants[theme]),
-        createDiagnosticGutterTheme(variants[theme]),
+        createDiagnosticTheme(flavors[theme].colors),
+        createDiagnosticGutterTheme(flavors[theme].colors),
       ]),
     ],
   })
