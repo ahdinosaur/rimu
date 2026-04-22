@@ -112,7 +112,9 @@ where
         )
         .try_map(|s, span| Decimal::from_str(&s).map_err(|e| Rich::custom(span, format!("{}", e))));
 
-    let number = choice((octal, decimal)).map(Token::Number).labelled("number");
+    let number = choice((octal, decimal))
+        .map(Token::Number)
+        .labelled("number");
 
     let escape = just('\\')
         .ignore_then(choice((
@@ -195,9 +197,7 @@ where
         .recover_with(skip_then_retry_until(any().ignored(), end()));
 
     let padding = || {
-        let inline_whitespace = any::<I, _>()
-            .filter(|c: &char| c.is_whitespace())
-            .ignored();
+        let inline_whitespace = any::<I, _>().filter(|c: &char| c.is_whitespace()).ignored();
         let comment = just('#')
             .ignore_then(
                 any::<I, _>()

@@ -19,6 +19,7 @@ use self::ser::Serializer;
 
 pub type SerdeValueList = Vec<SerdeValue>;
 pub type SerdeValueObject = IndexMap<String, SerdeValue>;
+pub type SerdeValueMeta = IndexMap<String, SerdeValue>;
 
 #[derive(Default, Clone, PartialEq)]
 pub enum SerdeValue {
@@ -30,6 +31,14 @@ pub enum SerdeValue {
     Function(Function),
     List(SerdeValueList),
     Object(SerdeValueObject),
+    /// See [`crate::Value::Tagged`]. Serializes as a JSON object with the
+    /// reserved key [`crate::TAGGED_KEY`] (`"__rimu_tag"`) so values round-trip
+    /// through JSON interchange.
+    Tagged {
+        tag: String,
+        inner: Box<SerdeValue>,
+        meta: SerdeValueMeta,
+    },
 }
 
 pub fn to_serde_value<T>(value: T) -> Result<SerdeValue, SerdeValueError>
@@ -67,6 +76,15 @@ impl Debug for SerdeValue {
                 formatter.write_str("Object ")?;
                 formatter.debug_map().entries(object).finish()
             }
+            SerdeValue::Tagged { tag, inner, meta } => {
+                formatter.write_str("Tagged ")?;
+                formatter
+                    .debug_struct("")
+                    .field("tag", tag)
+                    .field("inner", inner)
+                    .field("meta", meta)
+                    .finish()
+            }
         }
     }
 }
@@ -95,6 +113,18 @@ impl Display for SerdeValue {
                     .join(", ");
                 write!(f, "{{{}}}", entries)
             }
+            SerdeValue::Tagged { tag, inner, meta } => {
+                if meta.is_empty() {
+                    write!(f, "<{} {}>", tag, inner)
+                } else {
+                    let m = meta
+                        .iter()
+                        .map(|(key, value)| format!("{}: {}", key, value))
+                        .collect::<Vec<String>>()
+                        .join(", ");
+                    write!(f, "<{} {} {{{}}}>", tag, inner, m)
+                }
+            }
         }
     }
 }
@@ -116,7 +146,10 @@ pub fn value_get_in<'a>(value: &'a SerdeValue, keys: &[&str]) -> Option<&'a Serd
 mod test {
     use std::{borrow::Cow, ffi::OsString, path::PathBuf};
 
-    use crate::SerdeValue;
+    use crate::{
+        from_serde_value, to_serde_value, SerdeValue, SerdeValueMeta, SerdeValueObject, TAGGED_KEY,
+        TAGGED_META_KEY, TAGGED_VALUE_KEY,
+    };
     use pretty_assertions::assert_eq;
     use rust_decimal_macros::dec;
 
@@ -186,5 +219,81 @@ mod test {
             format!("{:?}", SerdeValue::Number(dec!(2).into())),
             "Number(2)".to_string()
         );
+    }
+
+    #[test]
+    fn tagged_serializes_to_envelope_object() {
+        let mut meta = SerdeValueMeta::new();
+        meta.insert("origin_dir".into(), SerdeValue::String("/src".into()));
+        let tagged = SerdeValue::Tagged {
+            tag: "host_path".into(),
+            inner: Box::new(SerdeValue::String("/abs/a".into())),
+            meta,
+        };
+
+        let serialized = to_serde_value(&tagged).unwrap();
+
+        let SerdeValue::Object(envelope) = serialized else {
+            panic!("expected object, got {:?}", serialized);
+        };
+        assert_eq!(envelope.len(), 3);
+        assert_eq!(
+            envelope.get(TAGGED_KEY),
+            Some(&SerdeValue::String("host_path".into())),
+        );
+        assert_eq!(
+            envelope.get(TAGGED_VALUE_KEY),
+            Some(&SerdeValue::String("/abs/a".into())),
+        );
+        let meta_entry = envelope.get(TAGGED_META_KEY).unwrap();
+        let SerdeValue::Object(meta) = meta_entry else {
+            panic!("expected meta to be object");
+        };
+        assert_eq!(
+            meta.get("origin_dir"),
+            Some(&SerdeValue::String("/src".into())),
+        );
+    }
+
+    #[test]
+    fn tagged_round_trips_through_envelope() {
+        let mut meta = SerdeValueMeta::new();
+        meta.insert("origin_dir".into(), SerdeValue::String("/src".into()));
+        let tagged = SerdeValue::Tagged {
+            tag: "host_path".into(),
+            inner: Box::new(SerdeValue::String("/abs/a".into())),
+            meta,
+        };
+
+        let serialized = to_serde_value(&tagged).unwrap();
+        let round_tripped: SerdeValue = from_serde_value(serialized).unwrap();
+
+        assert_eq!(round_tripped, tagged);
+    }
+
+    #[test]
+    fn envelope_object_deserializes_to_tagged() {
+        let mut envelope = SerdeValueObject::new();
+        envelope.insert(TAGGED_KEY.into(), SerdeValue::String("host_path".into()));
+        envelope.insert(TAGGED_VALUE_KEY.into(), SerdeValue::String("/abs/a".into()));
+        envelope.insert(
+            TAGGED_META_KEY.into(),
+            SerdeValue::Object(SerdeValueObject::new()),
+        );
+
+        let value: SerdeValue = from_serde_value(SerdeValue::Object(envelope)).unwrap();
+
+        assert!(matches!(value, SerdeValue::Tagged { .. }));
+    }
+
+    #[test]
+    fn plain_object_missing_one_reserved_key_stays_object() {
+        let mut object = SerdeValueObject::new();
+        object.insert(TAGGED_KEY.into(), SerdeValue::String("host_path".into()));
+        object.insert(TAGGED_VALUE_KEY.into(), SerdeValue::String("/abs/a".into()));
+
+        let value: SerdeValue = from_serde_value(SerdeValue::Object(object)).unwrap();
+
+        assert!(matches!(value, SerdeValue::Object(_)));
     }
 }

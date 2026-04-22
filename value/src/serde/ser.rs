@@ -5,6 +5,7 @@ use serde::{ser::Impossible, Serialize};
 use std::fmt::Display;
 
 use super::{to_serde_value, SerdeValue, SerdeValueError, SerdeValueObject};
+use crate::{TAGGED_KEY, TAGGED_META_KEY, TAGGED_VALUE_KEY};
 
 impl Serialize for SerdeValue {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -20,6 +21,16 @@ impl Serialize for SerdeValue {
             SerdeValue::Object(object) => object.serialize(serializer),
             // TODO
             SerdeValue::Function(_) => serializer.serialize_unit(),
+            SerdeValue::Tagged { tag, inner, meta } => {
+                let mut envelope = SerdeValueObject::new();
+                envelope.insert(TAGGED_KEY.to_string(), SerdeValue::String(tag.clone()));
+                envelope.insert(TAGGED_VALUE_KEY.to_string(), (**inner).clone());
+                envelope.insert(
+                    TAGGED_META_KEY.to_string(),
+                    SerdeValue::Object(meta.clone()),
+                );
+                envelope.serialize(serializer)
+            }
         }
     }
 }

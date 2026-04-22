@@ -49,6 +49,17 @@ pub enum EvalError {
     InvalidInterpolationValue { span: Span, value: Box<SerdeValue> },
     #[error("error expression")]
     ErrorExpression { span: Span },
+
+    #[error("cannot combine tagged values with different tags: {} and {}", .0.left_tag, .0.right_tag)]
+    BothTagged(Box<BothTagged>),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct BothTagged {
+    pub left_span: Span,
+    pub right_span: Span,
+    pub left_tag: String,
+    pub right_tag: String,
 }
 
 impl From<EvalError> for ErrorReport {
@@ -150,6 +161,23 @@ impl From<EvalError> for ErrorReport {
                 vec![(span.clone(), "Error".to_string())],
                 vec![],
             ),
+            EvalError::BothTagged(data) => {
+                let BothTagged {
+                    left_span,
+                    right_span,
+                    left_tag,
+                    right_tag,
+                } = *data;
+                (
+                    left_span.clone().union(right_span.clone()),
+                    "Eval: Cannot combine tagged values with different tags",
+                    vec![
+                        (left_span.clone(), format!("Tag: {}", left_tag)),
+                        (right_span.clone(), format!("Tag: {}", right_tag)),
+                    ],
+                    vec![],
+                )
+            }
         };
 
         ErrorReport {
