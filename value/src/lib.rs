@@ -35,9 +35,10 @@ pub enum Value {
     Function(Function),
     List(ValueList),
     Object(ValueObject),
-    /// A path on the local machine. Always absolute: constructed via
-    /// `host_path("./rel")`, which resolves the input against the source
-    /// file's directory at call time.
+    /// A path on the local machine. Constructed via `host_path("./rel")`,
+    /// which resolves the input against the source file's directory at call
+    /// time. Absolute when the source id is itself an absolute path; otherwise
+    /// relative to the current working directory.
     HostPath(PathBuf),
     /// An absolute path on a remote (Unix) machine. Stored as a `String`
     /// for now; consider `os_path` if non-Unix targets ever matter.

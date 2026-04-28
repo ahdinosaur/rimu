@@ -185,6 +185,12 @@ impl Evaluator {
                         // `PathBuf::join` so a leading "/" on the right replaces
                         // the base (Rust convention) and a trailing "/" on the
                         // left is handled correctly.
+                        // TODO(cc): the leading-slash-replaces-base behaviour
+                        // is a footgun for users coming from string-concat
+                        // languages — `host_path("./a") + "/b"` evaluates to
+                        // `HostPath("/b")`, silently dropping the anchor.
+                        // Consider rejecting absolute strings on the right
+                        // (or stripping the leading `/`) so `+` always extends.
                         (Value::HostPath(left), Value::String(right)) => {
                             Ok(Value::HostPath(left.join(right)))
                         }

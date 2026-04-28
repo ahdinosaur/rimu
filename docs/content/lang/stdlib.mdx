@@ -28,9 +28,9 @@ range
 ## host_path
 
 > Build a path on the local machine, resolved against the directory of the
-> source file the call appears in. The result is stored absolute, so it can be
-> forwarded across boundaries (e.g. into a sub-template) without losing its
-> anchor.
+> source file the call appears in. When the source id is itself absolute the
+> result is absolute, so it can be forwarded across boundaries (e.g. into a
+> sub-template) without losing its anchor.
 
 ```rimu
 host_path("./gitconfig")

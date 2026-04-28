@@ -171,10 +171,14 @@ fn range_op(span: Span, options: RangeOptions) -> Result<SpannedValue, EvalError
     Ok(SerdeValue::List(list).with_span(span))
 }
 
-/// Construct a [`Value::HostPath`] from a relative string, resolved against the
-/// directory of the source file the call appears in. The resolved path is
-/// stored absolute, so it can be forwarded across sub-plan boundaries without
-/// losing its anchor.
+/// Construct a [`Value::HostPath`] from a relative string, resolved against
+/// the directory of the source file the call appears in. The resolved path is
+/// absolute when the source id is itself an absolute path, so it can be
+/// forwarded across sub-plan boundaries without losing its anchor.
+///
+/// Errors when the source id has no parent directory (e.g. an empty source
+/// id). Sources without a directory component (e.g. `"test.rimu"`) resolve
+/// against the current working directory.
 pub fn host_path() -> Function {
     let function = |span: Span, args: &[Spanned<Value>]| -> Result<SpannedValue, EvalError> {
         let (arg, arg_span) = &args[0].clone().take();
@@ -186,10 +190,14 @@ pub fn host_path() -> Function {
             });
         };
         let source_path = PathBuf::from(span.source().as_str());
+        // Note(cc): "no parent" is reported via TypeError because no other
+        // EvalError variant fits today. The user-facing message is meaningful
+        // even if the variant is a stretch — consider a dedicated variant
+        // (e.g. `MissingSourceContext`) if more stdlib functions need it.
         let Some(source_dir) = source_path.parent() else {
             return Err(EvalError::TypeError {
                 span: span.clone(),
-                expected: "host_path call from a source file with a parent directory".into(),
+                expected: "source id with a parent directory (host_path needs a directory to resolve against)".into(),
                 got: Box::new(SerdeValue::String(span.source().as_str().to_string())),
             });
         };
@@ -343,11 +351,13 @@ mod tests {
     }
 
     #[test]
-    fn host_path_plus_string_extends_via_join() {
-        let actual = eval_with_stdlib(r#"host_path("./gitconfig") + "/sub""#).unwrap();
+    fn host_path_plus_absolute_string_replaces_base() {
         // PathBuf::join: a leading "/" on the right replaces the base. That's
         // Rust convention; users wanting to extend in-place should pass "sub"
-        // (no leading slash). We test the "/sub" replacement-style case here.
+        // (no leading slash). This test pins the replacement behaviour so we
+        // notice if PathBuf::join semantics change, or we decide to reject
+        // absolute strings on the right (see TODO(cc) in eval/src/expression.rs).
+        let actual = eval_with_stdlib(r#"host_path("./gitconfig") + "/sub""#).unwrap();
         assert_eq!(actual, Value::HostPath(PathBuf::from("/sub")));
     }
 
