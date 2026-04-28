@@ -817,6 +817,7 @@ dependencies = [
  "pretty_assertions",
  "rimu-eval",
  "rimu-meta",
+ "rimu-parse",
  "rimu-value",
  "rust_decimal",
  "rust_decimal_macros",

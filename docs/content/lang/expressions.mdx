@@ -110,7 +110,7 @@ hello
 
 #### `+` (add)
 
-> Operands must be numbers, strings, or lists.
+> Operands must be numbers, strings, lists, or paths.
 
 ```rimu
 10 + 2
@@ -122,6 +122,25 @@ hello
 
 ```rimu
 [1, 2] + [3, 4]
+```
+
+> A path on the left and a string on the right extend the path. See
+> [`host_path`](./stdlib#host_path) and [`target_path`](./stdlib#target_path).
+
+```rimu
+host_path("./dir") + "sub"
+```
+
+```rimu
+target_path("/etc") + "/hosts"
+```
+
+> A string on the left and a path on the right concatenate as a plain string,
+> dropping the path type — useful for embedding a path inside a non-path
+> string (e.g. a podman volume entry).
+
+```rimu
+"prefix:" + target_path("/etc")
 ```
 
 #### `-` (subtract)

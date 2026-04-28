@@ -155,12 +155,22 @@ impl Evaluator {
                             expected: "number".into(),
                             got: Box::new(right.into()),
                         }),
+                        // String + Path: plain concat using the path's display form.
+                        // Lets a plan build a non-path string that embeds a path
+                        // (e.g. a podman volume entry "<host>:/<container>") without
+                        // the result inheriting a path type.
+                        (Value::String(left), Value::HostPath(right)) => {
+                            Ok(Value::String([left, right.display().to_string()].join("")))
+                        }
+                        (Value::String(left), Value::TargetPath(right)) => {
+                            Ok(Value::String([left, right].join("")))
+                        }
                         (Value::String(left), Value::String(right)) => {
                             Ok(Value::String([left, right].join("")))
                         }
                         (Value::String(_left), right) => Err(EvalError::TypeError {
                             span: right_span,
-                            expected: "string".into(),
+                            expected: "string | host-path | target-path".into(),
                             got: Box::new(right.into()),
                         }),
                         (Value::List(left), Value::List(right)) => {
@@ -171,9 +181,32 @@ impl Evaluator {
                             expected: "list".into(),
                             got: Box::new(right.into()),
                         }),
+                        // HostPath + String: extend the host path. Uses
+                        // `PathBuf::join` so a leading "/" on the right replaces
+                        // the base (Rust convention) and a trailing "/" on the
+                        // left is handled correctly.
+                        (Value::HostPath(left), Value::String(right)) => {
+                            Ok(Value::HostPath(left.join(right)))
+                        }
+                        (Value::HostPath(_left), right) => Err(EvalError::TypeError {
+                            span: right_span,
+                            expected: "string".into(),
+                            got: Box::new(right.into()),
+                        }),
+                        // TargetPath + String: plain concat. Caller is responsible
+                        // for slashes — TargetPath is a string of unix path syntax,
+                        // not a structured path type.
+                        (Value::TargetPath(left), Value::String(right)) => {
+                            Ok(Value::TargetPath([left, right].join("")))
+                        }
+                        (Value::TargetPath(_left), right) => Err(EvalError::TypeError {
+                            span: right_span,
+                            expected: "string".into(),
+                            got: Box::new(right.into()),
+                        }),
                         _ => Err(EvalError::TypeError {
                             span: left_span,
-                            expected: "number | string | list".into(),
+                            expected: "number | string | list | host-path | target-path".into(),
                             got: Box::new(left.into()),
                         }),
                     },

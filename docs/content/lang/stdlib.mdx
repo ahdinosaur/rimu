@@ -24,3 +24,55 @@ range
   start: 0
   end: 10
 ```
+
+## host_path
+
+> Build a path on the local machine, resolved against the directory of the
+> source file the call appears in. The result is stored absolute, so it can be
+> forwarded across boundaries (e.g. into a sub-template) without losing its
+> anchor.
+
+```rimu
+host_path("./gitconfig")
+```
+
+> Concatenating a string to a `host_path` extends the path (using
+> [`Path::join`](https://doc.rust-lang.org/std/path/struct.Path.html#method.join)
+> semantics — a leading `/` on the right replaces the base).
+
+```rimu
+host_path("./dir") + "sub"
+```
+
+> Errors if the call appears in a source without a parent directory (e.g. an
+> empty source id), or if the argument is not a string.
+
+## target_path
+
+> Tag an absolute path string as a path on a remote (Unix) machine.
+
+```rimu
+target_path("/etc/hosts")
+```
+
+> Concatenating a string extends the path with plain string concatenation —
+> the caller is responsible for separators.
+
+```rimu
+target_path("/etc") + "/hosts"
+```
+
+> Errors if the input does not start with `/`, or if it is not a string.
+
+## to_string
+
+> Render a value as a string. The escape hatch for paths: `to_string` drops
+> the `host_path` / `target_path` type so the result can flow into a plain
+> string field (e.g. embedding a path inside a podman volume entry like
+> `[host]:/[container]`).
+
+```rimu
+to_string(host_path("./foo"))
+```
+
+> Accepts strings, paths, numbers, and booleans.
