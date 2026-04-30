@@ -8,6 +8,7 @@ mod serde;
 
 use indexmap::IndexMap;
 use rimu_meta::{Span, Spanned};
+use typed_path::Utf8TypedPathBuf;
 
 use std::fmt::{Debug, Display};
 use std::path::PathBuf;
@@ -40,9 +41,11 @@ pub enum Value {
     /// time. Absolute when the source id is itself an absolute path; otherwise
     /// relative to the current working directory.
     HostPath(PathBuf),
-    /// An absolute path on a remote (Unix) machine. Stored as a `String`
-    /// for now; consider `os_path` if non-Unix targets ever matter.
-    TargetPath(String),
+    /// An absolute path on a remote machine. Stored as a `Utf8TypedPathBuf`
+    /// from the `typed-path` crate so we can carry Unix or Windows path
+    /// semantics independently of the host platform — useful when the host
+    /// runs Linux but targets a Windows box, or vice versa.
+    TargetPath(Utf8TypedPathBuf),
 }
 
 pub type SpannedValue = Spanned<Value>;
@@ -66,7 +69,7 @@ impl From<Value> for SerdeValue {
                 SerdeValue::Object(convert_value_object_to_serde_value_object(object))
             }
             Value::HostPath(path) => SerdeValue::String(path.display().to_string()),
-            Value::TargetPath(path) => SerdeValue::String(path),
+            Value::TargetPath(path) => SerdeValue::String(path.into_string()),
         }
     }
 }
@@ -130,7 +133,7 @@ impl Debug for Value {
                 formatter.debug_map().entries(object).finish()
             }
             Value::HostPath(path) => write!(formatter, "HostPath({})", path.display()),
-            Value::TargetPath(path) => write!(formatter, "TargetPath({:?})", path),
+            Value::TargetPath(path) => write!(formatter, "TargetPath({:?})", path.as_str()),
         }
     }
 }
@@ -160,7 +163,7 @@ impl Display for Value {
                 write!(f, "{{{}}}", entries)
             }
             Value::HostPath(path) => write!(f, "{}", path.display()),
-            Value::TargetPath(path) => write!(f, "{}", path),
+            Value::TargetPath(path) => write!(f, "{}", path.as_str()),
         }
     }
 }

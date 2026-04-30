@@ -53,14 +53,20 @@ host_path("./dir") + "/sub"
 
 ## target_path
 
-> Tag an absolute path string as a path on a remote (Unix) machine.
+> Tag an absolute path string as a path on a remote machine. Stored as a
+> typed path so it joins like a path, not a string.
 
 ```rimu
 target_path("/etc/hosts")
 ```
 
-> Concatenating a string extends the path with plain string concatenation —
-> the caller is responsible for separators.
+> Concatenating a string to a `target_path` always extends the path. Any
+> leading `/` on the right is stripped, so a stray slash does not silently
+> drop the base.
+
+```rimu
+target_path("/etc") + "hosts"
+```
 
 ```rimu
 target_path("/etc") + "/hosts"

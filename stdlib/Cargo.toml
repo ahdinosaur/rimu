@@ -18,6 +18,7 @@ rimu-value = { path = "../value", version = "0.2.0" }
 rimu-eval = { path = "../eval", version = "0.2.0" }
 rust_decimal = "1.39.0"
 rust_decimal_macros = "1.39.0"
+typed-path = "0.12.3"
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"

@@ -163,7 +163,7 @@ impl Evaluator {
                             Ok(Value::String([left, right.display().to_string()].join("")))
                         }
                         (Value::String(left), Value::TargetPath(right)) => {
-                            Ok(Value::String([left, right].join("")))
+                            Ok(Value::String([left, right.into_string()].join("")))
                         }
                         (Value::String(left), Value::String(right)) => {
                             Ok(Value::String([left, right].join("")))
@@ -197,11 +197,14 @@ impl Evaluator {
                             expected: "string".into(),
                             got: Box::new(right.into()),
                         }),
-                        // TargetPath + String: plain concat. Caller is responsible
-                        // for slashes — TargetPath is a string of unix path syntax,
-                        // not a structured path type.
+                        // TargetPath + String: extend the target path. Leading
+                        // `/`s on the right are stripped so `+` always extends,
+                        // never replaces — `Utf8TypedPathBuf::join` would
+                        // otherwise treat an absolute right side as a fresh
+                        // root, the same footgun HostPath guards against.
                         (Value::TargetPath(left), Value::String(right)) => {
-                            Ok(Value::TargetPath([left, right].join("")))
+                            let right = right.trim_start_matches('/');
+                            Ok(Value::TargetPath(left.join(right)))
                         }
                         (Value::TargetPath(_left), right) => Err(EvalError::TypeError {
                             span: right_span,

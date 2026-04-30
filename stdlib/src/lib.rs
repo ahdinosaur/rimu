@@ -7,6 +7,7 @@ use rimu_value::{
     SpannedValue, Value,
 };
 use rust_decimal::prelude::ToPrimitive;
+use typed_path::Utf8TypedPathBuf;
 
 pub fn create_stdlib() -> SerdeValueObject {
     let mut lib = SerdeValueObject::new();
@@ -232,7 +233,8 @@ pub fn target_path() -> Function {
                 got: Box::new(arg.clone().into()),
             });
         }
-        Ok(Spanned::new(Value::TargetPath(s.clone()), span))
+        let path = Utf8TypedPathBuf::from_unix(s);
+        Ok(Spanned::new(Value::TargetPath(path), span))
     };
     Function {
         args: vec!["arg".into()],
@@ -251,7 +253,7 @@ pub fn to_string() -> Function {
         let s = match arg {
             Value::String(s) => s.clone(),
             Value::HostPath(p) => p.display().to_string(),
-            Value::TargetPath(s) => s.clone(),
+            Value::TargetPath(p) => p.as_str().to_string(),
             Value::Number(n) => n.to_string(),
             Value::Boolean(b) => b.to_string(),
             _ => {
@@ -336,7 +338,10 @@ mod tests {
             span_with_source(SourceId::empty()),
         )];
         let result = rimu_eval::call(span_with_source(SourceId::empty()), path_fn, &args).unwrap();
-        assert_eq!(result.into_inner(), Value::TargetPath("/etc/foo".into()));
+        assert_eq!(
+            result.into_inner(),
+            Value::TargetPath(Utf8TypedPathBuf::from_unix("/etc/foo"))
+        );
     }
 
     #[test]
@@ -371,9 +376,25 @@ mod tests {
     }
 
     #[test]
-    fn target_path_plus_string_concats() {
+    fn target_path_plus_string_joins() {
+        // A leading `/` on the right is stripped so `+` always extends, matching
+        // host_path's footgun-avoidance: a stray `/` should not silently drop
+        // the base via the typed-path crate's "absolute right replaces left"
+        // join semantics.
         let actual = eval_with_stdlib(r#"target_path("/etc") + "/foo""#).unwrap();
-        assert_eq!(actual, Value::TargetPath("/etc/foo".into()));
+        assert_eq!(
+            actual,
+            Value::TargetPath(Utf8TypedPathBuf::from_unix("/etc/foo"))
+        );
+    }
+
+    #[test]
+    fn target_path_plus_relative_string_joins() {
+        let actual = eval_with_stdlib(r#"target_path("/etc") + "foo""#).unwrap();
+        assert_eq!(
+            actual,
+            Value::TargetPath(Utf8TypedPathBuf::from_unix("/etc/foo"))
+        );
     }
 
     #[test]
