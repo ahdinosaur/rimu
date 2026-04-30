@@ -6,7 +6,6 @@ use rimu_value::{
     Environment, EvalError, Function, FunctionBody, NativeFunction, SerdeValue, SerdeValueObject,
     SpannedValue, Value,
 };
-use rust_decimal::prelude::ToPrimitive;
 use typed_path::Utf8TypedPathBuf;
 
 pub fn create_stdlib() -> SerdeValueObject {

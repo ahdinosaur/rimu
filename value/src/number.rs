@@ -18,6 +18,64 @@ use crate::SerdeValueError;
 #[derive(Clone, Copy)]
 pub struct Number(Decimal);
 
+macro_rules! from_primitive {
+    ($($method:ident($ty:ty)),* $(,)?) => {
+        $(
+            #[inline]
+            pub fn $method(n: $ty) -> Option<Self> {
+                Decimal::$method(n).map(Number)
+            }
+        )*
+    };
+}
+
+macro_rules! to_primitive {
+    ($($method:ident -> $ty:ty),* $(,)?) => {
+        $(
+            #[inline]
+            pub fn $method(&self) -> Option<$ty> {
+                self.0.$method()
+            }
+        )*
+    };
+}
+
+impl Number {
+    from_primitive! {
+        from_isize(isize),
+        from_i8(i8),
+        from_i16(i16),
+        from_i32(i32),
+        from_i64(i64),
+        from_i128(i128),
+        from_usize(usize),
+        from_u8(u8),
+        from_u16(u16),
+        from_u32(u32),
+        from_u64(u64),
+        from_u128(u128),
+        from_f32(f32),
+        from_f64(f64),
+    }
+
+    to_primitive! {
+        to_isize -> isize,
+        to_i8 -> i8,
+        to_i16 -> i16,
+        to_i32 -> i32,
+        to_i64 -> i64,
+        to_i128 -> i128,
+        to_usize -> usize,
+        to_u8 -> u8,
+        to_u16 -> u16,
+        to_u32 -> u32,
+        to_u64 -> u64,
+        to_u128 -> u128,
+        to_f32 -> f32,
+        to_f64 -> f64,
+    }
+}
+
 impl Debug for Number {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         Debug::fmt(&self.0, formatter)

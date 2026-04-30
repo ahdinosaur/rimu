@@ -7,7 +7,6 @@ use rimu_value::{
     convert_value_object_to_serde_value_object, Environment, Function, FunctionBody, Number,
     SpannedValue, Value, ValueObject,
 };
-use rust_decimal::prelude::ToPrimitive;
 use std::{cell::RefCell, ops::Deref, rc::Rc};
 
 use crate::{common, EvalError, Result};
