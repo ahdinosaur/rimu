@@ -22,6 +22,7 @@ thiserror = "2.0.17"
 rust_decimal = { version = "1.39.0", features = ["serde-with-float"] }
 rust_decimal_macros = "1.39.0"
 indexmap = { version = "2.11.4", features = ["serde"] }
+typed-path = "0.12.3"
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"
