@@ -36,12 +36,16 @@ range
 host_path("./gitconfig")
 ```
 
-> Concatenating a string to a `host_path` extends the path (using
-> [`Path::join`](https://doc.rust-lang.org/std/path/struct.Path.html#method.join)
-> semantics — a leading `/` on the right replaces the base).
+> Concatenating a string to a `host_path` always extends the path. Any
+> leading `/` on the right is stripped, so a stray slash does not silently
+> drop the base.
 
 ```rimu
 host_path("./dir") + "sub"
+```
+
+```rimu
+host_path("./dir") + "/sub"
 ```
 
 > Errors if the call appears in a source without a parent directory (e.g. an

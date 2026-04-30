@@ -351,14 +351,15 @@ mod tests {
     }
 
     #[test]
-    fn host_path_plus_absolute_string_replaces_base() {
-        // PathBuf::join: a leading "/" on the right replaces the base. That's
-        // Rust convention; users wanting to extend in-place should pass "sub"
-        // (no leading slash). This test pins the replacement behaviour so we
-        // notice if PathBuf::join semantics change, or we decide to reject
-        // absolute strings on the right (see TODO(cc) in eval/src/expression.rs).
+    fn host_path_plus_absolute_string_extends() {
+        // Leading `/`s on the right are stripped so `+` always extends,
+        // never replaces — avoids a string-concat footgun where a stray
+        // leading `/` would silently drop the base.
         let actual = eval_with_stdlib(r#"host_path("./gitconfig") + "/sub""#).unwrap();
-        assert_eq!(actual, Value::HostPath(PathBuf::from("/sub")));
+        assert_eq!(
+            actual,
+            Value::HostPath(PathBuf::from("/tmp/./gitconfig/sub"))
+        );
     }
 
     #[test]
