@@ -722,6 +722,7 @@ dependencies = [
  "rimu-stdlib",
  "rimu-value",
  "serde_yaml",
+ "typed-path",
 ]
 
 [[package]]

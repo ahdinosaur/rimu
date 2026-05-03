@@ -3,8 +3,8 @@ use std::{cell::RefCell, path::PathBuf, rc::Rc, slice::from_ref};
 use rimu_eval::call;
 use rimu_meta::{Span, Spanned};
 use rimu_value::{
-    Environment, EvalError, Function, FunctionBody, NativeFunction, SerdeValue, SerdeValueObject,
-    SpannedValue, Value,
+    Environment, EvalError, Function, FunctionBody, NativeFunction, Number, SerdeValue,
+    SerdeValueObject, SpannedValue, Value,
 };
 use typed_path::Utf8TypedPathBuf;
 
@@ -167,8 +167,10 @@ struct RangeOptions {
 fn range_op(span: Span, options: RangeOptions) -> Result<SpannedValue, EvalError> {
     let RangeOptions { start, end } = options;
     let start = start.unwrap_or(0);
-    let list = (start..end).map(Into::into).collect();
-    Ok(SerdeValue::List(list).with_span(span))
+    let list = (start..end)
+        .map(|i| Spanned::new(Value::Number(Number::from(i)), span.clone()))
+        .collect();
+    Ok(Spanned::new(Value::List(list), span))
 }
 
 /// Construct a [`Value::HostPath`] from a relative string, resolved against

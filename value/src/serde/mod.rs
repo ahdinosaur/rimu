@@ -99,19 +99,6 @@ impl Display for SerdeValue {
     }
 }
 
-pub fn value_get_in<'a>(value: &'a SerdeValue, keys: &[&str]) -> Option<&'a SerdeValue> {
-    let Some((first, rest)) = keys.split_first() else {
-        return Some(value);
-    };
-    match value {
-        SerdeValue::Object(object) => match object.get(*first) {
-            Some(value) => value_get_in(value, rest),
-            None => None,
-        },
-        _ => None,
-    }
-}
-
 #[cfg(test)]
 mod test {
     use std::{borrow::Cow, ffi::OsString, path::PathBuf};
