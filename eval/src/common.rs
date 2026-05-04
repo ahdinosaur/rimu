@@ -21,11 +21,7 @@ pub fn call(span: Span, function: Function, args: &[SpannedValue]) -> Result<Spa
     let function_env = function.env.clone();
     let mut body_env = Environment::new_with_parent(function_env);
 
-    // Insert each call-site argument into the body env *with its span intact*.
-    // The previous code unzipped (Value, Span) and dropped the spans, which
-    // (a) lost call-site context for diagnostics inside the body, and
-    // (b) flattened typed `Value::HostPath` / `TargetPath` to strings via
-    //     `Into<SerdeValue>` — the bug this typed-env refactor exists to fix.
+    // Insert each call-site argument into the body env with its span intact.
     for index in 0..function.args.len() {
         let arg_name = function.args[index].clone();
         let arg = args

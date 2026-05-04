@@ -1,16 +1,4 @@
 //! Cross-boundary invariants for typed `Value` variants in `Environment`.
-//!
-//! Each test pins down a different binding boundary that previously flattened
-//! `Value::HostPath` / `Value::TargetPath` to `Value::String` via the env's
-//! old `SerdeValue` storage:
-//!
-//! - **Function-arg binding** (`call`) — the original lusid bug.
-//! - **`let` binding** (block evaluator).
-//! - **Object field through `let`** (recursive Value/Spanned propagation).
-//! - **`map` callback** (stdlib-level closure invocation).
-//!
-//! `TargetPath` gets one smoke-test of its own so a future `Value` variant
-//! can't pass these tests by accident with only `HostPath` covered.
 
 use std::{cell::RefCell, path::PathBuf, rc::Rc};
 

@@ -4,16 +4,6 @@ use std::{cell::RefCell, iter::empty, rc::Rc};
 use crate::{SerdeValue, SerdeValueObject, SpannedValue, Value, ValueObject};
 
 /// Variable scope used by the evaluator.
-///
-/// Stores fully typed [`SpannedValue`]s, so all `Value` variants — including
-/// `HostPath` / `TargetPath` — survive variable bindings, function-arg
-/// passing, and closure capture without going through serde flattening.
-///
-/// The serde-shaped constructors ([`from_value`](Self::from_value),
-/// [`from_object`](Self::from_object)) and the [`From<SerdeValue> for
-/// SpannedValue`] insert path remain for callers that drive the env from
-/// YAML/JSON or test fixtures; those paths do not have typed variants to
-/// preserve in the first place, so the lossy bridge there is by construction.
 #[derive(Debug, Clone)]
 pub struct Environment {
     content: ValueObject,
@@ -88,9 +78,6 @@ impl Environment {
         }
     }
 
-    // Note(cc): `Vec<&str>` is awkward at call sites — `&[&str]` would be more
-    // idiomatic and zero-cost. Held for a separate cleanup pass to keep the
-    // typed-env diff focused.
     pub fn get_in(&self, keys: Vec<&str>) -> Option<SpannedValue> {
         let (first, rest) = keys.split_first()?;
         match self.get(first) {
@@ -146,7 +133,7 @@ mod tests {
 
     #[test]
     fn insert_get_preserves_host_path() {
-        // The bug we're fixing: `Value::HostPath` must round-trip through
+        // `Value::HostPath` must round-trip through
         // `Environment` without flattening to `Value::String`.
         let mut env = Environment::new();
         let path = PathBuf::from("/abs/host/path");

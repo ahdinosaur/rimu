@@ -412,11 +412,9 @@ impl Evaluator {
                 span: span.clone(),
                 var: var.to_string(),
             })?;
-        // Re-anchor the stored definition span on the use-site span — matches
-        // pre-typed-env behavior, where a missing/wrong-typed lookup would
-        // point at the identifier, not the binding. Note(cc): tracking the
-        // definition span too would help editor "jump to definition" tooling
-        // — defer until there's a consumer.
+        // Re-anchor the stored definition span on the use-site span
+        // Note(cc): tracking the definition span too would help editor
+        // "jump to definition" tooling.
         Ok(Spanned::new(value.into_inner(), span))
     }
 

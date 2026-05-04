@@ -154,8 +154,6 @@ impl Evaluator {
         entries: &[(Spanned<String>, SpannedBlock)],
         body: &SpannedBlock,
     ) -> Result<SpannedValue> {
-        // Insert typed `SpannedValue`s directly — no SerdeValue round-trip,
-        // so `Value::HostPath` / `TargetPath` survive the let-binding.
         let mut let_env = Environment::new_with_parent(self.env.clone());
         for (key, value) in entries.iter() {
             let key = key.clone().into_inner();
