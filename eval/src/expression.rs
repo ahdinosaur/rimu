@@ -412,7 +412,10 @@ impl Evaluator {
                 span: span.clone(),
                 var: var.to_string(),
             })?;
-        Ok(value.with_span(span))
+        // Re-anchor the stored definition span on the use-site span
+        // Note(cc): tracking the definition span too would help editor
+        // "jump to definition" tooling.
+        Ok(Spanned::new(value.into_inner(), span))
     }
 
     fn call(

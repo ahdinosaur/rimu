@@ -74,6 +74,44 @@ impl From<Value> for SerdeValue {
     }
 }
 
+/// Lossy: `SerdeValue` has no `HostPath`/`TargetPath` variants, so a string
+/// stays a string here. Typed-promotion (e.g. `Value::String("/abs")` →
+/// `Value::HostPath(...)`) is the caller's responsibility — in lusid that's
+/// `params::validate`. Functions, lists, objects round-trip recursively.
+impl From<SerdeValue> for Value {
+    fn from(value: SerdeValue) -> Self {
+        match value {
+            SerdeValue::Null => Value::Null,
+            SerdeValue::Boolean(boolean) => Value::Boolean(boolean),
+            SerdeValue::String(string) => Value::String(string),
+            SerdeValue::Number(number) => Value::Number(number),
+            SerdeValue::Function(function) => Value::Function(function),
+            SerdeValue::List(list) => Value::List(
+                list.into_iter()
+                    .map(|item| Spanned::new(item.into(), Span::default()))
+                    .collect(),
+            ),
+            SerdeValue::Object(object) => Value::Object(
+                object
+                    .into_iter()
+                    .map(|(k, v)| (k, Spanned::new(v.into(), Span::default())))
+                    .collect(),
+            ),
+        }
+    }
+}
+
+/// Lossy bridge for serde-shaped sources (CLI YAML/JSON, wasm playground
+/// stdlib, test env-objects). Callers with a real source span should
+/// construct `SpannedValue` directly — using this `From` silently sets
+/// `Span::default()`, which renders as `:0..0` against an empty source id in
+/// any later diagnostic.
+impl From<SerdeValue> for SpannedValue {
+    fn from(value: SerdeValue) -> Self {
+        Spanned::new(value.into(), Span::default())
+    }
+}
+
 pub fn convert_value_list_to_serde_value_list(list: ValueList) -> SerdeValueList {
     list.iter().map(|item| item.clone().into()).collect()
 }

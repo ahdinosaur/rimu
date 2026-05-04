@@ -6,8 +6,7 @@ use std::{cell::RefCell, ops::Deref, rc::Rc};
 use rimu_ast::{Block, Expression, SpannedBlock, SpannedExpression};
 use rimu_meta::{Span, Spanned};
 use rimu_value::{
-    convert_value_object_to_serde_value_object, Environment, Function, FunctionBody, SpannedValue,
-    Value, ValueList, ValueObject,
+    Environment, Function, FunctionBody, SpannedValue, Value, ValueList, ValueObject,
 };
 
 use crate::{common, expression::evaluate as evaluate_expression, EvalError, Result};
@@ -155,24 +154,15 @@ impl Evaluator {
         entries: &[(Spanned<String>, SpannedBlock)],
         body: &SpannedBlock,
     ) -> Result<SpannedValue> {
-        let mut variables = ValueObject::new();
+        let mut let_env = Environment::new_with_parent(self.env.clone());
         for (key, value) in entries.iter() {
             let key = key.clone().into_inner();
             let value = self.block(value)?;
             if value.inner() == &Value::Null {
                 continue;
-            };
-            variables.insert(key, value);
-        }
-
-        let parent_env = self.env.clone();
-        let variables = convert_value_object_to_serde_value_object(variables);
-        let let_env = Environment::from_object(&variables, Some(parent_env)).map_err(|error| {
-            EvalError::Environment {
-                span: span.clone(),
-                source: Box::new(error),
             }
-        })?;
+            let_env.insert(key, value);
+        }
         let let_env = Rc::new(RefCell::new(let_env));
 
         let value = evaluate(body, let_env)?.into_inner();
